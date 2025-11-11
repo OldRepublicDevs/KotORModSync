@@ -30,6 +30,11 @@ namespace KOTORModSync.Dialogs.WizardPages
         private bool _installationComplete;
         private bool _canNavigateForward;
 
+        public WidescreenInstallingPage()
+            : this(new List<ModComponent>(), new MainConfig(), new CancellationTokenSource())
+        {
+        }
+
         public WidescreenInstallingPage(
             [NotNull][ItemNotNull] List<ModComponent> widescreenMods,
             [NotNull] MainConfig mainConfig,

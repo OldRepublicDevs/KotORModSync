@@ -34,7 +34,7 @@ namespace KOTORModSync.Tests
             {
                 try
                 {
-                    Directory.Delete(_testDirectory, true);
+                    Directory.Delete(_testDirectory, recursive: true);
                 }
                 catch
                 {
@@ -149,11 +149,11 @@ namespace KOTORModSync.Tests
             }
 
             var tasks = files.Select(f => DownloadCacheOptimizer.ComputeFileIntegrityData(f)).ToList();
-            var results = await Task.WhenAll(tasks);
+            (string contentHashSHA256, int pieceLength, string pieceHashes)[] results = await Task.WhenAll(tasks);
 
             // All should succeed
             Assert.That(results.Length, Is.EqualTo(5));
-            foreach (var result in results)
+            foreach ((string contentHashSHA256, int pieceLength, string pieceHashes) result in results)
             {
                 Assert.Multiple(() =>
                 {
@@ -274,7 +274,7 @@ namespace KOTORModSync.Tests
             using (await DownloadCacheOptimizer.AcquireContentKeyLock(contentKey))
             {
                 // Try to acquire again from another task (should wait)
-                var task = Task.Run(async () =>
+                Task<string> task = Task.Run(async () =>
                 {
                     using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100)))
                     {

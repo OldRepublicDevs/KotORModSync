@@ -13,7 +13,7 @@ using JetBrains.Annotations;
 
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Utility;
-
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using Tomlyn;
@@ -58,7 +58,7 @@ namespace KOTORModSync.Core.Services
                 else if (encodingName.Equals("utf-8", StringComparison.OrdinalIgnoreCase) ||
                            encodingName.Equals("utf8", StringComparison.OrdinalIgnoreCase))
                 {
-                    targetEncoding = new UTF8Encoding(false, false);
+                    targetEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
                 }
                 else
                 {
@@ -70,7 +70,7 @@ namespace KOTORModSync.Core.Services
                     catch
                     {
                         Logger.LogWarning($"Unknown encoding '{encodingName}', using UTF-8");
-                        targetEncoding = new UTF8Encoding(false, false);
+                        targetEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
                     }
                 }
 
@@ -104,6 +104,136 @@ namespace KOTORModSync.Core.Services
             }
         }
         #endregion
+
+        private static readonly JsonSerializerSettings DirectJsonSerializerSettings = new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            MissingMemberHandling = MissingMemberHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Include,
+        };
+
+        /// <summary>
+        /// Populates ResourceRegistry for all components from DownloadCacheService cache.
+        /// This ensures components have cached filename data immediately after loading.
+        /// </summary>
+        private static async Task PopulateResourceRegistryFromCacheAsync([NotNull][ItemNotNull] IReadOnlyList<ModComponent> components)
+        {
+            // Ensure resource index is loaded
+            await Services.DownloadCacheService.LoadResourceIndexAsync().ConfigureAwait(false);
+
+            foreach (ModComponent component in components)
+            {
+                if (component.ResourceRegistry == null || component.ResourceRegistry.Count == 0)
+                {
+                    continue;
+                }
+
+                // Create a list to track URLs we need to update
+                List<string> urlsToUpdate = new List<string>(component.ResourceRegistry.Keys);
+
+                foreach (string url in urlsToUpdate)
+                {
+                    if (string.IsNullOrWhiteSpace(url))
+                    {
+                        continue;
+                    }
+
+                    // Try to get cached metadata for this URL
+                    ResourceMetadata cachedMetadata = Services.DownloadCacheService.TryGetResourceMetadataByUrl(url);
+
+                    if (cachedMetadata != null && cachedMetadata.Files != null && cachedMetadata.Files.Count > 0)
+                    {
+                        // Get existing metadata or create new
+                        ResourceMetadata existingMetadata = component.ResourceRegistry.TryGetValue(url, out ResourceMetadata existing)
+                            ? existing
+                            : new ResourceMetadata();
+
+                        // If the component's ResourceRegistry doesn't have files yet, populate from cache
+                        if (existingMetadata.Files == null || existingMetadata.Files.Count == 0)
+                        {
+                            existingMetadata.Files = new Dictionary<string, bool?>(cachedMetadata.Files, StringComparer.OrdinalIgnoreCase);
+                            await Logger.LogVerboseAsync($"[ModComponentSerializationService] Populated {cachedMetadata.Files.Count} cached filename(s) for URL: {url} in component: {component.Name}").ConfigureAwait(false);
+                        }
+
+                        // Also copy other useful metadata from cache
+                        if (string.IsNullOrEmpty(existingMetadata.ContentId) && !string.IsNullOrEmpty(cachedMetadata.ContentId))
+                        {
+                            existingMetadata.ContentId = cachedMetadata.ContentId;
+                        }
+                        if (string.IsNullOrEmpty(existingMetadata.ContentHashSHA256) && !string.IsNullOrEmpty(cachedMetadata.ContentHashSHA256))
+                        {
+                            existingMetadata.ContentHashSHA256 = cachedMetadata.ContentHashSHA256;
+                        }
+                        if (string.IsNullOrEmpty(existingMetadata.MetadataHash) && !string.IsNullOrEmpty(cachedMetadata.MetadataHash))
+                        {
+                            existingMetadata.MetadataHash = cachedMetadata.MetadataHash;
+                        }
+                        if (existingMetadata.FileSize == 0 && cachedMetadata.FileSize > 0)
+                        {
+                            existingMetadata.FileSize = cachedMetadata.FileSize;
+                        }
+
+                        // Update the component's ResourceRegistry
+                        component.ResourceRegistry[url] = existingMetadata;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Synchronous wrapper for PopulateResourceRegistryFromCacheAsync.
+        /// </summary>
+        private static void PopulateResourceRegistryFromCache([NotNull][ItemNotNull] IReadOnlyList<ModComponent> components)
+        {
+            Task.Run(async () => await PopulateResourceRegistryFromCacheAsync(components).ConfigureAwait(false)).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Updates the DownloadCacheService cache from component ResourceRegistry before serialization.
+        /// This ensures any runtime changes to ResourceRegistry are persisted to cache.
+        /// </summary>
+        private static async Task UpdateCacheFromResourceRegistryAsync([NotNull][ItemNotNull] IReadOnlyList<ModComponent> components)
+        {
+            // Ensure resource index is loaded
+            await Services.DownloadCacheService.LoadResourceIndexAsync().ConfigureAwait(false);
+
+            foreach (ModComponent component in components)
+            {
+                if (component.ResourceRegistry == null || component.ResourceRegistry.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
+                {
+                    string url = kvp.Key;
+                    ResourceMetadata metadata = kvp.Value;
+
+                    if (string.IsNullOrWhiteSpace(url) || metadata == null)
+                    {
+                        continue;
+                    }
+
+                    // Only update cache if we have meaningful data (files list)
+                    if (metadata.Files != null && metadata.Files.Count > 0)
+                    {
+                        await Services.DownloadCacheService.UpdateResourceMetadataWithFilenamesAsync(
+                            component,
+                            url,
+                            metadata.Files.Keys.ToList()
+                        ).ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Synchronous wrapper for UpdateCacheFromResourceRegistryAsync.
+        /// </summary>
+        private static void UpdateCacheFromResourceRegistry([NotNull][ItemNotNull] IReadOnlyList<ModComponent> components)
+        {
+            Task.Run(async () => await UpdateCacheFromResourceRegistryAsync(components).ConfigureAwait(false)).GetAwaiter().GetResult();
+        }
 
         #region Loading Functions
         [NotNull]
@@ -353,6 +483,9 @@ namespace KOTORModSync.Core.Services
                 throw new InvalidDataException("No valid components found in TOML content.");
             }
 
+            // Update cache from ResourceRegistry BEFORE returning
+            UpdateCacheFromResourceRegistry(components);
+
             return components;
         }
 
@@ -406,6 +539,9 @@ namespace KOTORModSync.Core.Services
             {
                 throw new InvalidDataException("No valid components found in YAML content.");
             }
+
+            // Update cache from ResourceRegistry BEFORE returning
+            UpdateCacheFromResourceRegistry(components);
 
             return components;
         }
@@ -553,7 +689,12 @@ namespace KOTORModSync.Core.Services
                     mainConfig.installationWarningContent = result.InstallationWarningContent;
                 }
 
-                return result.Components.ToList();
+                var components = result.Components.ToList();
+
+                // Update cache from ResourceRegistry BEFORE returning
+                UpdateCacheFromResourceRegistry(components);
+
+                return components;
             }
             catch (InvalidDataException)
             {
@@ -577,56 +718,20 @@ namespace KOTORModSync.Core.Services
                 throw new ArgumentNullException(nameof(jsonContent));
             }
 
-            var mainConfig = new MainConfig();
             jsonContent = SanitizeUtf8(jsonContent);
-            var jsonObject = JObject.Parse(jsonContent);
-            if (jsonObject["metadata"] is JObject metadataObj)
-            {
-                mainConfig.fileFormatVersion = metadataObj["fileFormatVersion"]?.ToString() ?? "2.0";
-                mainConfig.targetGame = metadataObj["targetGame"]?.ToString() ?? string.Empty;
-                mainConfig.buildName = metadataObj["buildName"]?.ToString() ?? string.Empty;
-                mainConfig.buildAuthor = metadataObj["buildAuthor"]?.ToString() ?? string.Empty;
-                mainConfig.buildDescription = metadataObj["buildDescription"]?.ToString() ?? string.Empty;
-                if (metadataObj["lastModified"] != null)
-                {
-                    mainConfig.lastModified = metadataObj["lastModified"].ToObject<DateTime?>();
-                }
-                // Always load content sections if present
-                mainConfig.preambleContent = metadataObj["preambleContent"]?.ToString() ?? string.Empty;
-                mainConfig.epilogueContent = metadataObj["epilogueContent"]?.ToString() ?? string.Empty;
-                mainConfig.widescreenWarningContent = metadataObj["widescreenWarningContent"]?.ToString() ?? string.Empty;
-                mainConfig.aspyrExclusiveWarningContent = metadataObj["aspyrExclusiveWarningContent"]?.ToString() ?? string.Empty;
-                mainConfig.installationWarningContent = metadataObj["installationWarningContent"]?.ToString() ?? string.Empty;
-            }
-            var components = new List<ModComponent>();
-            if (jsonObject["components"] is JArray componentsArray)
-            {
-                int componentIndex = 0;
-                foreach (JToken compToken in componentsArray)
-                {
-                    componentIndex++;
-                    try
-                    {
-                        // Convert JToken to Dictionary recursively to handle nested structures
-                        Dictionary<string, object> compDict = JTokenToDictionary(compToken);
 
-                        // Pre-process the component dictionary to handle duplicate fields
-                        compDict = PreprocessComponentDictionary(compDict);
-
-                        ModComponent component = DeserializeComponent(compDict);
-                        components.Add(component);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWarning($"Failed to deserialize JSON component #{componentIndex}: {ex.Message} - skipping this component");
-                        Logger.LogVerbose($"Component deserialization error details: {ex}");
-                    }
-                }
-            }
-            if (components.Count == 0)
+            List<ModComponent> components;
+            try
             {
-                throw new InvalidDataException("No valid components found in JSON content.");
+                components = JsonConvert.DeserializeObject<List<ModComponent>>(jsonContent, DirectJsonSerializerSettings)
+                             ?? new List<ModComponent>();
             }
+            catch (JsonException ex)
+            {
+                throw new InvalidDataException("Failed to parse JSON content.", ex);
+            }
+
+            UpdateCacheFromResourceRegistry(components);
 
             return components;
         }
@@ -764,6 +869,9 @@ namespace KOTORModSync.Core.Services
                 AutoFixComponentIssues(components);
             }
 
+            // Update cache from ResourceRegistry BEFORE returning
+            UpdateCacheFromResourceRegistry(components);
+
             return components;
         }
 
@@ -795,6 +903,9 @@ namespace KOTORModSync.Core.Services
             {
                 throw new ArgumentNullException(nameof(format));
             }
+
+            // Populate ResourceRegistry from cache BEFORE serialization
+            PopulateResourceRegistryFromCache(components);
 
             switch (format.ToLowerInvariant())
             {
@@ -2068,7 +2179,7 @@ namespace KOTORModSync.Core.Services
         {
             if (value is null)
             {
-                return null;
+                return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             }
 
             // Handle TomlTableArray - preserve it for further processing (e.g., Instructions)
@@ -3240,7 +3351,8 @@ namespace KOTORModSync.Core.Services
                 {
                     return ConvertNestedDictionary(dictValue);
                 }
-                else if (value is IDictionary<object, object> objectDict)
+
+                if (value is IDictionary<object, object> objectDict)
                 {
                     var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                     foreach (KeyValuePair<object, object> kvp in objectDict)
@@ -3253,7 +3365,8 @@ namespace KOTORModSync.Core.Services
                     }
                     return result;
                 }
-                else if (value is TomlTable tomlTable)
+
+                if (value is TomlTable tomlTable)
                 {
                     return ConvertTomlTableToDictionary(tomlTable);
                 }
@@ -3275,7 +3388,7 @@ namespace KOTORModSync.Core.Services
         {
             if (value is null)
             {
-                return null;
+                return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             }
 
             if (value is Dictionary<string, object> stringObjectDict)
@@ -3309,14 +3422,14 @@ namespace KOTORModSync.Core.Services
                 return JTokenToDictionary(jobj);
             }
 
-            return null;
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         }
 
         private static Dictionary<string, bool?> ConvertToStringBoolNullableDictionary(object value)
         {
             if (value is null)
             {
-                return null;
+                return new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
             }
 
             if (value is Dictionary<string, bool?> boolDict)
@@ -3356,16 +3469,11 @@ namespace KOTORModSync.Core.Services
                 return ConvertStringObjectToBoolDictionary(JTokenToDictionary(jobj));
             }
 
-            return null;
+            return new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
         }
 
         private static Dictionary<string, bool?> ConvertStringObjectToBoolDictionary(Dictionary<string, object> source)
         {
-            if (source is null)
-            {
-                return null;
-            }
-
             var result = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, object> kvp in source)
             {
@@ -3459,6 +3567,9 @@ namespace KOTORModSync.Core.Services
             IReadOnlyList<ModComponent> components,
             ComponentValidationContext validationContext = null)
         {
+            // Populate ResourceRegistry from cache BEFORE serialization
+            PopulateResourceRegistryFromCache(components);
+
             Logger.LogVerbose("===== SerializeModComponentAsTomlString START =====");
             Logger.LogVerbose($"Serializing {components.Count} component(s) to TOML");
             for (int i = 0; i < Math.Min(components.Count, 5); i++)
@@ -3536,7 +3647,7 @@ namespace KOTORModSync.Core.Services
                         _ = result.AppendLine("# VALIDATION ISSUES:");
                         foreach (string issue in componentIssues)
                         {
-                            _ = result.AppendLine($"# {issue}");
+                            _ = result.Append("# ").Append(issue).AppendLine();
                         }
                     }
                 }
@@ -3549,10 +3660,10 @@ namespace KOTORModSync.Core.Services
                         List<string> urlFailures = validationContext.GetUrlFailures(url);
                         if (urlFailures.Count > 0)
                         {
-                            _ = result.AppendLine($"# URL RESOLUTION FAILURE: {url}");
+                            _ = result.Append("# URL RESOLUTION FAILURE: ").Append(url).AppendLine();
                             foreach (string failure in urlFailures)
                             {
-                                _ = result.AppendLine($"# {failure}");
+                                _ = result.Append("# ").Append(failure).AppendLine();
                             }
                         }
                     }
@@ -3762,7 +3873,7 @@ namespace KOTORModSync.Core.Services
                                 }
                                 else if (fileEntry.Value is string strVal2)
                                 {
-                                    _ = mlf.Append($"\"{strVal2.Replace("\"", "\\\"")}\"");
+                                    _ = mlf.Append('"').Append(strVal2.Replace("\"", "\\\"")).Append('"');
                                 }
                                 else if (fileEntry.Value == null)
                                 {
@@ -3770,7 +3881,7 @@ namespace KOTORModSync.Core.Services
                                 }
                                 else
                                 {
-                                    _ = mlf.Append($"\"{fileEntry.Value}\"");
+                                    _ = mlf.Append('"').Append(fileEntry.Value).Append('"');
                                 }
                             }
                         }
@@ -3867,7 +3978,7 @@ namespace KOTORModSync.Core.Services
                                 nestedContent.AppendLine("# INSTRUCTION VALIDATION ISSUES:");
                                 foreach (string issue in instructionIssues)
                                 {
-                                    nestedContent.AppendLine($"# {issue}");
+                                    nestedContent.Append("# ").Append(issue).AppendLine();
                                 }
                             }
                         }
@@ -3990,7 +4101,7 @@ namespace KOTORModSync.Core.Services
                                 nestedContent.AppendLine("# OPTION INSTRUCTION VALIDATION ISSUES:");
                                 foreach (string issue in instructionIssues)
                                 {
-                                    nestedContent.AppendLine($"# {issue}");
+                                    nestedContent.Append("# ").Append(issue).AppendLine();
                                 }
                             }
                         }
@@ -4069,6 +4180,9 @@ namespace KOTORModSync.Core.Services
                 ComponentValidationContext validationContext = null
             )
         {
+            // Populate ResourceRegistry from cache BEFORE serialization
+            PopulateResourceRegistryFromCache(components);
+
             Logger.LogVerbose("Saving to YAML string");
             var sb = new StringBuilder();
 
@@ -4093,7 +4207,7 @@ namespace KOTORModSync.Core.Services
                     sb.AppendLine("# VALIDATION ISSUES:");
                     foreach (string issue in componentIssues)
                     {
-                        sb.AppendLine($"# {issue}");
+                        sb.Append("# ").Append(issue).AppendLine();
                     }
                     dict.Remove("_ValidationIssues");
                 }
@@ -4103,10 +4217,10 @@ namespace KOTORModSync.Core.Services
                 {
                     foreach (KeyValuePair<string, List<string>> kvp in urlFailures)
                     {
-                        sb.AppendLine($"# URL RESOLUTION FAILURE: {kvp.Key}");
+                        sb.Append("# URL RESOLUTION FAILURE: ").Append(kvp.Key).AppendLine();
                         foreach (string failure in kvp.Value)
                         {
-                            sb.AppendLine($"# {failure}");
+                            sb.Append("# ").Append(failure).AppendLine();
                         }
                     }
                     dict.Remove("_UrlFailures");
@@ -4177,21 +4291,21 @@ namespace KOTORModSync.Core.Services
 
             sb.AppendLine("---");
             sb.AppendLine("# Metadata");
-            sb.AppendLine($"fileFormatVersion: \"{MainConfig.FileFormatVersion}\"");
+            sb.Append("fileFormatVersion: \"").Append(MainConfig.FileFormatVersion).Append('"').AppendLine();
 
             if (!string.IsNullOrWhiteSpace(MainConfig.TargetGame))
             {
-                sb.AppendLine($"targetGame: \"{MainConfig.TargetGame}\"");
+                sb.Append("targetGame: \"").Append(MainConfig.TargetGame).Append('"').AppendLine();
             }
 
             if (!string.IsNullOrWhiteSpace(MainConfig.BuildName))
             {
-                sb.AppendLine($"buildName: \"{MainConfig.BuildName}\"");
+                sb.Append("buildName: \"").Append(MainConfig.BuildName).Append('"').AppendLine();
             }
 
             if (!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor))
             {
-                sb.AppendLine($"buildAuthor: \"{MainConfig.BuildAuthor}\"");
+                sb.Append("buildAuthor: \"").Append(MainConfig.BuildAuthor).Append('"').AppendLine();
             }
 
             if (!string.IsNullOrWhiteSpace(MainConfig.BuildDescription))
@@ -4202,29 +4316,29 @@ namespace KOTORModSync.Core.Services
                     .Replace("\n", "\\n")
                     .Replace("\r", "\\r")
                     .Replace("\t", "\\t");
-                sb.AppendLine($"buildDescription: \"{escapedDescription}\"");
+                sb.Append("buildDescription: \"").Append(escapedDescription).Append('"').AppendLine();
             }
 
             if (MainConfig.LastModified.HasValue)
             {
-                sb.AppendLine($"lastModified: \"{MainConfig.LastModified.Value:O}\"");
+                sb.Append("lastModified: \"").AppendFormat("{0:O}", MainConfig.LastModified.Value).Append('"').AppendLine();
             }
 
             // Always serialize content sections, even if empty
             string escapedBefore = EscapeYamlString(MainConfig.PreambleContent ?? string.Empty);
-            sb.AppendLine($"preambleContent: \"{escapedBefore}\"");
+            sb.Append("preambleContent: \"").Append(escapedBefore).Append('"').AppendLine();
 
             string escapedAfter = EscapeYamlString(MainConfig.EpilogueContent ?? string.Empty);
-            sb.AppendLine($"epilogueContent: \"{escapedAfter}\"");
+            sb.Append("epilogueContent: \"").Append(escapedAfter).Append('"').AppendLine();
 
             string escapedWidescreen = EscapeYamlString(MainConfig.WidescreenWarningContent ?? string.Empty);
-            sb.AppendLine($"widescreenWarningContent: \"{escapedWidescreen}\"");
+            sb.Append("widescreenWarningContent: \"").Append(escapedWidescreen).Append('"').AppendLine();
 
             string escapedAspyr = EscapeYamlString(MainConfig.AspyrExclusiveWarningContent ?? string.Empty);
-            sb.AppendLine($"aspyrExclusiveWarningContent: \"{escapedAspyr}\"");
+            sb.Append("aspyrExclusiveWarningContent: \"").Append(escapedAspyr).Append('"').AppendLine();
 
             string escapedInstallationWarning = EscapeYamlString(MainConfig.InstallationWarningContent ?? string.Empty);
-            sb.AppendLine($"installationWarningContent: \"{escapedInstallationWarning}\"");
+            sb.Append("installationWarningContent: \"").Append(escapedInstallationWarning).Append('"').AppendLine();
 
             sb.AppendLine();
         }
@@ -4248,6 +4362,9 @@ namespace KOTORModSync.Core.Services
             IReadOnlyList<ModComponent> components,
             ComponentValidationContext validationContext = null)
         {
+            // Populate ResourceRegistry from cache BEFORE serialization
+            PopulateResourceRegistryFromCache(components);
+
             Logger.LogVerbose("Saving to Markdown string");
             return GenerateModDocumentation(
                 components,
@@ -4262,100 +4379,18 @@ namespace KOTORModSync.Core.Services
             IReadOnlyList<ModComponent> components,
             ComponentValidationContext validationContext = null)
         {
+            PopulateResourceRegistryFromCache(components);
+
             Logger.LogVerbose("Saving to JSON string");
-            var jsonRoot = new JObject();
 
-            var metadata = new JObject
-            {
-                ["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0",
-            };
-            if (!string.IsNullOrWhiteSpace(MainConfig.TargetGame))
-            {
-                metadata["targetGame"] = MainConfig.TargetGame;
-            }
+            _ = validationContext;
 
-            if (!string.IsNullOrWhiteSpace(MainConfig.BuildName))
-            {
-                metadata["buildName"] = MainConfig.BuildName;
-            }
-
-            if (!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor))
-            {
-                metadata["buildAuthor"] = MainConfig.BuildAuthor;
-            }
-
-            if (!string.IsNullOrWhiteSpace(MainConfig.BuildDescription))
-            {
-                metadata["buildDescription"] = MainConfig.BuildDescription;
-            }
-
-            if (MainConfig.LastModified.HasValue)
-            {
-                metadata["lastModified"] = MainConfig.LastModified.Value;
-            }
-            // Always serialize content sections, even if empty
-            metadata["preambleContent"] = MainConfig.PreambleContent ?? string.Empty;
-            metadata["epilogueContent"] = MainConfig.EpilogueContent ?? string.Empty;
-            metadata["widescreenWarningContent"] = MainConfig.WidescreenWarningContent ?? string.Empty;
-            metadata["aspyrExclusiveWarningContent"] = MainConfig.AspyrExclusiveWarningContent ?? string.Empty;
-            metadata["installationWarningContent"] = MainConfig.InstallationWarningContent ?? string.Empty;
-            jsonRoot["metadata"] = metadata;
-
-            var componentsArray = new JArray();
-            foreach (ModComponent c in components)
-            {
-                // Use unified serialization
-                Dictionary<string, object> componentDict = SerializeComponentToDictionary(c, validationContext);
-
-                // Convert to JObject with JSON-specific formatting
-                JObject componentObj = DictionaryToJObject(componentDict);
-
-                // JSON-specific: Add validation warnings as special fields
-                if (componentDict.TryGetValue("_ValidationIssues", out object validationIssuesValue) && validationIssuesValue is List<string> componentIssues)
-                {
-                    componentObj["_validationWarnings"] = JArray.FromObject(componentIssues);
-                }
-
-                // JSON-specific: Add URL failure warnings
-                if (componentDict.TryGetValue("_UrlFailures", out object urlFailuresValue) && urlFailuresValue is Dictionary<string, List<string>> urlFailuresDict)
-                {
-                    var urlFailures = new List<string>();
-                    foreach (KeyValuePair<string, List<string>> kvp in urlFailuresDict)
-                    {
-                        urlFailures.Add($"URL: {kvp.Key}");
-                        urlFailures.AddRange(kvp.Value);
-                    }
-                    if (urlFailures.Count > 0)
-                    {
-                        componentObj["_urlResolutionFailures"] = JArray.FromObject(urlFailures);
-                    }
-                }
-
-                // JSON doesn't need OptionsInstructions - remove it (JSON nests instructions under options)
-                componentObj.Remove("optionsInstructions");
-
-                // Ensure internal metadata does not leak into options
-                if (componentObj["options"] is JArray optionsArray)
-                {
-                    foreach (JToken optionToken in optionsArray)
-                    {
-                        if (optionToken is JObject optionObj)
-                        {
-                            optionObj.Remove("_hasInstructions");
-                        }
-                    }
-                }
-
-                componentsArray.Add(componentObj);
-            }
-            jsonRoot["components"] = componentsArray;
-
-            return SanitizeUtf8(jsonRoot.ToString(Newtonsoft.Json.Formatting.Indented));
+            string json = JsonConvert.SerializeObject(components, Formatting.Indented, DirectJsonSerializerSettings);
+            return SanitizeUtf8(json);
         }
 
         /// <summary>
         /// Serializes a single ModComponent to TOML string.
-        /// This is the migrated version of ModComponent.SerializeComponent().
         /// </summary>
         [NotNull]
         public static string SerializeSingleComponentAsTomlString([NotNull] ModComponent component)
@@ -4364,6 +4399,9 @@ namespace KOTORModSync.Core.Services
             {
                 throw new ArgumentNullException(nameof(component));
             }
+
+            // Populate ResourceRegistry from cache BEFORE serialization
+            PopulateResourceRegistryFromCache(new List<ModComponent> { component });
 
             try
             {
@@ -4475,7 +4513,7 @@ namespace KOTORModSync.Core.Services
                         _ = sb.AppendLine("> **⚠️ VALIDATION WARNINGS:**");
                         foreach (string issue in componentIssues)
                         {
-                            _ = sb.AppendLine($"> - {issue}");
+                            _ = sb.Append("> - ").Append(issue).AppendLine();
                         }
                         _ = sb.AppendLine();
                     }
@@ -4488,10 +4526,10 @@ namespace KOTORModSync.Core.Services
                             List<string> urlFailures = validationContext.GetUrlFailures(url);
                             if (urlFailures.Count > 0)
                             {
-                                _ = sb.AppendLine($"> **⚠️ URL RESOLUTION FAILURE:** `{url}`");
+                                _ = sb.Append("> **⚠️ URL RESOLUTION FAILURE:** `").Append(url).Append('`').AppendLine();
                                 foreach (string failure in urlFailures)
                                 {
-                                    _ = sb.AppendLine($"> - {failure}");
+                                    _ = sb.Append("> - ").Append(failure).AppendLine();
                                 }
                                 _ = sb.AppendLine();
                             }
@@ -4513,13 +4551,13 @@ namespace KOTORModSync.Core.Services
                     if (urls.Count > 0 && !string.IsNullOrWhiteSpace(urls[0]))
                     {
                         _ = sb.Append("**Name:** [").Append(component.Name).Append("](")
-                            .Append(urls[0]).Append(")");
+                            .Append(urls[0]).Append(')');
 
                         for (int linkIdx = 1; linkIdx < urls.Count; linkIdx++)
                         {
                             if (!string.IsNullOrWhiteSpace(urls[linkIdx]))
                             {
-                                _ = sb.Append(" and [**Patch**](").Append(urls[linkIdx]).Append(")");
+                                _ = sb.Append(" and [**Patch**](").Append(urls[linkIdx]).Append(')');
                             }
                         }
 
@@ -4641,7 +4679,7 @@ namespace KOTORModSync.Core.Services
                     if (masterNames.Count > 0)
                     {
                         _ = sb.AppendLine();
-                        _ = sb.Append("**Masters:** ").Append(string.Join(", ", masterNames)).AppendLine();
+                        _ = sb.Append("**Masters:** ").AppendJoin(", ", masterNames).AppendLine();
                     }
                 }
 
@@ -4706,7 +4744,7 @@ namespace KOTORModSync.Core.Services
             catch (Exception ex)
             {
                 Logger.LogException(ex, "Failed to serialize component for ModSync metadata");
-                _ = sb.AppendLine($"Guid: {component.Guid}");
+                _ = sb.Append("Guid: ").Append(component.Guid).AppendLine();
             }
 
             _ = sb.AppendLine("-->");
@@ -4728,7 +4766,7 @@ namespace KOTORModSync.Core.Services
                 .Build();
 
             // Use unified serialization
-            Dictionary<string, object> dict = SerializeComponentToDictionary(component, null);
+            Dictionary<string, object> dict = SerializeComponentToDictionary(component, validationContext: null);
 
             // YAML-specific: Remove internal metadata and convert action to lowercase
             dict.Remove("_HasInstructions");

@@ -200,6 +200,28 @@ namespace KOTORModSync
                 return;
             }
 
+            // Check if spoiler-free mode is enabled from owner window
+            bool spoilerFreeMode = false;
+            if (Owner is MainWindow mainWindow)
+            {
+                spoilerFreeMode = mainWindow.SpoilerFreeMode;
+            }
+
+            // Update context menu visibility based on spoiler-free mode when right-clicking
+            if (e.GetCurrentPoint(border).Properties.IsRightButtonPressed && border.ContextMenu != null)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    foreach (var item in border.ContextMenu.Items)
+                    {
+                        if (item is MenuItem menuItem && menuItem.Header?.ToString() == "Copy Download URL")
+                        {
+                            menuItem.IsVisible = !spoilerFreeMode;
+                        }
+                    }
+                });
+            }
+
             if (e.ClickCount != 2)
             {
                 return;
@@ -255,6 +277,19 @@ namespace KOTORModSync
         {
             try
             {
+                // Check if spoiler-free mode is enabled from owner window
+                bool spoilerFreeMode = false;
+                if (Owner is MainWindow mainWindow)
+                {
+                    spoilerFreeMode = mainWindow.SpoilerFreeMode;
+                }
+                
+                // Don't copy URL in spoiler-free mode
+                if (spoilerFreeMode)
+                {
+                    return;
+                }
+                
                 if (sender is MenuItem menuItem && menuItem.DataContext is DownloadProgress progress)
                 {
                     if (string.IsNullOrEmpty(progress.Url))
@@ -987,6 +1022,11 @@ namespace KOTORModSync
                             || download.Status == DownloadStatus.Pending);
         }
 
+        /// <summary>
+        /// Determines whether the download progress window should render inside the main wizard surface, mirroring the wizard visibility rules from <see cref="MainWindow"/>.
+        /// By querying the owning window (or, as a fallback, the application lifetime) we ensure the download UI only embeds when the wizard is guiding the installation, preventing wizard-only chrome from leaking into editor sessions.
+        /// This check keeps the windowing behaviour consistent regardless of where the dialog was launched, aligning auxiliary UI with the current high-level mode so players remain in a single cohesive workflow.
+        /// </summary>
         private bool ShouldEmbedIntoWizardMode()
         {
             if (Owner is MainWindow mainWindow)

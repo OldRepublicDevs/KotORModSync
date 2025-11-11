@@ -2,20 +2,68 @@ When creating XAML or other UI controls/elements NEVER specify in the element it
 
 === PATH SANDBOXING & SECURITY MODEL ===
 Instructions MUST use relative paths with placeholders: <<modDirectory>>\filename*.zip or <<kotorDirectory>>/Override
+
 - ALL instruction Source/Destination fields MUST START with <<modDirectory>> or <<kotorDirectory>>
 - This prevents malicious TOML files from targeting system directories (C:\Windows, etc.)
 - Internal code can make paths absolute as needed, but instruction definitions must use placeholders
 
 === PATH RESOLUTION PIPELINE ===
+
 - Replaces <<modDirectory>>/<<kotorDirectory>> with actual paths at install time or dry-run time.
 - Require all Actions (except for Choose) to be defined with the prefixes <<modDirectory>> or <<kotorDirectory>>. NO absolute paths are allowed.
 - EnumerateFilesWithWildcards() - Resolves wildcards (*, ?) to actual file paths using the file system provider (either VirtualFileSystemProvider or RealFileSystemProvider based on whether an install is happening)
 - SetRealPaths() - Used during dry-run/real installs to resolve <<modDirectory>>
 
 === VIRTUAL FILE SYSTEM (CRITICAL) ===
+
 - VirtualFileSystemProvider tracks files as they're created/moved/deleted/renamed during instruction execution
 - Used for dry-run validation and download analysis to predict file state at each instruction
 - MUST be initialized with InitializeFromRealFileSystemAsync() to load existing files from disk first
 - As instructions execute, VFS updates: Extract adds files, Move relocates them, Delete removes them
 - NEVER use RealFileSystemProvider for validation/analysis - only VirtualFileSystemProvider
 - See ExecuteInstructionsAsync for the instruction execution flow that updates VFS state
+
+=== AvaloniaUI gotchas, do NOT fall for these traps! ===
+
+- ZIndex is NOT valid in AvaloniaUI. Literally anything and everything related to a 'z' index is highly incorrect and unusable in avalonia.
+
+
+## Testing
+
+- All tests specified in KOTORModSync.Tests, do not create additional projects for any reason.
+- For distributed/optimization testing, use specifically the command `dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "FullyQualifiedName~DistributedCache&FullyQualifiedName!~LongRunning"` to run them. Never run tests in this path with any other arguments/parameters.
+- Always use the following command to run tests:
+
+```pwsh
+# ALWAYS use 120000 to differentiate between normal tests and slightly longer tests.
+# ALWAYS use 600000 to differentiate between 'slightly long tests' and 'long tests'.
+# IF a timelimit is specified as 120000, EXCLUSIVELY ensure FullyQualifiedName refers to a **SINGULAR** test! DO NOT run multiple tests with a timelimit as that defeats the purpose of figuring out how long a singular test takes and whether it meets the criteria where it'd be considered a 'slightly long' test vs a normal test.
+pwsh -Command '& {
+    $proj = ''KOTORModSync.Tests/KOTORModSync.Tests.csproj''
+    $args = ''test {0} --filter "FullyQualifiedName~<filterable_name_of_test(s)_to_run>" --list-tests'' -f $proj
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = ''dotnet''
+    $psi.Arguments = $args
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $psi
+    $null = $process.Start()
+    if (-not $process.WaitForExit(120000)) {
+        $stdout = $process.StandardOutput.ReadToEnd()
+        $stderr = $process.StandardError.ReadToEnd()
+        $process.Kill()
+        $process.WaitForExit()
+        Write-Output $stdout
+        Write-Output $stderr
+        Write-Output ''--- COMMAND TIMED OUT AFTER 120s ---''
+    }
+    else {
+        $stdout = $process.StandardOutput.ReadToEnd()
+        $stderr = $process.StandardError.ReadToEnd()
+        Write-Output $stdout
+        Write-Output $stderr
+    }
+}'
+```

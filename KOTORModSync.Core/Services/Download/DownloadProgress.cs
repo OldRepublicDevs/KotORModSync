@@ -682,9 +682,9 @@ Url
                                 {
                                     fileName = System.IO.Path.GetFileName(new Uri(child.Url).AbsolutePath);
                                 }
-                                catch (UriFormatException)
+                                catch (UriFormatException ex)
                                 {
-
+                                    Logger.LogVerbose($"[DownloadProgress] Failed to parse file name from URL '{child.Url}': {ex.Message}");
                                     fileName = System.IO.Path.GetFileName(child.Url);
                                 }
                             }
@@ -744,8 +744,9 @@ Url
                                                 {
                                                     fileName = System.IO.Path.GetFileName(new Uri(c.Url).AbsolutePath);
                                                 }
-                                                catch (UriFormatException)
+                                                catch (UriFormatException ex)
                                                 {
+                                                    Logger.LogVerbose($"[DownloadProgress] Failed to parse file name from URL '{c.Url}': {ex.Message}");
                                                     fileName = System.IO.Path.GetFileName(c.Url);
                                                 }
                                             }

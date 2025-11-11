@@ -50,6 +50,7 @@ namespace KOTORModSync
             }
         }
 
+
         private static void ApplyStyleInternal(string stylePath)
         {
             // Clear ALL existing styles
@@ -65,6 +66,7 @@ namespace KOTORModSync
             var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
             Application.Current.Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
 
+            // Apply to all open windows
             ApplyToAllOpenWindows();
             StyleChanged?.Invoke(s_currentStyleUri);
         }
@@ -142,7 +144,7 @@ namespace KOTORModSync
                 try
                 {
                     var baseUri = new Uri("avares://KOTORModSync/Styles/");
-                    foreach (Uri assetUri in AssetLoader.GetAssets(baseUri, null))
+                    foreach (Uri assetUri in AssetLoader.GetAssets(baseUri, baseUri: null))
                     {
                         string normalized = NormalizeStylePath(assetUri.ToString());
                         themes.Add(normalized);

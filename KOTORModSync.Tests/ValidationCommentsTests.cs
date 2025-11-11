@@ -27,7 +27,7 @@ namespace KOTORModSync.Tests
             context.AddModComponentIssue(guid, "Test issue 2");
 
             // Assert
-            var issues = context.GetComponentIssues(guid);
+            IReadOnlyList<string> issues = context.GetComponentIssues(guid);
             Assert.That(issues.Count, Is.EqualTo(2));
             Assert.Multiple(() =>
             {
@@ -49,7 +49,7 @@ namespace KOTORModSync.Tests
             context.AddInstructionIssue(componentGuid, instructionIndex, "Instruction error");
 
             // Assert
-            var issues = context.GetInstructionIssues(componentGuid, instructionIndex);
+            List<string> issues = context.GetInstructionIssues(componentGuid, instructionIndex);
             Assert.That(issues, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
             {
@@ -70,7 +70,7 @@ namespace KOTORModSync.Tests
             context.AddUrlFailure(url, "Download timeout");
 
             // Assert
-            var failures = context.GetUrlFailures(url);
+            List<string> failures = context.GetUrlFailures(url);
             Assert.That(failures.Count, Is.EqualTo(2));
             Assert.Multiple(() =>
             {
@@ -282,8 +282,8 @@ namespace KOTORModSync.Tests
             context.AddUrlFailure("https://Example.COM/Mod.ZIP", "Test error");
 
             // Assert
-            var failures1 = context.GetUrlFailures("https://example.com/mod.zip");
-            var failures2 = context.GetUrlFailures("https://EXAMPLE.COM/MOD.ZIP");
+            List<string> failures1 = context.GetUrlFailures("https://example.com/mod.zip");
+            List<string> failures2 = context.GetUrlFailures("https://EXAMPLE.COM/MOD.ZIP");
 
             Assert.Multiple(() =>
             {

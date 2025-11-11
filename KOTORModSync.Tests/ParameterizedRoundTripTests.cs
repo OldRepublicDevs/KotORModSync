@@ -204,8 +204,8 @@ namespace KOTORModSync.Tests
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
-                var orig = originalComponents[i];
-                var gen = generatedComponents[i];
+                ModComponent orig = originalComponents[i];
+                ModComponent gen = generatedComponents[i];
 
                 Assert.Multiple(() =>
                 {
@@ -318,8 +318,8 @@ namespace KOTORModSync.Tests
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
-                var orig = originalComponents[i];
-                var regen = regeneratedComponents[i];
+                ModComponent orig = originalComponents[i];
+                ModComponent regen = regeneratedComponents[i];
 
                 Assert.Multiple(() =>
                 {
@@ -429,8 +429,8 @@ namespace KOTORModSync.Tests
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
-                var orig = originalComponents[i];
-                var fromMd = componentsFromMarkdown[i];
+                ModComponent orig = originalComponents[i];
+                ModComponent fromMd = componentsFromMarkdown[i];
 
                 Assert.Multiple(() =>
                 {

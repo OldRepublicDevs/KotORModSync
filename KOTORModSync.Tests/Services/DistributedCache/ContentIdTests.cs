@@ -2,9 +2,9 @@
 // Licensed under the GPL version 3 license.
 
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using KOTORModSync.Core.Services.Download;
 using Xunit;
 
 namespace KOTORModSync.Tests.Services.DistributedCache
@@ -13,13 +13,34 @@ namespace KOTORModSync.Tests.Services.DistributedCache
     /// Tests for ContentId generation, idempotency, and collision detection.
     /// </summary>
     [Collection("DistributedCache")]
-    public class ContentIdTests : IClassFixture<DistributedCacheTestFixture>
+    public class ContentIdTests : IClassFixture<DistributedCacheTestFixture>, IDisposable
     {
         private readonly DistributedCacheTestFixture _fixture;
+        private readonly IDisposable _clientScope;
 
         public ContentIdTests(DistributedCacheTestFixture fixture)
         {
             _fixture = fixture;
+            _clientScope = DownloadCacheOptimizer.DiagnosticsHarness.AttachSyntheticClient();
+            ResetDiagnostics();
+        }
+
+        public void Dispose()
+        {
+            _clientScope.Dispose();
+        }
+
+        private static void ResetDiagnostics()
+        {
+            DownloadCacheOptimizer.DiagnosticsHarness.ClearActiveManagers();
+            DownloadCacheOptimizer.DiagnosticsHarness.ClearBlockedContentIds();
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: false, port: 0, lastCheck: DateTime.MinValue);
+            DownloadCacheOptimizer.DiagnosticsHarness.SetClientSettings(new
+            {
+                ListenPort = 0,
+                ClientName = "ContentIdTests",
+                ClientVersion = "0.0.1"
+            });
         }
 
         [Fact]
@@ -53,8 +74,11 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         {
             // Create two files with identical content
             string content = new string('A', 1000);
-            string file1 = _fixture.CreateTestFile("identical1.txt", 0, content);
-            string file2 = _fixture.CreateTestFile("identical2.txt", 0, content);
+            string directory1 = _fixture.CreateTempDirectory("identical_content_1");
+            string directory2 = _fixture.CreateTempDirectory("identical_content_2");
+            const string canonicalFileName = "identical_content.txt";
+            string file1 = DistributionTestSupport.EnsureTestFile(directory1, canonicalFileName, 0, content);
+            string file2 = DistributionTestSupport.EnsureTestFile(directory2, canonicalFileName, 0, content);
 
             string id1 = _fixture.ComputeContentId(file1);
             string id2 = _fixture.ComputeContentId(file2);
@@ -102,15 +126,19 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             // Create file
             byte[] data = new byte[1000];
             new Random(42).NextBytes(data);
-            string file1 = Path.Combine(_fixture.TestDataDirectory, "original.bin");
-            File.WriteAllBytes(file1, data);
+            string file1 = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "original.bin",
+                data);
 
             string id1 = _fixture.ComputeContentId(file1);
 
             // Change one byte
             data[500] ^= 0xFF;
-            string file2 = Path.Combine(_fixture.TestDataDirectory, "modified.bin");
-            File.WriteAllBytes(file2, data);
+            string file2 = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "modified.bin",
+                data);
 
             string id2 = _fixture.ComputeContentId(file2);
 
@@ -197,8 +225,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         {
             // Create file with all possible byte values
             byte[] data = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
-            string file = Path.Combine(_fixture.TestDataDirectory, "binary.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "binary.bin",
+                data);
 
             string id = _fixture.ComputeContentId(file);
             Assert.Equal(40, id.Length);
@@ -242,8 +272,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             var random = new Random();
             byte[] data = new byte[10000];
             random.NextBytes(data);
-            string file = Path.Combine(_fixture.TestDataDirectory, "random.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "random.bin",
+                data);
 
             string id = _fixture.ComputeContentId(file);
             Assert.Equal(40, id.Length);
@@ -253,8 +285,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public void ContentId_FileWithNullBytes_ValidHash()
         {
             byte[] data = new byte[1000]; // All zeros
-            string file = Path.Combine(_fixture.TestDataDirectory, "nulls.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "nulls.bin",
+                data);
 
             string id = _fixture.ComputeContentId(file);
             Assert.Equal(40, id.Length);
@@ -264,8 +298,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public void ContentId_FileWith0xFF_ValidHash()
         {
             byte[] data = Enumerable.Repeat((byte)0xFF, 1000).ToArray();
-            string file = Path.Combine(_fixture.TestDataDirectory, "oxff.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "oxff.bin",
+                data);
 
             string id = _fixture.ComputeContentId(file);
             Assert.Equal(40, id.Length);

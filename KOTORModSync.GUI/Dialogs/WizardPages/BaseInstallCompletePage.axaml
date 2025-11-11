@@ -6,45 +6,235 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
-        <TextBlock
-            HorizontalAlignment="Center"
-            Text="✅ Base Installation Complete!"
-            TextAlignment="Center" />
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24,16" RowDefinitions="Auto,Auto,*,Auto">
+            <!--  Success Header  -->
+            <Border Grid.Row="0" Padding="32,24" CornerRadius="16" Margin="0,0,0,24">
+                <StackPanel HorizontalAlignment="Center" Spacing="16">
+                    <TextBlock
+                        FontSize="64"
+                        Text="&#x2705;"
+                        TextAlignment="Center" />
+                    <TextBlock
+                        FontSize="32"
+                        FontWeight="Bold"
+                        Text="Base Installation Complete!"
+                        TextAlignment="Center" />
+                    <TextBlock
+                        FontSize="16"
+                        Opacity="0.8"
+                        Text="Your base KOTOR mods have been successfully installed"
+                        TextAlignment="Center" />
+                </StackPanel>
+            </Border>
 
-        <TextBlock
-            HorizontalAlignment="Center"
-            Text="All selected mods have been installed successfully."
-            TextAlignment="Center" />
+            <!--  Statistics Grid  -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,16,*,16,*,16,*" Margin="0,0,0,24">
+                <Border Grid.Column="0" Padding="24,20" CornerRadius="12">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center">
+                        <TextBlock
+                            FontSize="12"
+                            Opacity="0.6"
+                            Text="MODS INSTALLED"
+                            TextAlignment="Center" />
+                        <TextBlock
+                            x:Name="ModsInstalledText"
+                            FontSize="36"
+                            FontWeight="Bold"
+                            Text="0"
+                            TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
 
-        <Border Padding="24" CornerRadius="8" MaxWidth="500">
-            <StackPanel Spacing="12">
+                <Border Grid.Column="2" Padding="24,20" CornerRadius="12">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center">
+                        <TextBlock
+                            FontSize="12"
+                            Opacity="0.6"
+                            Text="CHECKPOINTS"
+                            TextAlignment="Center" />
+                        <TextBlock
+                            x:Name="CheckpointsCreatedText"
+                            FontSize="36"
+                            FontWeight="Bold"
+                            Text="0"
+                            TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="4" Padding="24,20" CornerRadius="12">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center">
+                        <TextBlock
+                            FontSize="12"
+                            Opacity="0.6"
+                            Text="TIME ELAPSED"
+                            TextAlignment="Center" />
+                        <TextBlock
+                            x:Name="TimeElapsedText"
+                            FontSize="36"
+                            FontWeight="Bold"
+                            Text="--:--"
+                            TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="6" Padding="24,20" CornerRadius="12">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center">
+                        <TextBlock
+                            FontSize="12"
+                            Opacity="0.6"
+                            Text="FILES MODIFIED"
+                            TextAlignment="Center" />
+                        <TextBlock
+                            x:Name="FilesModifiedText"
+                            FontSize="36"
+                            FontWeight="Bold"
+                            Text="0"
+                            TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!--  Next Steps & Info  -->
+            <Grid Grid.Row="2" ColumnDefinitions="*,16,*" RowDefinitions="*,16,Auto">
+                <!--  What's Next  -->
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Padding="24,20"
+                    CornerRadius="12"
+                    VerticalAlignment="Stretch">
+                    <StackPanel Spacing="16">
+                        <TextBlock
+                            FontSize="20"
+                            FontWeight="Bold"
+                            Text="&#x1F4CB; What's Next?" />
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Text="1. Widescreen Support" />
+                                <TextBlock
+                                    FontSize="13"
+                                    Opacity="0.8"
+                                    Text="If you're playing on a widescreen monitor, continue to install widescreen-specific mods"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Text="2. Test Your Game" />
+                                <TextBlock
+                                    FontSize="13"
+                                    Opacity="0.8"
+                                    Text="Launch KOTOR and verify everything is working correctly before starting a new playthrough"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Text="3. Save Your Progress" />
+                                <TextBlock
+                                    FontSize="13"
+                                    Opacity="0.8"
+                                    Text="Your installation is checkpointed - you can always roll back if needed"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!--  Important Notes  -->
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Padding="24,20"
+                    CornerRadius="12"
+                    VerticalAlignment="Stretch">
+                    <StackPanel Spacing="16">
+                        <TextBlock
+                            FontSize="20"
+                            FontWeight="Bold"
+                            Text="&#x26A0;&#xFE0F; Important Notes" />
+                        <StackPanel Spacing="12">
+                            <TextBlock
+                                FontSize="13"
+                                Opacity="0.8"
+                                Text="&#x2022; Start a NEW GAME - Don't load old save files"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                FontSize="13"
+                                Opacity="0.8"
+                                Text="&#x2022; Check the log files if you encounter any issues"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                FontSize="13"
+                                Opacity="0.8"
+                                Text="&#x2022; Join our community for support and discussion"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                FontSize="13"
+                                Opacity="0.8"
+                                Text="&#x2022; Remember to credit mod authors if you share content"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!--  Quick Actions  -->
+                <Border
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Padding="24,20"
+                    CornerRadius="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Text="&#x1F680; Quick Actions" />
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                            <Button
+                                x:Name="ViewLogsButton"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Margin="0,0,4,0"
+                                HorizontalAlignment="Stretch"
+                                Padding="16,12"
+                                Content="&#x1F4C4; View Logs" />
+                            <Button
+                                x:Name="ManageCheckpointsButton"
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Margin="4,0,0,0"
+                                HorizontalAlignment="Stretch"
+                                Padding="16,12"
+                                Content="🔄 Manage Checkpoints" />
+
+                            <Button
+                                x:Name="OpenGameFolderButton"
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Margin="0,8,4,0"
+                                HorizontalAlignment="Stretch"
+                                Padding="16,12"
+                                Content="&#x1F4C1; Open Game Folder" />
+                            <Button
+                                x:Name="OpenModFolderButton"
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="4,8,0,0"
+                                HorizontalAlignment="Stretch"
+                                Padding="16,12"
+                                Content="&#x1F4E6; Open Mod Folder" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!--  Footer  -->
+            <Border Grid.Row="3" Padding="16,12" CornerRadius="8" Margin="0,24,0,0">
                 <TextBlock
-                    HorizontalAlignment="Center"
-                    Text="📊 Installation Summary" />
-
-                <ItemsControl x:Name="SummaryItems">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock
-                                    Text="{Binding Label}" />
-                                <TextBlock
-                                    Grid.Column="1"
-                                    Text="{Binding Value}" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
-
-        <TextBlock
-            HorizontalAlignment="Center"
-            Opacity="0.7"
-            Text="Click 'Next' to continue..."
-            TextAlignment="Center" />
-    </StackPanel>
+                    FontSize="13"
+                    Opacity="0.7"
+                    Text="Click 'Next' to continue with widescreen-specific mods (if applicable), or 'Finish' to exit"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+            </Border>
+        </Grid>
+    </ScrollViewer>
 </UserControl>
-
-

@@ -1,0 +1,288 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<Window
+    x:Class="KOTORModSync.Dialogs.GitCheckpointBrowserDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Checkpoint Browser"
+    Width="1000"
+    Height="700"
+    MinWidth="800"
+    MinHeight="600"
+    WindowStartupLocation="CenterOwner">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!--  Header  -->
+        <Border
+            Grid.Row="0"
+            Padding="24,16"
+            BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="8">
+                    <TextBlock
+                        FontSize="24"
+                        FontWeight="Bold"
+                        Text="🔄 Checkpoint Browser" />
+                    <TextBlock
+                        FontSize="14"
+                        Opacity="0.8"
+                        Text="Browse and restore game state from any point in your installation history" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock
+                        HorizontalAlignment="Right"
+                        FontSize="12"
+                        Opacity="0.7"
+                        Text="Current Checkpoint" />
+                    <TextBlock
+                        x:Name="CurrentCheckpointText"
+                        HorizontalAlignment="Right"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Text="Loading..." />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  Main Content  -->
+        <Grid Grid.Row="1" ColumnDefinitions="400,*">
+            <!--  Checkpoint List  -->
+            <Border
+                Grid.Column="0"
+                Padding="16"
+                BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,*">
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12" Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="Installation History" />
+                        <TextBlock
+                            x:Name="CheckpointCountText"
+                            FontSize="13"
+                            Opacity="0.7"
+                            Text="0 checkpoints available" />
+                    </StackPanel>
+
+                    <ScrollViewer
+                        Grid.Row="1"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="CheckpointList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button
+                                        Margin="0,4"
+                                        Padding="12,10"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        Click="CheckpointItem_Click"
+                                        Tag="{Binding}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Margin="0,0,12,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="20"
+                                                Text="📌" />
+
+                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                <TextBlock
+                                                    FontSize="14"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding ComponentName}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    Opacity="0.7"
+                                                    Text="{Binding FormattedTimestamp}" />
+                                                <TextBlock
+                                                    FontSize="10"
+                                                    Opacity="0.6"
+                                                    Text="{Binding ShortCommitId}" />
+                                            </StackPanel>
+
+                                            <StackPanel
+                                                Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                Spacing="4">
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    Opacity="0.6"
+                                                    Text="{Binding ProgressText}"
+                                                    TextAlignment="Right" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!--  Details Panel  -->
+            <Border Grid.Column="1" Padding="24,16">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!--  Selected Checkpoint Info  -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,16" Spacing="12">
+                        <TextBlock
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Text="Checkpoint Details" />
+
+                        <StackPanel x:Name="CheckpointDetailsPanel" Spacing="12">
+                            <Grid ColumnDefinitions="120,*">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontSize="13"
+                                    Opacity="0.7"
+                                    Text="Component:" />
+                                <TextBlock
+                                    x:Name="SelectedComponentNameText"
+                                    Grid.Column="1"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Text="Select a checkpoint" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="120,*">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontSize="13"
+                                    Opacity="0.7"
+                                    Text="Timestamp:" />
+                                <TextBlock
+                                    x:Name="SelectedTimestampText"
+                                    Grid.Column="1"
+                                    FontSize="13"
+                                    Text="--" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="120,*">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontSize="13"
+                                    Opacity="0.7"
+                                    Text="Commit ID:" />
+                                <TextBlock
+                                    x:Name="SelectedCommitIdText"
+                                    Grid.Column="1"
+                                    FontFamily="Consolas,Courier New,monospace"
+                                    FontSize="12"
+                                    Text="--" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="120,*">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontSize="13"
+                                    Opacity="0.7"
+                                    Text="Progress:" />
+                                <TextBlock
+                                    x:Name="SelectedProgressText"
+                                    Grid.Column="1"
+                                    FontSize="13"
+                                    Text="--" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!--  File Changes Preview  -->
+                    <Border Grid.Row="1" Padding="12" CornerRadius="8">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock
+                                Grid.Row="0"
+                                Margin="0,0,0,8"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Text="📝 File Changes" />
+
+                            <ScrollViewer
+                                Grid.Row="1"
+                                HorizontalScrollBarVisibility="Auto"
+                                VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="FileChangesPanel" Spacing="4">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Opacity="0.6"
+                                        Text="Select a checkpoint to view changes" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!--  Action Buttons  -->
+                    <StackPanel Grid.Row="2" Margin="0,16,0,0" Spacing="12">
+                        <Border Padding="12" CornerRadius="6">
+                            <StackPanel Spacing="8">
+                                <TextBlock
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Text="⚠️ Warning" />
+                                <TextBlock
+                                    FontSize="12"
+                                    Opacity="0.8"
+                                    Text="Restoring a checkpoint will replace your current game files with the state at that point. This action cannot be undone."
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Button
+                            x:Name="RestoreButton"
+                            HorizontalAlignment="Stretch"
+                            Padding="16,12"
+                            Click="RestoreButton_Click"
+                            Content="🔄 Restore to Selected Checkpoint"
+                            IsEnabled="False" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!--  Footer  -->
+        <Border
+            Grid.Row="2"
+            Padding="16,12"
+            BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <TextBlock
+                    x:Name="StatusText"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Opacity="0.7" />
+
+                <ProgressBar
+                    x:Name="ProgressBar"
+                    Grid.Column="1"
+                    Width="200"
+                    Height="4"
+                    Margin="16,0,0,0"
+                    HorizontalAlignment="Left"
+                    IsIndeterminate="True"
+                    IsVisible="False" />
+
+                <Button
+                    x:Name="RefreshButton"
+                    Grid.Column="2"
+                    MinWidth="100"
+                    Margin="0,0,8,0"
+                    Padding="12,8"
+                    Click="RefreshButton_Click"
+                    Content="🔄 Refresh" />
+
+                <Button
+                    x:Name="CloseButton"
+                    Grid.Column="3"
+                    MinWidth="100"
+                    Padding="12,8"
+                    Click="CloseButton_Click"
+                    Content="Close" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+

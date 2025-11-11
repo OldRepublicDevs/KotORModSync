@@ -230,7 +230,7 @@ namespace KOTORModSync.Dialogs
             if (e.Key == Key.F && e.KeyModifiers.HasFlag(KeyModifiers.Control))
             {
                 e.Handled = true;
-                ViewModel?.FindCommand.Execute(null);
+                ViewModel?.FindCommand.Execute(parameter: null);
             }
         }
 
@@ -259,20 +259,20 @@ namespace KOTORModSync.Dialogs
                     }
                     else
                     {
-                        ToolTip.SetTip(_previewTextBox, null);
+                        ToolTip.SetTip(_previewTextBox, value: null);
                     }
                     return;
                 }
             }
 
             ClearTextBoxHighlight();
-            ToolTip.SetTip(_previewTextBox, null);
+            ToolTip.SetTip(_previewTextBox, value: null);
         }
 
         private void PreviewTextBox_PointerExited(object sender, PointerEventArgs e)
         {
             ClearTextBoxHighlight();
-            ToolTip.SetTip(_previewTextBox, null);
+            ToolTip.SetTip(_previewTextBox, value: null);
         }
 
         private void UpdatePreviewInlines()
@@ -465,7 +465,7 @@ namespace KOTORModSync.Dialogs
                     findTextBox,
                     findNextButton,
                     findPrevButton,
-                    closeButton
+                    closeButton,
                 },
             };
 

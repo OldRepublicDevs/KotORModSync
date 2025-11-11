@@ -95,14 +95,14 @@ Instructions:
                             {
                                 "%temp%\\mod_files\\Dantooine HR\\DAN_wall03.tpc",
                                 "%temp%\\mod_files\\Dantooine HR\\DAN_NEW1.tpc",
-                                "%temp%\\mod_files\\Dantooine HR\\DAN_MWFl.tpc"
+                                "%temp%\\mod_files\\Dantooine HR\\DAN_MWFl.tpc",
                             },
                         },
                         new Instruction
                         {
                             Action = Instruction.ActionType.Move,
                             Source = new List<string> { "%temp%\\mod_files\\Dantooine HR\\" },
-                            Destination = "%temp%\\Override"
+                            Destination = "%temp%\\Override",
                         },
                     },
                 },
@@ -122,7 +122,7 @@ Instructions:
                         {
                             Action = Instruction.ActionType.Run,
                             Source = new List<string> { "%temp%\\mod_files\\TSLPatcher.exe" },
-                        }
+                        },
                     },
                 },
             };
@@ -164,7 +164,7 @@ Instructions:
                     new Instruction
                     {
                         Action = Instruction.ActionType.Extract,
-                        Source = new List<string> { "test.rar" }
+                        Source = new List<string> { "test.rar" },
                     },
                 },
             };
@@ -472,7 +472,7 @@ Instructions:
                     Source = new List<string> { "test.rar" },
                     Overwrite = true,
                     Destination = "some/path",
-                    Arguments = "some args"
+                    Arguments = "some args",
                 },
             },
             };
@@ -496,7 +496,7 @@ Instructions:
                     Source = new List<string> { "test.txt" },
                     Destination = "<<kotorDirectory>>\\Override",
                     Overwrite = false,  // Set to false so it gets serialized (different from default)
-					Arguments = "should not appear"
+					Arguments = "should not appear",
                 },
             },
             };
@@ -520,7 +520,7 @@ Instructions:
                     Source = new List<string> { "tslpatchdata" },
                     Destination = "<<kotorDirectory>>",
                     Arguments = "0",
-                    Overwrite = true
+                    Overwrite = true,
                 },
             },
             };
@@ -544,7 +544,7 @@ Instructions:
                     Source = new List<string> { "setup.exe" },
                     Arguments = "/silent",
                     Overwrite = true,
-                    Destination = "some/path"
+                    Destination = "some/path",
                 },
             },
             };

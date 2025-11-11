@@ -209,9 +209,9 @@ namespace KOTORModSync.Dialogs
         {
             try
             {
-                if (ViewModel?.LinkSelectedCommand?.CanExecute(null) == true)
+                if (ViewModel?.LinkSelectedCommand?.CanExecute(parameter: null) == true)
                 {
-                    ViewModel.LinkSelectedCommand.Execute(null);
+                    ViewModel.LinkSelectedCommand.Execute(parameter: null);
                 }
             }
             catch (Exception ex)
@@ -224,9 +224,9 @@ namespace KOTORModSync.Dialogs
         {
             try
             {
-                if (ViewModel?.UnlinkSelectedCommand?.CanExecute(null) == true)
+                if (ViewModel?.UnlinkSelectedCommand?.CanExecute(parameter: null) == true)
                 {
-                    ViewModel.UnlinkSelectedCommand.Execute(null);
+                    ViewModel.UnlinkSelectedCommand.Execute(parameter: null);
                 }
             }
             catch (Exception ex)

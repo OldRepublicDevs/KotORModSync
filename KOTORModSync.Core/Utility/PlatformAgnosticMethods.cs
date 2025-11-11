@@ -21,7 +21,7 @@ using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Core.Utility
 {
-    public static class PlatformAgnosticMethods
+    public static partial class PlatformAgnosticMethods
     {
         [StructLayout(LayoutKind.Sequential)]
         private struct MemoryStatusEx
@@ -147,6 +147,7 @@ namespace KOTORModSync.Core.Utility
             }
             catch (Exception ex)
             {
+                Logger.LogException(ex, $"Command execution failed using shell '{shellPath}'.");
                 return (-2, string.Empty, $"Command execution failed: {ex.Message}");
             }
         }
@@ -191,12 +192,12 @@ namespace KOTORModSync.Core.Utility
             try
             {
 
-                int effectiveUserId = (int)Interop.geteuid();
+                int effectiveUserId = (int)Interop.GetEffectiveUserId();
                 return effectiveUserId == 0;
             }
-            catch (DllNotFoundException)
+            catch (DllNotFoundException ex)
             {
-
+                Logger.LogException(ex, "Native geteuid call not available; attempting sudo fallback to detect admin privileges.");
                 var process = new Process
                 {
                     StartInfo =
@@ -215,9 +216,9 @@ namespace KOTORModSync.Core.Utility
                     process.WaitForExit();
                     return process.ExitCode == 0;
                 }
-                catch
+                catch (Exception fallbackEx)
                 {
-
+                    Logger.LogException(fallbackEx, "Failed to determine admin privileges using sudo fallback.");
                     return null;
                 }
             }
@@ -558,11 +559,9 @@ namespace KOTORModSync.Core.Utility
                         {
                             continue;
                         }
-                        else
-                        {
-                            index++;
-                            continue;
-                        }
+
+                        index++;
+                        continue;
                     }
 
                     await Logger.LogExceptionAsync(localException).ConfigureAwait(false);
@@ -587,10 +586,12 @@ namespace KOTORModSync.Core.Utility
             return (-1, string.Empty, string.Empty);
         }
 
-        private static class Interop
+        private static partial class Interop
         {
-            [DllImport(dllName: "libc")]
-            public static extern uint geteuid();
+            [DllImport("libc", EntryPoint = "geteuid")]
+            private static extern uint geteuidNative();
+
+            public static uint GetEffectiveUserId() => geteuidNative();
         }
     }
 }

@@ -229,14 +229,12 @@ namespace KOTORModSync.Services
                         $"Successfully generated {component.Instructions.Count} instructions from the archive.\n\nInstallation Method: {component.InstallationMethod}").ConfigureAwait(true);
                     return true;
                 }
-                else
-                {
-                    await Logger.LogVerboseAsync("[InstructionGenerationService] AutoInstructionGenerator returned false").ConfigureAwait(false);
-                    await InformationDialog.ShowInformationDialogAsync(
-                        _parentWindow,
-                        "Could not generate instructions from the selected archive. The archive may not contain recognizable game files or TSLPatcher components.").ConfigureAwait(true);
-                    return false;
-                }
+
+                await Logger.LogVerboseAsync("[InstructionGenerationService] AutoInstructionGenerator returned false").ConfigureAwait(false);
+                await InformationDialog.ShowInformationDialogAsync(
+                    _parentWindow,
+                    "Could not generate instructions from the selected archive. The archive may not contain recognizable game files or TSLPatcher components.").ConfigureAwait(true);
+                return false;
             }
             catch (Exception ex)
             {

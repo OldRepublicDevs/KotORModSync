@@ -63,7 +63,7 @@ namespace KOTORModSync.Tests
         public virtual void SetUp()
         {
             // Get the test method name and class name
-            var testContext = TestContext.CurrentContext;
+            TestContext testContext = TestContext.CurrentContext;
             string testName = testContext.Test.Name;
             string className = GetType().Name;
 
@@ -348,7 +348,7 @@ namespace KOTORModSync.Tests
         /// </summary>
         protected virtual string GetLogDirectoryPath(string testName)
         {
-            var testInfo = ParseTestName(testName);
+            TestNameInfo testInfo = ParseTestName(testName);
 
             // Ensure TestFileDirectory is not null
             string baseDir = TestFileDirectory ?? "";
@@ -480,7 +480,7 @@ namespace KOTORModSync.Tests
         /// </summary>
         protected virtual string GetLogFileName(string testName, string timestamp)
         {
-            var testInfo = ParseTestName(testName);
+            TestNameInfo testInfo = ParseTestName(testName);
 
             // Use the parsed mod name for a cleaner filename
             string fileName = $"{testInfo.ModName}_{timestamp}.log";

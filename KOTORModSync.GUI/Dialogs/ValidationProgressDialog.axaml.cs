@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Avalonia;
@@ -21,6 +22,7 @@ namespace KOTORModSync.Dialogs
         private readonly object _logLock = new object();
         private readonly bool _autoScroll = true;
         private DispatcherTimer _logUpdateTimer;
+        private CancellationTokenSource _cancellationSource;
 
         public ValidationProgressDialog()
         {
@@ -173,23 +175,31 @@ namespace KOTORModSync.Dialogs
 
         private void CloseButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
+            _cancellationSource?.Cancel();
             _logUpdateTimer?.Stop();
             Close();
         }
 
         protected override void OnClosed(EventArgs e)
         {
+            _cancellationSource?.Cancel();
             _logUpdateTimer?.Stop();
             base.OnClosed(e);
         }
 
-        public static async Task<ValidationProgressDialog> ShowValidationProgress(Window parent)
+        internal void AttachCancellationSource(CancellationTokenSource cancellationSource)
+        {
+            _cancellationSource = cancellationSource;
+        }
+
+        public static async Task<ValidationProgressDialog> ShowValidationProgress(Window parent, CancellationTokenSource cancellationSource = null)
         {
             ValidationProgressDialog dialog = null;
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 dialog = new ValidationProgressDialog();
+                dialog.AttachCancellationSource(cancellationSource);
                 dialog.Show(parent);
             }, DispatcherPriority.Normal);
 

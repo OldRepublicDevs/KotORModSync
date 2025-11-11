@@ -78,7 +78,7 @@ namespace KOTORModSync.Tests
                 changesStream.Position = 0;
                 archive.AddEntry("tslpatchdata/changes.ini", changesStream);
 
-                using (var fileStream = File.Create(archivePath))
+                using (FileStream fileStream = File.Create(archivePath))
                 {
                     archive.SaveTo(fileStream, new WriterOptions(CompressionType.Deflate));
                 }

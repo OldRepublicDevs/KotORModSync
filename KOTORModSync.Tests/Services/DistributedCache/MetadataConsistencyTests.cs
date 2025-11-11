@@ -2,9 +2,11 @@
 // Licensed under the GPL version 3 license.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using KOTORModSync.Core.Services.Download;
 using Xunit;
 
 namespace KOTORModSync.Tests.Services.DistributedCache
@@ -23,16 +25,21 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public async Task Metadata_TorrentFile_MatchesOriginal()
+        public async Task Metadata_DescriptorFile_MatchesPayload()
         {
             string testFile = _fixture.CreateTestFile("meta_test.bin", 512 * 1024);
-            string torrentFile = await _fixture.CreateTorrentFileAsync(
+            string descriptorPath = await _fixture.CreateDescriptorFileAsync(
                 testFile,
                 "meta_test",
                 262144);
 
-            Assert.True(System.IO.File.Exists(torrentFile));
-            Assert.True(new System.IO.FileInfo(torrentFile).Length > 0);
+            DistributionPayload payload = _fixture.GetDescriptorPayload(descriptorPath);
+            Assert.NotNull(payload);
+            Assert.True(payload.DescriptorBytes.Length > 0);
+
+            byte[] persistedBytes = await File.ReadAllBytesAsync(descriptorPath);
+            Assert.True(persistedBytes.Length > 0);
+            Assert.True(payload.DescriptorBytes.AsSpan().SequenceEqual(persistedBytes), "Descriptor bytes on disk differ from payload snapshot.");
         }
 
         [Fact]
@@ -43,11 +50,43 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             int expectedPieces = (int)((fileSize + pieceLength - 1) / pieceLength);
 
             string testFile = _fixture.CreateTestFile("pieces_test.bin", fileSize);
-            string contentId = _fixture.ComputeContentId(testFile);
+            string descriptorPath = await _fixture.CreateDescriptorFileAsync(
+                testFile,
+                "pieces_test",
+                pieceLength);
+            DistributionPayload payload = _fixture.GetDescriptorPayload(descriptorPath);
 
-            // Each piece hash is 20 bytes (SHA-1)
-            // We can't directly verify without parsing the torrent, but ContentId should be valid
-            Assert.Equal(40, contentId.Length);
+            Assert.Equal(expectedPieces, payload.PieceHashes.Count);
+            Assert.All(payload.PieceHashes, hash => Assert.Equal(20, hash.Length));
+            Assert.Equal(pieceLength, payload.PieceLength);
+        }
+
+        [Fact]
+        public async Task Metadata_PayloadMatchesIntegrityData()
+        {
+            string testFile = _fixture.CreateTestFile("integrity_test.bin", 2 * 1024 * 1024);
+            string descriptorPath = await _fixture.CreateDescriptorFileAsync(
+                testFile,
+                "integrity_test",
+                262144);
+
+            DistributionPayload payload = _fixture.GetDescriptorPayload(descriptorPath);
+            Assert.NotNull(payload);
+
+            var (contentHashSHA256, pieceLength, pieceHashesHex) = await DownloadCacheOptimizer
+                .ComputeFileIntegrityData(testFile)
+;
+
+            Assert.Equal(payload.PieceLength, pieceLength);
+
+            string payloadPieceHashesHex = string.Concat(
+                payload.PieceHashes.Select(h => BitConverter.ToString(h).Replace("-", "").ToLowerInvariant()));
+
+            Assert.Equal(payloadPieceHashesHex, pieceHashesHex, StringComparer.Ordinal);
+
+            // Ensure content hash is stable and non-empty
+            Assert.False(string.IsNullOrWhiteSpace(contentHashSHA256));
+            Assert.Equal(contentHashSHA256, contentHashSHA256.ToLowerInvariant());
         }
 
         [Fact]
@@ -59,7 +98,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 .Select(_ => _fixture.ComputeContentId(testFile))
                 .ToList();
 
-            Assert.True(ids.All(id => id == ids[0]));
+            Assert.True(ids.All(id => string.Equals(id, ids[0], StringComparison.Ordinal)));
         }
 
         [Fact]
@@ -79,15 +118,15 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public async Task Metadata_TorrentCreation_TimestampValid()
+        public async Task Metadata_DescriptorCreation_TimestampValid()
         {
             string testFile = _fixture.CreateTestFile("timestamp_test.bin", 100 * 1024);
-            string torrentFile = await _fixture.CreateTorrentFileAsync(
+            string descriptorFile = await _fixture.CreateDescriptorFileAsync(
                 testFile,
-                "timestamp_test").ConfigureAwait(false);
+                "timestamp_test");
 
-            // Torrent should have been created recently
-            DateTime creationTime = System.IO.File.GetCreationTimeUtc(torrentFile);
+            // Descriptor should have been created recently
+            DateTime creationTime = File.GetCreationTimeUtc(descriptorFile);
             Assert.True((DateTime.UtcNow - creationTime).TotalMinutes < 5);
         }
 
@@ -101,7 +140,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             var contentIds = files.Select(f => _fixture.ComputeContentId(f)).ToList();
 
             // All ContentIds should be unique
-            Assert.Equal(contentIds.Count, contentIds.Distinct().Count());
+            Assert.Equal(contentIds.Count, contentIds.Distinct(StringComparer.Ordinal).Count());
         }
 
         [Fact]
@@ -142,7 +181,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         [Fact]
         public void Metadata_ContentId_NoCollisions_SmallDataset()
         {
-            var contentIds = new System.Collections.Generic.HashSet<string>();
+            HashSet<string> contentIds = new HashSet<string>(StringComparer.Ordinal);
 
             for (int i = 0; i < 100; i++)
             {
@@ -173,20 +212,22 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public void Metadata_BinaryPatterns_AllValid()
         {
             // Test various binary patterns
-            var patterns = new[]
+            byte[][] patterns = new[]
             {
                 new byte[] { 0x00 }, // All zeros
                 new byte[] { 0xFF }, // All ones
                 new byte[] { 0xAA }, // Alternating
                 new byte[] { 0x55 }, // Alternating opposite
-                new byte[] { 0x01, 0x02, 0x04, 0x08 } // Powers of 2
+                new byte[] { 0x01, 0x02, 0x04, 0x08 }, // Powers of 2
             };
 
-            foreach (var pattern in patterns)
+            foreach (byte[] pattern in patterns)
             {
-                var data = Enumerable.Repeat(pattern, 10000).SelectMany(b => b).ToArray();
-                string file = System.IO.Path.Combine(_fixture.TestDataDirectory, $"pattern_{pattern[0]:X2}.bin");
-                System.IO.File.WriteAllBytes(file, data);
+                byte[] data = Enumerable.Repeat(pattern, 10000).SelectMany(b => b).ToArray();
+                string file = DistributionTestSupport.EnsureBinaryTestFile(
+                    _fixture.TestDataDirectory,
+                    $"pattern_{pattern[0]:X2}.bin",
+                    data);
 
                 string contentId = _fixture.ComputeContentId(file);
                 Assert.Equal(40, contentId.Length);
@@ -197,9 +238,11 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public void Metadata_Sequential_Consistency()
         {
             // Create file with sequential byte values
-            var data = Enumerable.Range(0, 10000).Select(i => (byte)(i % 256)).ToArray();
-            string file = System.IO.Path.Combine(_fixture.TestDataDirectory, "sequential.bin");
-            System.IO.File.WriteAllBytes(file, data);
+            byte[] data = Enumerable.Range(0, 10000).Select(i => (byte)(i % 256)).ToArray();
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "sequential.bin",
+                data);
 
             string id1 = _fixture.ComputeContentId(file);
             string id2 = _fixture.ComputeContentId(file);
@@ -211,8 +254,9 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public void Metadata_Fragmented_Consistency()
         {
             // Create file in multiple writes
-            string file = System.IO.Path.Combine(_fixture.TestDataDirectory, "fragmented.bin");
-            using (FileStream stream = System.IO.File.Create(file))
+            string relativePath = "fragmented.bin";
+            string absolutePath = Path.Combine(_fixture.TestDataDirectory, relativePath);
+            using (FileStream stream = File.Create(absolutePath))
             {
                 for (int i = 0; i < 100; i++)
                 {
@@ -222,8 +266,8 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 }
             }
 
-            string id1 = _fixture.ComputeContentId(file);
-            string id2 = _fixture.ComputeContentId(file);
+            string id1 = _fixture.ComputeContentId(absolutePath);
+            string id2 = _fixture.ComputeContentId(absolutePath);
 
             Assert.Equal(id1, id2);
         }

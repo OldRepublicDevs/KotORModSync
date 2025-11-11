@@ -109,7 +109,7 @@ namespace KOTORModSync.Core.Utility
                 if (path[i] == '%' && i + 2 < path.Length)
                 {
                     string hex = path.Substring(i + 1, 2);
-                    if (int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out int charCode))
+                    if (int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, provider: null, out int charCode))
                     {
                         char decodedChar = (char)charCode;
                         // Only decode if it's an unreserved character

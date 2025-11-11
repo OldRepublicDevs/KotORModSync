@@ -14,7 +14,7 @@ namespace KOTORModSync
 
         public static IBrush GetBrush(string resourceKey, IBrush fallback = null)
         {
-            if (Application.Current?.Resources.TryGetResource(resourceKey, null, out object resource) != true)
+            if (Application.Current?.Resources.TryGetResource(resourceKey, theme: null, out object resource) != true)
             {
                 return fallback ?? Brushes.Transparent;
             }

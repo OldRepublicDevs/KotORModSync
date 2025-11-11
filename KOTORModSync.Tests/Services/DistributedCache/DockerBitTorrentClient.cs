@@ -7,76 +7,48 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using KOTORModSync.Core;
+using KOTORModSync.Core.Services.Download;
 
 namespace KOTORModSync.Tests.Services.DistributedCache
 {
     /// <summary>
-    /// Manages a containerized BitTorrent client (qBittorrent, Transmission, or Deluge)
-    /// for integration testing of the distributed cache system.
+    /// Manages a containerized cache client (Relay, Cascade) for integration testing.
     /// </summary>
-    public class DockerBitTorrentClient : IDisposable
+    public class DockerCacheClient : IDisposable
     {
-        private readonly string _containerEngine; // "docker" or "podman"
-        private readonly BitTorrentClientType _clientType;
+        private static readonly string[] s_containerNamePrefixes = { "transmission-test-", "deluge-test-" };
+        private static readonly SemaphoreSlim s_environmentLock = new SemaphoreSlim(1, 1);
+        private static readonly string[] s_enginePreference = { "docker", "podman" };
+        private readonly CacheClientFlavor _clientFlavor;
         private readonly int _webPort;
-        private readonly int _btPort;
+        private readonly int _distributionPort;
+        private string _containerEngine;
         private string _containerId;
         private readonly HttpClient _httpClient;
-        private string _authCookie;
+        private RemoteCacheProtocol.RemoteCacheSession _session;
+        private bool _disposed;
 
-        public enum BitTorrentClientType
+        public enum CacheClientFlavor
         {
-            QBittorrent,
-            Transmission,
-            Deluge
+            Relay,
+            Cascade,
         }
 
-        public DockerBitTorrentClient(BitTorrentClientType clientType, int webPort = 0, int btPort = 0)
+        public DockerCacheClient(CacheClientFlavor clientFlavor, int webPort = 0, int distributionPort = 0)
         {
-            _clientType = clientType;
+            _clientFlavor = clientFlavor;
             _webPort = webPort == 0 ? GetRandomPort() : webPort;
-            _btPort = btPort == 0 ? GetRandomPort() : btPort;
+            _distributionPort = distributionPort == 0 ? GetRandomPort() : distributionPort;
             _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-            _containerEngine = DetectContainerEngine();
+            _containerEngine = string.Empty;
         }
 
         public int WebPort => _webPort;
-        public int BitTorrentPort => _btPort;
+        public int DistributionPort => _distributionPort;
         public string ContainerId => _containerId;
-
-        private static string DetectContainerEngine()
-        {
-            // Try podman first, then docker
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "podman",
-                    Arguments = "--version",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                using var process = Process.Start(psi);
-                process.WaitForExit(5000);
-                if (process.ExitCode == 0)
-                {
-                    return "podman";
-                }
-            }
-            catch
-            {
-                // Podman not available
-            }
-
-            return "docker"; // Default to docker
-        }
 
         private static int GetRandomPort()
         {
@@ -89,413 +61,450 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
         public async Task StartAsync(CancellationToken cancellationToken = default)
         {
-            string imageName;
-            List<string> runArgs;
-
-            switch (_clientType)
+            List<string> availableEngines = await GetAvailableEnginesAsync(cancellationToken).ConfigureAwait(false);
+            if (availableEngines.Count == 0)
             {
-                case BitTorrentClientType.QBittorrent:
-                    imageName = "linuxserver/qbittorrent:latest";
-                    runArgs = new List<string>
-                    {
-                        "run", "-d",
-                        "-p", $"{_webPort}:8080",
-                        "-p", $"{_btPort}:6881/tcp",
-                        "-p", $"{_btPort}:6881/udp",
-                        "-e", "WEBUI_PORT=8080",
-                        "-e", "PUID=1000",
-                        "-e", "PGID=1000",
-                        "--name", $"qbt-test-{Guid.NewGuid():N}",
-                        imageName
-                    };
-                    break;
+                throw new InvalidOperationException("Neither docker nor podman is available for distributed cache tests.");
+            }
 
-                case BitTorrentClientType.Transmission:
-                    imageName = "linuxserver/transmission:latest";
-                    runArgs = new List<string>
+            Exception lastError = null;
+
+            foreach (string engine in availableEngines)
+            {
+                _containerEngine = engine;
+                var (imageName, runArgs) = BuildRunArguments();
+
+                try
+                {
+                    await RunEngineCommandAsync(_containerEngine, $"pull {imageName}", cancellationToken).ConfigureAwait(false);
+                    string output = await RunEngineCommandAsync(_containerEngine, string.Join(" ", runArgs), cancellationToken).ConfigureAwait(false);
+                    _containerId = output.Trim();
+
+                    await WaitForWebUIAsync(cancellationToken).ConfigureAwait(false);
+
+                    _session = await RemoteCacheProtocol.AuthenticateAsync(
+                        MapFlavor(_clientFlavor),
+                        _httpClient,
+                        BuildBaseUri(),
+                        cancellationToken).ConfigureAwait(false);
+                    return;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    lastError = ex;
+                    await Logger.LogVerboseAsync($"[{engine}] Failed to start cache container: {ex.Message}").ConfigureAwait(false);
+                    _containerId = null;
+                    await CleanupResidualContainersForEngineAsync(engine, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            throw lastError ?? new InvalidOperationException("Unable to start distributed cache container with any available engine.");
+        }
+
+        private static async Task<List<string>> GetAvailableEnginesAsync(CancellationToken cancellationToken)
+        {
+            var engines = new List<string>();
+
+            foreach (string engine in s_enginePreference)
+            {
+                if (await IsEngineAvailableAsync(engine, cancellationToken).ConfigureAwait(false))
+                {
+                    engines.Add(engine);
+                }
+            }
+
+            return engines;
+        }
+
+        private static async Task<bool> IsEngineAvailableAsync(string engine, CancellationToken cancellationToken)
+        {
+            // First check if the command exists
+            var versionPsi = new ProcessStartInfo
+            {
+                FileName = engine,
+                Arguments = "--version",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+
+            try
+            {
+                using var versionProcess = Process.Start(versionPsi);
+                if (versionProcess == null)
+                {
+                    return false;
+                }
+
+                await versionProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                if (versionProcess.ExitCode != 0)
+                {
+                    return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            // Now verify the daemon/socket is actually accessible and functional
+            if (engine.Equals("docker", StringComparison.OrdinalIgnoreCase))
+            {
+                return await IsDockerDaemonAccessibleAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else if (engine.Equals("podman", StringComparison.OrdinalIgnoreCase))
+            {
+                return await IsPodmanDaemonAccessibleAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return false;
+        }
+
+        private static async Task<bool> IsDockerDaemonAccessibleAsync(CancellationToken cancellationToken)
+        {
+            // Use 'docker info' which requires daemon to be running and accessible
+            // This is more reliable than 'docker ps' as it provides detailed daemon info
+            var infoPsi = new ProcessStartInfo
+            {
+                FileName = "docker",
+                Arguments = "info",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+
+            try
+            {
+                using var infoProcess = Process.Start(infoPsi);
+                if (infoProcess == null)
+                {
+                    await Logger.LogVerboseAsync("[Docker] Failed to start 'docker info' process").ConfigureAwait(false);
+                    return false;
+                }
+
+                Task<string> outputTask = infoProcess.StandardOutput.ReadToEndAsync();
+                Task<string> errorTask = infoProcess.StandardError.ReadToEndAsync();
+                
+                await infoProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                
+                string errorOutput = await errorTask.ConfigureAwait(false);
+                string standardOutput = await outputTask.ConfigureAwait(false);
+
+                await Logger.LogVerboseAsync($"[Docker] 'docker info' exit code: {infoProcess.ExitCode}, output length: {standardOutput?.Length ?? 0}, error: {errorOutput}").ConfigureAwait(false);
+
+                // Exit code 0 means daemon is accessible
+                if (infoProcess.ExitCode == 0 && !string.IsNullOrWhiteSpace(standardOutput))
+                {
+                    return true;
+                }
+
+                // Check error output for daemon-not-running indicators
+                string errorLower = errorOutput.ToLowerInvariant();
+                bool isDaemonError = errorLower.Contains("cannot connect") ||
+                                    errorLower.Contains("daemon") ||
+                                    errorLower.Contains("socket") ||
+                                    errorLower.Contains("connection refused") ||
+                                    errorLower.Contains("pipe") ||
+                                    errorLower.Contains("system cannot find the file") ||
+                                    errorLower.Contains("unable to connect") ||
+                                    errorLower.Contains("dial tcp") ||
+                                    errorLower.Contains("docker_engine");
+
+                await Logger.LogVerboseAsync($"[Docker] Daemon error detected: {isDaemonError}").ConfigureAwait(false);
+                return !isDaemonError && infoProcess.ExitCode == 0;
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogVerboseAsync($"[Docker] Exception checking daemon: {ex.Message}").ConfigureAwait(false);
+                return false;
+            }
+        }
+
+        private static async Task<bool> IsPodmanDaemonAccessibleAsync(CancellationToken cancellationToken)
+        {
+            // Verify actual connectivity with 'podman ps' - this is the definitive test
+            // If this works, Podman is accessible regardless of machine configuration
+            var psPsi = new ProcessStartInfo
+            {
+                FileName = "podman",
+                Arguments = "ps",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+
+            try
+            {
+                using var psProcess = Process.Start(psPsi);
+                if (psProcess == null)
+                {
+                    await Logger.LogVerboseAsync("[Podman] Failed to start 'podman ps' process").ConfigureAwait(false);
+                    return false;
+                }
+
+                Task<string> psOutputTask = psProcess.StandardOutput.ReadToEndAsync();
+                Task<string> psErrorTask = psProcess.StandardError.ReadToEndAsync();
+                
+                await psProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                
+                string psErrorOutput = await psErrorTask.ConfigureAwait(false);
+                string psStandardOutput = await psOutputTask.ConfigureAwait(false);
+
+                await Logger.LogVerboseAsync($"[Podman] 'podman ps' exit code: {psProcess.ExitCode}, output length: {psStandardOutput?.Length ?? 0}, error: {psErrorOutput}").ConfigureAwait(false);
+
+                // Exit code 0 means connection is working (even if no containers)
+                if (psProcess.ExitCode == 0)
+                {
+                    // Verify no connection errors in error output
+                    string psErrorLower = psErrorOutput.ToLowerInvariant();
+                    bool isPsConnectionError = psErrorLower.Contains("cannot connect to podman") ||
+                                             psErrorLower.Contains("unable to connect to podman") ||
+                                             psErrorLower.Contains("connection list") ||
+                                             (psErrorLower.Contains("dial tcp") && psErrorLower.Contains("127.0.0.1"));
+                    
+                    await Logger.LogVerboseAsync($"[Podman] Connection error detected: {isPsConnectionError}").ConfigureAwait(false);
+                    return !isPsConnectionError;
+                }
+
+                // If ps failed, check if it's a connection error
+                string psErrorLower2 = psErrorOutput.ToLowerInvariant();
+                bool isPsConnectionError2 = psErrorLower2.Contains("cannot connect to podman") ||
+                                          psErrorLower2.Contains("unable to connect to podman") ||
+                                          psErrorLower2.Contains("connection list") ||
+                                          (psErrorLower2.Contains("dial tcp") && psErrorLower2.Contains("127.0.0.1"));
+
+                await Logger.LogVerboseAsync($"[Podman] Exit code {psProcess.ExitCode}, connection error detected: {isPsConnectionError2}").ConfigureAwait(false);
+                // If it's a clear connection error, Podman is not available
+                return !isPsConnectionError2;
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogVerboseAsync($"[Podman] Exception checking daemon: {ex.Message}").ConfigureAwait(false);
+                return false;
+            }
+        }
+
+        private (string imageName, List<string> runArgs) BuildRunArguments()
+        {
+            switch (_clientFlavor)
+            {
+                case CacheClientFlavor.Relay:
+                {
+                    string imageName = "linuxserver/transmission:latest";
+                    string containerName = $"transmission-test-{Guid.NewGuid():N}";
+                    var args = new List<string>
                     {
                         "run", "-d",
                         "-p", $"{_webPort}:9091",
-                        "-p", $"{_btPort}:51413/tcp",
-                        "-p", $"{_btPort}:51413/udp",
+                        "-p", $"{_distributionPort}:51413/tcp",
+                        "-p", $"{_distributionPort}:51413/udp",
                         "-e", "PUID=1000",
                         "-e", "PGID=1000",
-                        "--name", $"transmission-test-{Guid.NewGuid():N}",
-                        imageName
+                        "-e", "USER=admin",
+                        "-e", "PASS=adminadmin",
+                        "--name", containerName,
+                        imageName,
                     };
-                    break;
+                    return (imageName, args);
+                }
 
-                case BitTorrentClientType.Deluge:
-                    imageName = "linuxserver/deluge:latest";
-                    runArgs = new List<string>
+                case CacheClientFlavor.Cascade:
+                {
+                    string imageName = "linuxserver/deluge:latest";
+                    string containerName = $"deluge-test-{Guid.NewGuid():N}";
+                    var args = new List<string>
                     {
                         "run", "-d",
                         "-p", $"{_webPort}:8112",
-                        "-p", $"{_btPort}:6881/tcp",
-                        "-p", $"{_btPort}:6881/udp",
+                        "-p", $"{_distributionPort}:6881/tcp",
+                        "-p", $"{_distributionPort}:6881/udp",
                         "-e", "PUID=1000",
                         "-e", "PGID=1000",
-                        "--name", $"deluge-test-{Guid.NewGuid():N}",
-                        imageName
+                        "--name", containerName,
+                        imageName,
                     };
-                    break;
+                    return (imageName, args);
+                }
 
                 default:
-                    throw new ArgumentException($"Unsupported client type: {_clientType}");
+                    throw new InvalidOperationException($"Unsupported client flavor: {_clientFlavor}");
             }
-
-            // Pull image first
-            await ExecuteCommandAsync(_containerEngine, $"pull {imageName}", cancellationToken).ConfigureAwait(false);
-
-            // Start container
-            string output = await ExecuteCommandAsync(_containerEngine, string.Join(" ", runArgs), cancellationToken).ConfigureAwait(false);
-            _containerId = output.Trim();
-
-            // Wait for web UI to be ready
-            await WaitForWebUIAsync(cancellationToken).ConfigureAwait(false);
-
-            // Authenticate
-            await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<string> ExecuteCommandAsync(string command, string arguments, CancellationToken cancellationToken)
+        public static async Task CleanupResidualContainersAsync(CancellationToken cancellationToken = default)
+        {
+            await s_environmentLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                foreach (string engine in s_enginePreference.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    await CleanupResidualContainersForEngineAsync(engine, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                s_environmentLock.Release();
+            }
+        }
+
+        private static async Task CleanupResidualContainersForEngineAsync(string engine, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(engine))
+            {
+                return;
+            }
+
+            foreach (string prefix in s_containerNamePrefixes)
+            {
+                string listOutput = await RunEngineCommandAsync(engine, $"ps -aq --filter name={prefix}", cancellationToken, throwOnError: false).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(listOutput))
+                {
+                    continue;
+                }
+
+                string[] ids = listOutput.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string id in ids)
+                {
+                    await RunEngineCommandAsync(engine, $"rm -f {id}", cancellationToken, throwOnError: false).ConfigureAwait(false);
+                }
+            }
+        }
+
+        private static async Task<string> RunEngineCommandAsync(string engine, string arguments, CancellationToken cancellationToken, bool throwOnError = true)
         {
             var psi = new ProcessStartInfo
             {
-                FileName = command,
+                FileName = engine,
                 Arguments = arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
             };
 
+            try
+            {
             using var process = Process.Start(psi);
             if (process == null)
             {
-                throw new InvalidOperationException($"Failed to start process: {command} {arguments}");
-            }
+                    if (throwOnError)
+                    {
+                        throw new InvalidOperationException($"Failed to start process: {engine} {arguments}");
+                    }
 
-            string output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            string error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+                    await Logger.LogVerboseAsync($"[{engine}] Failed to start process for '{arguments}'.").ConfigureAwait(false);
+                    return string.Empty;
+                }
 
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                string output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                string error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+
+                await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {
-                throw new InvalidOperationException($"Command failed: {command} {arguments}\nError: {error}");
+                    if (throwOnError)
+                    {
+                        throw new InvalidOperationException($"Command failed: {engine} {arguments}\nExit Code: {process.ExitCode}\nError: {error}");
+                    }
+
+                    await Logger.LogVerboseAsync($"[{engine}] Command '{arguments}' failed with exit code {process.ExitCode}: {error}").ConfigureAwait(false);
+                    return string.Empty;
             }
 
             return output;
+            }
+            catch (Exception ex) when (!throwOnError)
+            {
+                await Logger.LogVerboseAsync($"[{engine}] Command '{arguments}' raised an exception: {ex.Message}").ConfigureAwait(false);
+                return string.Empty;
+            }
         }
 
         private async Task WaitForWebUIAsync(CancellationToken cancellationToken)
         {
             string url = $"http://localhost:{_webPort}";
-            var timeout = DateTime.UtcNow.AddMinutes(2);
+            DateTime timeout = DateTime.UtcNow.AddMinutes(2);
 
             while (DateTime.UtcNow < timeout)
             {
                 try
                 {
-                    var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
+                    HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
                     if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {
-                        return; // Web UI is responding
+                        return;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Not ready yet
+                    await Logger.LogInfoAsync($" Web UI is not ready yet: {ex.Message}", ex, fileOnly: false).ConfigureAwait(false);
                 }
 
                 await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
 
-            throw new TimeoutException($"Web UI did not become ready within timeout period");
+            throw new TimeoutException("Web UI did not become ready within timeout period");
         }
 
-        private async Task AuthenticateAsync(CancellationToken cancellationToken)
+        public async Task<string> AddResourceAsync(
+            string descriptorPath,
+            string downloadPath,
+            string expectedContentKey,
+            CancellationToken cancellationToken = default)
         {
-            switch (_clientType)
+            if (_session == null)
             {
-                case BitTorrentClientType.QBittorrent:
-                    await AuthenticateQBittorrentAsync(cancellationToken).ConfigureAwait(false);
-                    break;
-                case BitTorrentClientType.Transmission:
-                    // Transmission uses HTTP Basic Auth
-                    _authCookie = Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:admin"));
-                    break;
-                case BitTorrentClientType.Deluge:
-                    await AuthenticateDelugeAsync(cancellationToken).ConfigureAwait(false);
-                    break;
+                throw new InvalidOperationException("Client has not been started or authenticated.");
             }
+
+            if (string.IsNullOrEmpty(expectedContentKey))
+            {
+                throw new ArgumentNullException(nameof(expectedContentKey), "Expected content identifier must be provided.");
+            }
+
+            string resultKey = await RemoteCacheProtocol.SubmitDescriptorAsync(
+                _session,
+                _httpClient,
+                descriptorPath,
+                downloadPath,
+                expectedContentKey,
+                cancellationToken).ConfigureAwait(false);
+
+            await RemoteCacheProtocol.WaitForRegistrationAsync(
+                _session,
+                _httpClient,
+                expectedContentKey,
+                timeout: TimeSpan.FromSeconds(45),
+                cancellationToken).ConfigureAwait(false);
+
+            return resultKey;
         }
 
-        private async Task AuthenticateQBittorrentAsync(CancellationToken cancellationToken)
+        public async Task<ResourceStats> GetResourceStatsAsync(string contentKey, CancellationToken cancellationToken = default)
         {
-            var content = new FormUrlEncodedContent(new[]
+            if (_session == null)
             {
-                new KeyValuePair<string, string>("username", "admin"),
-                new KeyValuePair<string, string>("password", "adminadmin")
-            });
-
-            var response = await _httpClient.PostAsync($"http://localhost:{_webPort}/api/v2/auth/login", content, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-
-            if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
-            {
-                _authCookie = cookies.FirstOrDefault();
-            }
-        }
-
-        private async Task AuthenticateDelugeAsync(CancellationToken cancellationToken)
-        {
-            var request = new
-            {
-                method = "auth.login",
-                @params = new[] { "deluge" },
-                id = 1
-            };
-
-            var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"http://localhost:{_webPort}/json", content, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-
-            if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
-            {
-                _authCookie = cookies.FirstOrDefault();
-            }
-        }
-
-        public async Task<string> AddTorrentAsync(string torrentFilePath, string downloadPath, CancellationToken cancellationToken = default)
-        {
-            switch (_clientType)
-            {
-                case BitTorrentClientType.QBittorrent:
-                    return await AddTorrentQBittorrentAsync(torrentFilePath, downloadPath, cancellationToken).ConfigureAwait(false);
-                case BitTorrentClientType.Transmission:
-                    return await AddTorrentTransmissionAsync(torrentFilePath, downloadPath, cancellationToken).ConfigureAwait(false);
-                case BitTorrentClientType.Deluge:
-                    return await AddTorrentDelugeAsync(torrentFilePath, downloadPath, cancellationToken).ConfigureAwait(false);
-                default:
-                    throw new NotSupportedException($"Client type {_clientType} not supported");
-            }
-        }
-
-        private async Task<string> AddTorrentQBittorrentAsync(string torrentFilePath, string downloadPath, CancellationToken cancellationToken)
-        {
-            using var formData = new MultipartFormDataContent();
-            using var fileStream = File.OpenRead(torrentFilePath);
-            using var fileContent = new StreamContent(fileStream);
-            formData.Add(fileContent, "torrents", Path.GetFileName(torrentFilePath));
-            formData.Add(new StringContent(downloadPath), "savepath");
-
-            var request = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{_webPort}/api/v2/torrents/add");
-            request.Content = formData;
-            if (!string.IsNullOrEmpty(_authCookie))
-            {
-                request.Headers.Add("Cookie", _authCookie);
+                return new ResourceStats();
             }
 
-            var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            RemoteCacheProtocol.ResourceSnapshot snapshot = await RemoteCacheProtocol.QueryResourceAsync(
+                _session,
+                _httpClient,
+                contentKey,
+                cancellationToken).ConfigureAwait(false);
 
-            // Get torrent hash
-            await Task.Delay(1000, cancellationToken).ConfigureAwait(false); // Wait for torrent to be added
-            return Path.GetFileNameWithoutExtension(torrentFilePath);
-        }
-
-        private async Task<string> AddTorrentTransmissionAsync(string torrentFilePath, string downloadPath, CancellationToken cancellationToken)
-        {
-            byte[] torrentData = await File.ReadAllBytesAsync(torrentFilePath, cancellationToken).ConfigureAwait(false);
-            string base64Torrent = Convert.ToBase64String(torrentData);
-
-            var request = new
+            return new ResourceStats
             {
-                method = "torrent-add",
-                arguments = new
-                {
-                    metainfo = base64Torrent,
-                    download_dir = downloadPath
-                }
-            };
-
-            var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{_webPort}/transmission/rpc");
-            httpRequest.Content = content;
-            if (!string.IsNullOrEmpty(_authCookie))
-            {
-                httpRequest.Headers.Add("Authorization", $"Basic {_authCookie}");
-            }
-
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
-            string responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var json = JObject.Parse(responseBody);
-            return json["arguments"]?["torrent-added"]?["hashString"]?.ToString() ?? "";
-        }
-
-        private async Task<string> AddTorrentDelugeAsync(string torrentFilePath, string downloadPath, CancellationToken cancellationToken)
-        {
-            byte[] torrentData = await File.ReadAllBytesAsync(torrentFilePath, cancellationToken).ConfigureAwait(false);
-            string base64Torrent = Convert.ToBase64String(torrentData);
-
-            var request = new
-            {
-                method = "web.add_torrents",
-                @params = new object[]
-                {
-                    new[]
-                    {
-                        new
-                        {
-                            path = torrentFilePath,
-                            options = new { download_location = downloadPath }
-                        }
-                    }
-                },
-                id = 1
-            };
-
-            var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{_webPort}/json");
-            httpRequest.Content = content;
-            if (!string.IsNullOrEmpty(_authCookie))
-            {
-                httpRequest.Headers.Add("Cookie", _authCookie);
-            }
-
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            return Path.GetFileNameWithoutExtension(torrentFilePath);
-        }
-
-        public async Task<TorrentStats> GetTorrentStatsAsync(string torrentHash, CancellationToken cancellationToken = default)
-        {
-            switch (_clientType)
-            {
-                case BitTorrentClientType.QBittorrent:
-                    return await GetTorrentStatsQBittorrentAsync(torrentHash, cancellationToken).ConfigureAwait(false);
-                case BitTorrentClientType.Transmission:
-                    return await GetTorrentStatsTransmissionAsync(torrentHash, cancellationToken).ConfigureAwait(false);
-                case BitTorrentClientType.Deluge:
-                    return await GetTorrentStatsDelugeAsync(torrentHash, cancellationToken).ConfigureAwait(false);
-                default:
-                    throw new NotSupportedException($"Client type {_clientType} not supported");
-            }
-        }
-
-        private async Task<TorrentStats> GetTorrentStatsQBittorrentAsync(string torrentHash, CancellationToken cancellationToken)
-        {
-            var request = new HttpRequestMessage(HttpMethod.Get, $"http://localhost:{_webPort}/api/v2/torrents/info");
-            if (!string.IsNullOrEmpty(_authCookie))
-            {
-                request.Headers.Add("Cookie", _authCookie);
-            }
-
-            var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-
-            string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var torrents = JsonConvert.DeserializeObject<JArray>(json);
-            var torrent = torrents?.FirstOrDefault();
-
-            if (torrent == null)
-            {
-                return new TorrentStats();
-            }
-
-            return new TorrentStats
-            {
-                Progress = (double)(torrent["progress"] ?? 0.0),
-                Downloaded = (long)(torrent["downloaded"] ?? 0L),
-                Uploaded = (long)(torrent["uploaded"] ?? 0L),
-                Peers = (int)(torrent["num_leechs"] ?? 0),
-                Seeds = (int)(torrent["num_seeds"] ?? 0),
-                State = torrent["state"]?.ToString() ?? "unknown"
-            };
-        }
-
-        private async Task<TorrentStats> GetTorrentStatsTransmissionAsync(string torrentHash, CancellationToken cancellationToken)
-        {
-            var request = new
-            {
-                method = "torrent-get",
-                arguments = new
-                {
-                    fields = new[] { "percentDone", "downloadedEver", "uploadedEver", "peersConnected", "status" }
-                }
-            };
-
-            var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{_webPort}/transmission/rpc");
-            httpRequest.Content = content;
-            if (!string.IsNullOrEmpty(_authCookie))
-            {
-                httpRequest.Headers.Add("Authorization", $"Basic {_authCookie}");
-            }
-
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
-            string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var result = JObject.Parse(json);
-            var torrents = result["arguments"]?["torrents"] as JArray;
-            var torrent = torrents?.FirstOrDefault();
-
-            if (torrent == null)
-            {
-                return new TorrentStats();
-            }
-
-            return new TorrentStats
-            {
-                Progress = (double)(torrent["percentDone"] ?? 0.0),
-                Downloaded = (long)(torrent["downloadedEver"] ?? 0L),
-                Uploaded = (long)(torrent["uploadedEver"] ?? 0L),
-                Peers = (int)(torrent["peersConnected"] ?? 0),
-                State = torrent["status"]?.ToString() ?? "unknown"
-            };
-        }
-
-        private async Task<TorrentStats> GetTorrentStatsDelugeAsync(string torrentHash, CancellationToken cancellationToken)
-        {
-            var request = new
-            {
-                method = "web.update_ui",
-                @params = new object[]
-                {
-                    new[] { "progress", "total_done", "total_uploaded", "num_peers", "state" },
-                    new { }
-                },
-                id = 1
-            };
-
-            var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{_webPort}/json");
-            httpRequest.Content = content;
-            if (!string.IsNullOrEmpty(_authCookie))
-            {
-                httpRequest.Headers.Add("Cookie", _authCookie);
-            }
-
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
-            string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var result = JObject.Parse(json);
-            var torrents = result["result"]?["torrents"] as JObject;
-            var torrent = torrents?.First as JProperty;
-
-            if (torrent == null)
-            {
-                return new TorrentStats();
-            }
-
-            var torrentData = torrent.Value as JObject;
-            return new TorrentStats
-            {
-                Progress = (double)(torrentData?["progress"] ?? 0.0) / 100.0,
-                Downloaded = (long)(torrentData?["total_done"] ?? 0L),
-                Uploaded = (long)(torrentData?["total_uploaded"] ?? 0L),
-                Peers = (int)(torrentData?["num_peers"] ?? 0),
-                State = torrentData?["state"]?.ToString() ?? "unknown"
+                Progress = snapshot.Progress,
+                Downloaded = snapshot.DownloadedBytes,
+                Uploaded = snapshot.UploadedBytes,
+                Peers = snapshot.ConnectedPeers,
+                Seeds = snapshot.ConnectedSeeds,
+                State = snapshot.State ?? string.Empty,
             };
         }
 
@@ -508,22 +517,63 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
             try
             {
-                await ExecuteCommandAsync(_containerEngine, $"stop {_containerId}", cancellationToken).ConfigureAwait(false);
-                await ExecuteCommandAsync(_containerEngine, $"rm {_containerId}", cancellationToken).ConfigureAwait(false);
+                // Use throwOnError: false for cleanup - container might already be gone
+                await RunEngineCommandAsync(_containerEngine, $"stop {_containerId}", cancellationToken, throwOnError: false).ConfigureAwait(false);
+                await RunEngineCommandAsync(_containerEngine, $"rm {_containerId}", cancellationToken, throwOnError: false).ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort cleanup
+                await Logger.LogVerboseAsync($"Container cleanup completed with benign issue: {ex.Message}").ConfigureAwait(false);
             }
         }
 
         public void Dispose()
         {
-            StopAsync().GetAwaiter().GetResult();
-            _httpClient?.Dispose();
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
-        public class TorrentStats
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                try
+                {
+                    StopAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // Swallow exceptions during Dispose; cleanup is best-effort.
+                }
+
+                _httpClient.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        private Uri BuildBaseUri()
+        {
+            int port = _webPort;
+            return new Uri($"http://localhost:{port}/");
+        }
+
+        private static RemoteCacheProtocol.GatewayFlavor MapFlavor(CacheClientFlavor flavor)
+        {
+            return flavor switch
+            {
+                CacheClientFlavor.Relay => RemoteCacheProtocol.GatewayFlavor.Relay,
+                CacheClientFlavor.Cascade => RemoteCacheProtocol.GatewayFlavor.Cascade,
+                _ => throw new ArgumentOutOfRangeException(nameof(flavor), flavor, "Unsupported flavor"),
+            };
+        }
+
+        public class ResourceStats
         {
             public double Progress { get; set; }
             public long Downloaded { get; set; }

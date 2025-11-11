@@ -99,7 +99,7 @@ namespace KOTORModSync.Tests
         {
             Assert.Multiple(() =>
             {
-                Assert.That(CategoryTierDefinitions.NormalizeTier(null), Is.EqualTo(string.Empty));
+                Assert.That(CategoryTierDefinitions.NormalizeTier(tier: null), Is.EqualTo(string.Empty));
                 Assert.That(CategoryTierDefinitions.NormalizeTier(""), Is.EqualTo(string.Empty));
                 Assert.That(CategoryTierDefinitions.NormalizeTier("   "), Is.EqualTo(string.Empty));
             });

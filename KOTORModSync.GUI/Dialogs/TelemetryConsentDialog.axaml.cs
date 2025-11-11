@@ -32,7 +32,7 @@ namespace KOTORModSync.Dialogs
             try
             {
 
-                Configuration.SetUserConsent(true);
+                Configuration.SetUserConsent(enabled: true);
                 Configuration.CollectUsageData = CollectUsageCheckBox?.IsChecked ?? true;
                 Configuration.CollectPerformanceMetrics = CollectPerformanceCheckBox?.IsChecked ?? true;
                 Configuration.CollectCrashReports = CollectCrashReportsCheckBox?.IsChecked ?? true;
@@ -52,12 +52,12 @@ namespace KOTORModSync.Dialogs
 
                 UserAccepted = true;
                 Logger.Log("[Telemetry] User consented to telemetry collection");
-                Close(true);
+                Close(dialogResult: true);
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex, "[Telemetry] Error saving telemetry consent");
-                Close(false);
+                Close(dialogResult: false);
             }
         }
 
@@ -65,17 +65,17 @@ namespace KOTORModSync.Dialogs
         {
             try
             {
-                Configuration.SetUserConsent(false);
+                Configuration.SetUserConsent(enabled: false);
                 Configuration.Save();
 
                 UserAccepted = false;
                 Logger.Log("[Telemetry] User declined telemetry collection");
-                Close(false);
+                Close(dialogResult: false);
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex, "[Telemetry] Error saving telemetry decline");
-                Close(false);
+                Close(dialogResult: false);
             }
         }
 

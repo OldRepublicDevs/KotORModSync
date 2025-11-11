@@ -3,6 +3,7 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -99,16 +100,17 @@ namespace KOTORModSync.Core.Services.Validation
 
                 // Initialize virtual file system with current state
                 var vfs = new VirtualFileSystemProvider();
+                var currentComponentList = new List<ModComponent> { currentComponent };
 
                 // Load existing files from disk
                 if (MainConfig.SourcePath != null && MainConfig.SourcePath.Exists)
                 {
-                    await vfs.InitializeFromRealFileSystemAsync(MainConfig.SourcePath.FullName).ConfigureAwait(false);
+                    await vfs.InitializeFromRealFileSystemForComponentsAsync(MainConfig.SourcePath.FullName, currentComponentList).ConfigureAwait(false);
                 }
 
                 if (MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists)
                 {
-                    await vfs.InitializeFromRealFileSystemAsync(MainConfig.DestinationPath.FullName).ConfigureAwait(false);
+                    await vfs.InitializeFromRealFileSystemForComponentsAsync(MainConfig.DestinationPath.FullName, currentComponentList).ConfigureAwait(false);
                 }
 
                 // Find the instruction index
@@ -139,8 +141,12 @@ namespace KOTORModSync.Core.Services.Validation
                             await SimulateInstructionAsync(prevInstruction, i, currentComponent, vfs, allComponents, cts.Token).ConfigureAwait(false);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        await Logger.LogExceptionAsync(
+                            ex,
+                            $"Dry-run simulation failed when preparing VFS state for instruction #{i + 1} ({prevInstruction.Action})."
+                        ).ConfigureAwait(false);
                         // Continue even if previous instructions fail
                     }
                 }
@@ -364,8 +370,12 @@ namespace KOTORModSync.Core.Services.Validation
                 cancellationToken
             ).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                await Logger.LogExceptionAsync(
+                    ex,
+                    $"Dry-run simulation failed for instruction #{instructionIndex + 1} ({instruction.Action})."
+                ).ConfigureAwait(false);
                 // Silently continue - this is just for VFS state tracking
             }
         }
@@ -425,17 +435,18 @@ namespace KOTORModSync.Core.Services.Validation
 
                 // Initialize VFS with current file state
                 var vfs = new VirtualFileSystemProvider();
+                var selectedComponents = allComponents.Where(component => component?.IsSelected == true).ToList();
 
                 try
                 {
                     if (MainConfig.SourcePath != null && MainConfig.SourcePath.Exists)
                     {
-                        await vfs.InitializeFromRealFileSystemAsync(MainConfig.SourcePath.FullName).ConfigureAwait(false);
+                        await vfs.InitializeFromRealFileSystemForComponentsAsync(MainConfig.SourcePath.FullName, selectedComponents).ConfigureAwait(false);
                     }
 
                     if (MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists)
                     {
-                        await vfs.InitializeFromRealFileSystemAsync(MainConfig.DestinationPath.FullName).ConfigureAwait(false);
+                        await vfs.InitializeFromRealFileSystemForComponentsAsync(MainConfig.DestinationPath.FullName, selectedComponents).ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
@@ -448,8 +459,26 @@ namespace KOTORModSync.Core.Services.Validation
                     });
                 }
 
+                if (selectedComponents.Count == 0)
+                {
+                    result.Issues.Add(new ValidationIssue
+                    {
+                        Severity = ValidationSeverity.Warning,
+                        Category = "Validation",
+                        Message = "No components selected for validation.",
+                    });
+
+                    sw.Stop();
+                    TelemetryService.Instance.RecordValidation(
+                        validationType: "dry_run",
+                        success: false,
+                        issueCount: result.Issues.Count,
+                        durationMs: sw.Elapsed.TotalMilliseconds
+                    );
+                    return result;
+                }
+
                 // Execute each component in order using ExecuteInstructionsAsync
-                var selectedComponents = allComponents.Where(c => c.IsSelected).ToList();
 
                 foreach (ModComponent component in selectedComponents)
                 {
@@ -464,8 +493,6 @@ namespace KOTORModSync.Core.Services.Validation
                             cancellationToken,
                             vfs,
                             skipDependencyCheck: false
-
-
                         ).ConfigureAwait(false);
 
                         // Collect any validation issues from VFS

@@ -35,6 +35,12 @@ namespace KOTORModSync.Core.Installation
 
         [JsonProperty]
         public int CurrentRevision { get; set; }
+
+        [JsonProperty]
+        public string BaselineCheckpointId { get; set; } = string.Empty;
+
+        [JsonProperty]
+        public Dictionary<Guid, string> ComponentCheckpoints { get; set; } = new Dictionary<Guid, string>();
     }
 
     [JsonObject(MemberSerialization.OptIn)]

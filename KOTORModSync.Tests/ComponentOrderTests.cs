@@ -237,7 +237,7 @@ namespace KOTORModSync.Tests
                     componentB.Guid,
                 },
             };
-            var componentFGuid = Guid.Empty;
+            Guid componentFGuid = Guid.Empty;
             var componentE = new ModComponent
             {
                 Name = "E",
@@ -375,7 +375,7 @@ namespace KOTORModSync.Tests
                     componentB.Guid,
                 },
             };
-            var componentFGuid = Guid.Empty;
+            Guid componentFGuid = Guid.Empty;
             var componentE = new ModComponent
             {
                 Name = "E",

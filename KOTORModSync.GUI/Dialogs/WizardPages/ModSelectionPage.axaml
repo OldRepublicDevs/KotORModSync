@@ -42,6 +42,16 @@
                         Padding="12,6"
                         Content="✗ Deselect All"
                         ToolTip.Tip="Deselect all mods" />
+                    <Button
+                        x:Name="SelectByTierButton"
+                        Padding="12,6"
+                        Content="⭐ Select by Tier"
+                        ToolTip.Tip="Select mods by tier with cascading selection" />
+                    <Button
+                        x:Name="SelectByCategoryButton"
+                        Padding="12,6"
+                        Content="🏷️ Select by Category"
+                        ToolTip.Tip="Select mods by category" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -52,7 +62,7 @@
             Margin="0,0,0,12"
             Padding="16,12"
             CornerRadius="8">
-            <Grid ColumnDefinitions="*,12,Auto,12,Auto,12,Auto" RowDefinitions="Auto,8,Auto">
+            <Grid ColumnDefinitions="*,12,Auto,12,Auto,12,Auto,12,Auto" RowDefinitions="Auto,8,Auto">
                 <!--  Search Box  -->
                 <TextBox
                     x:Name="SearchTextBox"
@@ -87,12 +97,21 @@
                     Content="Spoiler-Free"
                     ToolTip.Tip="Hide spoiler content in mod names and descriptions" />
 
+                <!--  Expand/Collapse All Button  -->
+                <Button
+                    x:Name="ExpandCollapseAllButton"
+                    Grid.Row="0"
+                    Grid.Column="8"
+                    Padding="8,6"
+                    Content="▼ Expand All"
+                    ToolTip.Tip="Expand or collapse all category sections" />
+
                 <!--  Filter Summary  -->
                 <TextBlock
                     x:Name="FilterSummaryText"
                     Grid.Row="2"
                     Grid.Column="0"
-                    Grid.ColumnSpan="7"
+                    Grid.ColumnSpan="9"
                     FontSize="12"
                     Opacity="0.6"
                     Text="Showing all mods" />

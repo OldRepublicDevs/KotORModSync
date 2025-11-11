@@ -994,7 +994,7 @@ namespace KOTORModSync.Core.Parsing
                         if (propLine.StartsWith("**Action:**", StringComparison.Ordinal))
                         {
                             string actionStr = ExtractMetadataValue(propLine, "Action");
-                            if (Enum.TryParse<Instruction.ActionType>(actionStr, true, out Instruction.ActionType action))
+                            if (Enum.TryParse<Instruction.ActionType>(actionStr, ignoreCase: true, out Instruction.ActionType action))
                             {
                                 instruction.Action = action;
                             }
@@ -1161,7 +1161,7 @@ namespace KOTORModSync.Core.Parsing
                 else if (line.StartsWith("- **Action:**", StringComparison.Ordinal))
                 {
                     string actionStr = ExtractMetadataValue(line, "Action");
-                    if (Enum.TryParse(actionStr, true, out Instruction.ActionType action))
+                    if (Enum.TryParse(actionStr, ignoreCase: true, out Instruction.ActionType action))
                     {
                         currentInstruction.Action = action;
                     }

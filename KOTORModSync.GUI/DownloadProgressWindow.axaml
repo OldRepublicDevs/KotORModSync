@@ -90,13 +90,17 @@
             HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="16">
                 <!--  Active Downloads Section  -->
-                <StackPanel>
-                    <TextBlock
-                        x:Name="ActiveSectionHeader"
-                        Margin="0,0,0,8"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        Text="🔄 Active Downloads (0)" />
+                <Expander
+                    x:Name="ActiveDownloadsExpander"
+                    HorizontalAlignment="Stretch"
+                    IsExpanded="True">
+                    <Expander.Header>
+                        <TextBlock
+                            x:Name="ActiveSectionHeader"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="🔄 Active Downloads (0)" />
+                    </Expander.Header>
                     <ItemsControl x:Name="ActiveDownloadsControl" HorizontalAlignment="Stretch">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -226,25 +230,30 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
+                </Expander>
 
                 <!--  Pending Downloads Section  -->
-                <StackPanel>
-                    <Grid Margin="0,0,0,8" ColumnDefinitions="*,Auto">
-                        <TextBlock
-                            x:Name="PendingSectionHeader"
-                            Grid.Column="0"
-                            FontSize="16"
-                            FontWeight="Bold"
-                            Text="⏳ Pending Downloads (0)" />
-                        <Button
-                            x:Name="StartAllPendingButton"
-                            Grid.Column="1"
-                            Margin="8,0,0,0"
-                            Click="StartAllPendingButton_Click"
-                            Content="Force Download All Now"
-                            ToolTip.Tip="Start all pending downloads" />
-                    </Grid>
+                <Expander
+                    x:Name="PendingDownloadsExpander"
+                    HorizontalAlignment="Stretch"
+                    IsExpanded="True">
+                    <Expander.Header>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock
+                                x:Name="PendingSectionHeader"
+                                Grid.Column="0"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="⏳ Pending Downloads (0)" />
+                            <Button
+                                x:Name="StartAllPendingButton"
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Click="StartAllPendingButton_Click"
+                                Content="Force Download All Now"
+                                ToolTip.Tip="Warning: This will replace any existing files!" />
+                        </Grid>
+                    </Expander.Header>
                     <ItemsControl x:Name="PendingDownloadsControl" HorizontalAlignment="Stretch">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -374,16 +383,20 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
+                </Expander>
 
                 <!--  Completed Downloads Section  -->
-                <StackPanel>
-                    <TextBlock
-                        x:Name="CompletedSectionHeader"
-                        Margin="0,0,0,8"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        Text="✅ Completed Downloads (0)" />
+                <Expander
+                    x:Name="CompletedDownloadsExpander"
+                    HorizontalAlignment="Stretch"
+                    IsExpanded="True">
+                    <Expander.Header>
+                        <TextBlock
+                            x:Name="CompletedSectionHeader"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="✅ Completed Downloads (0)" />
+                    </Expander.Header>
                     <ItemsControl x:Name="CompletedDownloadsControl" HorizontalAlignment="Stretch">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -513,7 +526,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
+                </Expander>
             </StackPanel>
         </ScrollViewer>
 

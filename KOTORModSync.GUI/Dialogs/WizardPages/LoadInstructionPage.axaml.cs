@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -20,6 +21,11 @@ namespace KOTORModSync.Dialogs.WizardPages
     {
         private readonly MainConfig _mainConfig;
         private LandingPageView _landingPageView;
+
+        public LoadInstructionPage()
+            : this(new MainConfig())
+        {
+        }
 
         public LoadInstructionPage([NotNull] MainConfig mainConfig)
         {
@@ -60,7 +66,6 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             _landingPageView.LoadInstructionsRequested += OnLoadInstructionsRequested;
             _landingPageView.CreateInstructionsRequested += OnCreateInstructionsRequested;
-            _landingPageView.ConfigureDirectoriesRequested += OnConfigureDirectoriesRequested;
         }
 
         private void UpdateStatus()
@@ -79,11 +84,9 @@ namespace KOTORModSync.Dialogs.WizardPages
             bool instructionsLoaded = (_mainConfig.allComponents?.Count ?? 0) > 0;
             string instructionFileName = null;
             bool editorModeEnabled = MainConfig.EditorMode;
-            string modDirectory = _mainConfig.sourcePathFullName;
-            string gameDirectory = _mainConfig.destinationPathFullName;
 
             if (
-                Application.Current?.ApplicationLifetime is ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 && desktop.MainWindow is MainWindow mainWindow
             )
             {
@@ -93,16 +96,14 @@ namespace KOTORModSync.Dialogs.WizardPages
             _landingPageView.UpdateState(
                 instructionsLoaded,
                 instructionFileName,
-                editorModeEnabled,
-                modDirectory,
-                gameDirectory
+                editorModeEnabled
             );
         }
 
         private void OnLoadInstructionsRequested(object sender, EventArgs e)
         {
             if (
-                Application.Current?.ApplicationLifetime is ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 && desktop.MainWindow is MainWindow mainWindow
             )
             {
@@ -113,24 +114,14 @@ namespace KOTORModSync.Dialogs.WizardPages
         private void OnCreateInstructionsRequested(object sender, EventArgs e)
         {
             if (
-                Application.Current?.ApplicationLifetime is ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 && desktop.MainWindow is MainWindow mainWindow
             )
             {
-                mainWindow.EnterEditorFromLandingPage();
+                mainWindow.EditorMode = true;
             }
         }
 
-        private void OnConfigureDirectoriesRequested(object sender, EventArgs e)
-        {
-            if (
-                Application.Current?.ApplicationLifetime is ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                && desktop.MainWindow is MainWindow mainWindow
-            )
-            {
-                mainWindow.OpenDirectorySetupFromLandingPage();
-            }
-        }
     }
 }
 

@@ -86,27 +86,9 @@ namespace KOTORModSync
                     }
                 }
 
-                // Auto-load instruction file if provided via CLI (delay to allow MainWindow to fully initialize)
-                if (!string.IsNullOrWhiteSpace(CLIArguments.InstructionFile))
+                if (!string.IsNullOrWhiteSpace(CLIArguments.InstructionFile) && !System.IO.File.Exists(CLIArguments.InstructionFile))
                 {
-                    if (System.IO.File.Exists(CLIArguments.InstructionFile))
-                    {
-                        Logger.Log($"[App.Desktop_Startup] Scheduling auto-load of instruction file: '{CLIArguments.InstructionFile}'");
-
-                        // Use dispatcher to load file after UI is fully initialized
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            if (sender is IClassicDesktopStyleApplicationLifetime desktopLifetime
-                                && desktopLifetime.MainWindow is MainWindow mainWindow)
-                            {
-                                mainWindow.AutoLoadInstructionFileAsync(CLIArguments.InstructionFile);
-                            }
-                        }, Avalonia.Threading.DispatcherPriority.Loaded);
-                    }
-                    else
-                    {
-                        Logger.LogWarning($"[App.Desktop_Startup] CLI InstructionFile does not exist: '{CLIArguments.InstructionFile}'");
-                    }
+                    Logger.LogWarning($"[App.Desktop_Startup] CLI InstructionFile does not exist: '{CLIArguments.InstructionFile}'");
                 }
             }
             catch (Exception ex)

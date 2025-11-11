@@ -52,14 +52,13 @@ namespace KOTORModSync.Converters
                 {
                     return "Choose (no options)";
                 }
-                else if (sourceCount == 1)
+
+                if (sourceCount == 1)
                 {
                     return "Choose (1 option)";
                 }
-                else
-                {
-                    return $"Choose ({sourceCount} options)";
-                }
+
+                return $"Choose ({sourceCount} options)";
             }
 
             return instruction.Action.ToString();

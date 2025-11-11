@@ -978,7 +978,7 @@ namespace KOTORModSync.Core.Services
             };
 
             IReadOnlyDictionary<string, List<string>> resolvedUrlsReadOnly = await downloadCache.PreResolveUrlsAsync(
-                tempComponent, null,
+                tempComponent, downloadManager: null,
                 sequential: sequential,
                 cancellationToken
             ).ConfigureAwait(false);

@@ -32,6 +32,7 @@ namespace KOTORModSync.Core.Services.Download
         private static DateTime s_lastNatCheck = DateTime.MinValue;
         private static CancellationTokenSource s_sharingCts;
         private static Task s_sharingMonitorTask;
+        private static object s_clientSettings;
 
         private static string D(string s) => Encoding.UTF8.GetString(Convert.FromBase64String(s));
 
@@ -295,7 +296,7 @@ namespace KOTORModSync.Core.Services.Download
                         _initialized = true;
                     }
                 }
-            }, s_sharingCts.Token).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
 
         private static int FindAvailablePort()
@@ -956,6 +957,23 @@ namespace KOTORModSync.Core.Services.Download
         }
 
         /// <summary>
+        /// Computes the canonical distributed content identifier for a local file.
+        /// </summary>
+        public static async Task<string> ComputeContentIdForFileAsync(
+            string filePath,
+            CancellationToken cancellationToken = default)
+        {
+            DistributionPayload payload = await DownloadCacheDistributionBuilder.BuildAsync(
+                filePath,
+                trackerUrls: null,
+                pieceLength: null,
+                includeDescriptor: false,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            return payload.ContentId;
+        }
+
+        /// <summary>
         /// Determines the optimal piece size for a given file size.
         /// Ensures total pieces <= 2^20 (1,048,576 pieces max).
         /// </summary>
@@ -1034,10 +1052,10 @@ namespace KOTORModSync.Core.Services.Download
 					sha256 = sha.ComputeHash(fs);
 				}
 #else
-                sha256 = await SHA256.HashDataAsync(fs).ConfigureAwait(false);
+                sha256 = await SHA256.HashDataAsync(fs, s_sharingCts?.Token ?? CancellationToken.None).ConfigureAwait(false);
 #endif
             }
-            string contentHashSHA256 = BitConverter.ToString(sha256).Replace("-", "").ToLowerInvariant();
+            string contentHashSHA256 = BitConverter.ToString(sha256).Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
 
             return (contentHashSHA256, pieceLength, pieceHashes);
         }
@@ -1059,10 +1077,10 @@ namespace KOTORModSync.Core.Services.Download
 						sha256Hash = sha.ComputeHash(fs);
 					}
 #else
-                    sha256Hash = await SHA256.HashDataAsync(fs).ConfigureAwait(false);
+                    sha256Hash = await SHA256.HashDataAsync(fs, s_sharingCts.Token).ConfigureAwait(false);
 #endif
                 }
-                string computedSHA256 = BitConverter.ToString(sha256Hash).Replace("-", "").ToLowerInvariant();
+                string computedSHA256 = BitConverter.ToString(sha256Hash).Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
 
                 if (meta.ContentHashSHA256 != null && !string.Equals(computedSHA256, meta.ContentHashSHA256, StringComparison.Ordinal))
 
@@ -1254,7 +1272,7 @@ namespace KOTORModSync.Core.Services.Download
 
             public void Dispose()
             {
-                Dispose(true);
+                Dispose(disposing: true);
                 GC.SuppressFinalize(this);
             }
         }
@@ -1387,7 +1405,7 @@ namespace KOTORModSync.Core.Services.Download
         {
             try
             {
-                if (_client == null)
+                if (_client == null || s_clientSettings == null)
                 {
                     return (0, 0, 0);
                 }
@@ -1400,6 +1418,13 @@ namespace KOTORModSync.Core.Services.Download
                 {
                     try
                     {
+                        if (manager is DiagnosticsHarness.SyntheticManager syntheticManager)
+                        {
+                            totalUploadBytes += syntheticManager.UploadedBytes;
+                            connectedSources += syntheticManager.PeerCount;
+                            continue;
+                        }
+
                         // The engine exposes monitor for statistics
                         dynamic monitorProperty = manager.GetType().GetProperty("Monitor");
                         if (monitorProperty != null)
@@ -1458,9 +1483,30 @@ namespace KOTORModSync.Core.Services.Download
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(contentKey))
+                {
+                    return "Resource not found";
+                }
+
                 if (!s_activeManagers.TryGetValue(contentKey, out dynamic manager))
                 {
                     return "Resource not found";
+                }
+
+                if (manager is DiagnosticsHarness.SyntheticManager synthetic)
+                {
+                    var sbSynthetic = new StringBuilder();
+                    sbSynthetic.Append("ContentKey: ").Append(contentKey).AppendLine();
+                    sbSynthetic.Append("State: ").Append(synthetic.State).AppendLine();
+                    sbSynthetic.Append("Progress: ").AppendFormat("{0:P2}", synthetic.Progress).AppendLine();
+                    sbSynthetic.Append("Uploaded: ").AppendFormat("{0:F2}", synthetic.UploadedBytes / 1024.0 / 1024.0).AppendLine(" MB");
+                    sbSynthetic.Append("Downloaded: ").AppendFormat("{0:F2}", synthetic.DownloadedBytes / 1024.0 / 1024.0).AppendLine(" MB");
+                    if (synthetic.DownloadedBytes > 0)
+                    {
+                        double ratioSynthetic = (double)synthetic.UploadedBytes / synthetic.DownloadedBytes;
+                        sbSynthetic.Append("Ratio: ").AppendFormat("{0:F2}", ratioSynthetic).AppendLine();
+                    }
+                    return sbSynthetic.ToString();
                 }
 
                 var sb = new StringBuilder();
@@ -1514,7 +1560,13 @@ namespace KOTORModSync.Core.Services.Download
         /// </summary>
         public static (bool successful, int port, DateTime lastCheck) GetNatStatus()
         {
-            return (s_natTraversalSuccessful, s_configuredPort, s_lastNatCheck);
+            int port = s_configuredPort;
+            if (port <= 0 && s_clientSettings != null)
+            {
+                TryGetClientSettingInt("ListenPort", out port);
+            }
+
+            return (s_natTraversalSuccessful, port, s_lastNatCheck);
         }
 
         /// <summary>
@@ -1540,6 +1592,243 @@ namespace KOTORModSync.Core.Services.Download
             }
         }
 
+        public static class DiagnosticsHarness
+        {
+            public sealed class SyntheticResourceOptions
+            {
+                public string ContentKey { get; set; }
+                public long UploadedBytes { get; set; }
+                public long DownloadedBytes { get; set; }
+                public double Progress { get; set; }
+                public string State { get; set; }
+                public int ConnectedPeers { get; set; }
+            }
+
+            public static void ClearActiveManagers()
+            {
+                lock (_lock)
+                {
+                    s_activeManagers.Clear();
+                }
+            }
+
+            public static void ClearBlockedContentIds()
+            {
+                lock (_lock)
+                {
+                    s_blockedContentIds.Clear();
+                }
+            }
+
+            public static string RegisterSyntheticResource(SyntheticResourceOptions options)
+            {
+                if (options == null)
+                {
+                    throw new ArgumentNullException(nameof(options));
+                }
+
+                string contentKey = string.IsNullOrWhiteSpace(options.ContentKey)
+                    ? $"synthetic:{Guid.NewGuid():N}"
+                    : options.ContentKey;
+
+                lock (_lock)
+                {
+                    var manager = new SyntheticManager();
+                    manager.ApplyOptions(options);
+                    s_activeManagers[contentKey] = manager;
+                    return contentKey;
+                }
+            }
+
+            public static void UpdateSyntheticResource(string contentKey, SyntheticResourceOptions options)
+            {
+                if (string.IsNullOrWhiteSpace(contentKey))
+                {
+                    throw new ArgumentException("Content key must be provided.", nameof(contentKey));
+                }
+                if (options == null)
+                {
+                    throw new ArgumentNullException(nameof(options));
+                }
+
+                lock (_lock)
+                {
+                    if (s_activeManagers.TryGetValue(contentKey, out dynamic manager) &&
+                        manager is SyntheticManager syntheticManager)
+                    {
+                        syntheticManager.ApplyOptions(options);
+                    }
+                }
+            }
+
+            public static void RemoveSyntheticResource(string contentKey)
+            {
+                if (string.IsNullOrWhiteSpace(contentKey))
+                {
+                    return;
+                }
+
+                lock (_lock)
+                {
+                    s_activeManagers.TryRemove(contentKey, out _);
+                }
+            }
+
+            public static IDisposable AttachSyntheticClient()
+            {
+                lock (_lock)
+                {
+                    var previous = _client;
+                    _client = new SyntheticClient();
+                    return new SyntheticClientScope(previous);
+                }
+            }
+
+            public static void SetNatStatus(bool successful, int port, DateTime lastCheck)
+            {
+                lock (_lock)
+                {
+                    s_natTraversalSuccessful = successful;
+                    s_configuredPort = Math.Clamp(port, 0, 65535);
+                    s_lastNatCheck = lastCheck;
+                }
+            }
+
+            public static void SetClientSettings(object settings)
+            {
+                if (settings == null)
+                {
+                    throw new ArgumentNullException(nameof(settings));
+                }
+
+                lock (_lock)
+                {
+                    s_clientSettings = settings;
+                }
+            }
+
+            public static string GetPortConfigurationPath()
+            {
+                return GetPortConfigPath();
+            }
+
+            private sealed class SyntheticClientScope : IDisposable
+            {
+                private readonly dynamic _previous;
+                private bool _disposed;
+
+                public SyntheticClientScope(dynamic previous)
+                {
+                    _previous = previous;
+                }
+
+                public void Dispose()
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+
+                    lock (_lock)
+                    {
+                        _client = _previous;
+                    }
+                    _disposed = true;
+                }
+            }
+
+            private sealed class SyntheticClient : IDisposable
+            {
+                public Task Register() => Task.CompletedTask;
+                public Task Unregister() => Task.CompletedTask;
+                public Task StopAll() => Task.CompletedTask;
+                public void Dispose()
+                {
+                }
+            }
+
+            private sealed class SyntheticMonitor
+            {
+                public long DataBytesUploaded { get; set; }
+                public long DataBytesDownloaded { get; set; }
+            }
+
+            internal sealed class SyntheticPeerCollection
+            {
+                public SyntheticPeerCollection(int count)
+                {
+                    SetCount(count);
+                }
+
+                public List<object> Available { get; private set; }
+                public int Count => Available?.Count ?? 0;
+
+                public void SetCount(int count)
+                {
+                    int safeCount = Math.Max(0, count);
+                    Available = new List<object>(safeCount);
+                    for (int i = 0; i < safeCount; i++)
+                    {
+                        Available.Add(new object());
+                    }
+                }
+            }
+
+            internal sealed class SyntheticManager
+            {
+                private readonly SyntheticMonitor _monitor = new SyntheticMonitor();
+                private SyntheticPeerCollection _peers = new SyntheticPeerCollection(0);
+
+                public string State { get; private set; } = "Sharing";
+                public double Progress { get; private set; }
+                public long UploadedBytes => _monitor.DataBytesUploaded;
+                public long DownloadedBytes => _monitor.DataBytesDownloaded;
+                public int PeerCount => _peers?.Count ?? 0;
+
+                public Task StopAsync() => Task.CompletedTask;
+
+                public void ApplyOptions(SyntheticResourceOptions options)
+                {
+                    State = string.IsNullOrWhiteSpace(options.State) ? "Sharing" : options.State;
+                    Progress = Math.Clamp(options.Progress, 0.0, 1.0);
+                    _monitor.DataBytesUploaded = Math.Max(0, options.UploadedBytes);
+                    _monitor.DataBytesDownloaded = Math.Max(0, options.DownloadedBytes);
+                    if (_peers == null)
+                    {
+                        _peers = new SyntheticPeerCollection(options.ConnectedPeers);
+                    }
+                    else
+                    {
+                        _peers.SetCount(options.ConnectedPeers);
+                    }
+                }
+            }
+        }
+
+        private static bool TryGetClientSettingInt(string propertyName, out int value)
+        {
+            value = 0;
+            if (s_clientSettings == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                var property = s_clientSettings.GetType().GetProperty(propertyName);
+                if (property != null)
+                {
+                    value = (int)property.GetValue(s_clientSettings);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogVerbose($"[Cache] Unable to read client setting {propertyName}: {ex.Message}");
+            }
+
+            return false;
+        }
         #endregion
     }
 }

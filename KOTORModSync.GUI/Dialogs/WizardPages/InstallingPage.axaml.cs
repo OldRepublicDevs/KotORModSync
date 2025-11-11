@@ -40,6 +40,8 @@ namespace KOTORModSync.Dialogs.WizardPages
         private TextBlock _warningsText;
         private TextBlock _errorsText;
         private TextBlock _directionsText;
+        private TextBlock _checkpointStatusText;
+        private TextBlock _checkpointsCreatedText;
 
         private bool _isInstalling;
         private bool _installationComplete;
@@ -47,7 +49,13 @@ namespace KOTORModSync.Dialogs.WizardPages
         private int _installedCount;
         private int _warningCount;
         private int _errorCount;
+        private int _checkpointsCreated;
         private Stopwatch _stopwatch;
+
+        public InstallingPage()
+            : this(new List<ModComponent>(), new MainConfig(), new CancellationTokenSource())
+        {
+        }
 
         public InstallingPage(
             [NotNull][ItemNotNull] List<ModComponent> allComponents,
@@ -114,6 +122,8 @@ namespace KOTORModSync.Dialogs.WizardPages
             _warningsText = this.FindControl<TextBlock>("WarningsText");
             _errorsText = this.FindControl<TextBlock>("ErrorsText");
             _directionsText = this.FindControl<TextBlock>("DirectionsText");
+            _checkpointStatusText = this.FindControl<TextBlock>("CheckpointStatusText");
+            _checkpointsCreatedText = this.FindControl<TextBlock>("CheckpointsCreatedText");
         }
 
         private void InitializeDefaults()
@@ -173,6 +183,16 @@ namespace KOTORModSync.Dialogs.WizardPages
                 _currentModProgress.IsIndeterminate = true;
                 _currentModProgress.Value = 0;
             }
+
+            if (_checkpointStatusText != null)
+            {
+                _checkpointStatusText.Text = "Checkpoint system enabled";
+            }
+
+            if (_checkpointsCreatedText != null)
+            {
+                _checkpointsCreatedText.Text = "0";
+            }
         }
 
         private async Task RunInstallation(CancellationToken cancellationToken)
@@ -182,30 +202,17 @@ namespace KOTORModSync.Dialogs.WizardPages
                 var selectedMods = _allComponents.Where(c => c.IsSelected && !c.WidescreenOnly).ToList();
                 int totalMods = selectedMods.Count;
 
-                for (int i = 0; i < selectedMods.Count; i++)
+                // Progress callback for InstallAllSelectedComponentsAsync
+                void ProgressCallback(int currentIndex, int total, string componentName)
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        await UpdateUIAsync(() =>
-                        {
-                            if (_currentModText != null)
-                            {
-                                _currentModText.Text = "Installation cancelled by user";
-                            }
-
-                            if (_currentOperationText != null)
-                            {
-                                _currentOperationText.Text = "Cancelled";
-                            }
-                        });
-                        break;
+                        return;
                     }
 
-                    ModComponent component = selectedMods[i];
-
-                    await UpdateUIAsync(() =>
+                    _ = UpdateUIAsync(() =>
                     {
-                        double progress = totalMods == 0 ? 0 : (double)i / totalMods;
+                        double progress = total == 0 ? 0 : (double)currentIndex / total;
                         if (_mainProgressBar != null)
                         {
                             _mainProgressBar.Value = progress;
@@ -218,83 +225,160 @@ namespace KOTORModSync.Dialogs.WizardPages
 
                         if (_countText != null)
                         {
-                            _countText.Text = $"{i}/{totalMods} mods installed";
+                            _countText.Text = $"{currentIndex}/{total} mods installed";
                         }
 
                         if (_currentModText != null)
                         {
-                            _currentModText.Text = $"Installing: {component.Name}";
+                            _currentModText.Text = $"Installing: {componentName}";
                         }
 
-                        if (_directionsText != null)
+                        // Find component to get directions
+                        ModComponent component = selectedMods.FirstOrDefault(c => string.Equals(c.Name, componentName, StringComparison.Ordinal));
+                        if (_directionsText != null && component != null)
                         {
                             _directionsText.Text = component.Directions ?? string.Empty;
                         }
 
-                        _installedCount = i;
-                        UpdateMetrics(totalMods);
+                        _installedCount = currentIndex;
+                        UpdateMetrics(total);
+
+                        // Update checkpoint creation status
+                        if (_checkpointStatusText != null)
+                        {
+                            _checkpointStatusText.Text = $"Creating checkpoint for '{componentName}'...";
+                        }
                     });
+                }
 
-                    await Logger.LogAsync($"Starting installation of '{component.Name}'");
-
-                    ModComponent.InstallExitCode exitCode = await InstallationService.InstallSingleComponentAsync(
-                        component,
-                        _allComponents,
-                        cancellationToken
-                    );
-
-                    await Logger.LogAsync($"Finished installation of '{component.Name}' with exit code: {UtilityHelper.GetEnumDescription(exitCode)}");
-
-                    if (exitCode != ModComponent.InstallExitCode.Success)
+                // Listen for checkpoint creation via log messages
+                void CheckpointLogHandler(string message)
+                {
+                    if (message != null && message.Contains("✓ Checkpoint created:", StringComparison.OrdinalIgnoreCase))
                     {
-                        await Logger.LogErrorAsync($"Failed to install '{component.Name}'");
+                        _checkpointsCreated++;
+                        _ = UpdateUIAsync(() =>
+                        {
+                            if (_checkpointsCreatedText != null)
+                            {
+                                _checkpointsCreatedText.Text = _checkpointsCreated.ToString(CultureInfo.InvariantCulture);
+                            }
+
+                            if (_checkpointStatusText != null)
+                            {
+                                _checkpointStatusText.Text = "Checkpoint created successfully";
+                            }
+                        });
                     }
                 }
 
-                _installedCount = selectedMods.Count;
-                _installationComplete = true;
+                Logger.Logged += CheckpointLogHandler;
 
+                try
+                {
+                    await Logger.LogAsync("Initializing checkpoint system...");
+
+                    await UpdateUIAsync(() =>
+                    {
+                        if (_checkpointStatusText != null)
+                        {
+                            _checkpointStatusText.Text = "Initializing checkpoint system...";
+                        }
+                    });
+
+                    // Use the unified installation service with checkpoint support
+                    ModComponent.InstallExitCode exitCode = await InstallationService.InstallAllSelectedComponentsAsync(
+                        _allComponents,
+                        ProgressCallback,
+                        cancellationToken
+                    );
+
+                    _installedCount = selectedMods.Count;
+                    _installationComplete = true;
+
+                    await UpdateUIAsync(() =>
+                    {
+                        if (_mainProgressBar != null)
+                        {
+                            _mainProgressBar.Value = 1;
+                        }
+
+                        if (_percentText != null)
+                        {
+                            _percentText.Text = "100%";
+                        }
+
+                        if (_countText != null)
+                        {
+                            _countText.Text = $"{selectedMods.Count}/{selectedMods.Count} mods installed";
+                        }
+
+                        if (_currentModText != null)
+                        {
+                            _currentModText.Text = "✅ Installation complete!";
+                        }
+
+                        if (_currentOperationText != null)
+                        {
+                            _currentOperationText.Text = "Complete";
+                        }
+
+                        if (_currentModProgress != null)
+                        {
+                            _currentModProgress.IsIndeterminate = false;
+                            _currentModProgress.Value = 1;
+                        }
+
+                        if (_checkpointStatusText != null)
+                        {
+                            _checkpointStatusText.Text = $"✓ {_checkpointsCreated} checkpoints created";
+                        }
+
+                        UpdateMetrics(selectedMods.Count);
+                    });
+
+                    _canNavigateForward = true;
+
+                    if (exitCode != ModComponent.InstallExitCode.Success)
+                    {
+                        await Logger.LogErrorAsync($"Installation completed with exit code: {UtilityHelper.GetEnumDescription(exitCode)}");
+                    }
+                }
+                finally
+                {
+                    Logger.Logged -= CheckpointLogHandler;
+                }
+            }
+            catch (OperationCanceledException)
+            {
                 await UpdateUIAsync(() =>
                 {
-                    if (_mainProgressBar != null)
-                    {
-                        _mainProgressBar.Value = 1;
-                    }
-
-                    if (_percentText != null)
-                    {
-                        _percentText.Text = "100%";
-                    }
-
-                    if (_countText != null)
-                    {
-                        _countText.Text = $"{selectedMods.Count}/{selectedMods.Count} mods installed";
-                    }
-
                     if (_currentModText != null)
                     {
-                        _currentModText.Text = "✅ Installation complete!";
+                        _currentModText.Text = "Installation cancelled by user";
                     }
 
                     if (_currentOperationText != null)
                     {
-                        _currentOperationText.Text = "Complete";
+                        _currentOperationText.Text = "Cancelled";
                     }
 
-                    if (_currentModProgress != null)
+                    if (_checkpointStatusText != null)
                     {
-                        _currentModProgress.IsIndeterminate = false;
-                        _currentModProgress.Value = 1;
+                        _checkpointStatusText.Text = "Installation was cancelled";
                     }
-
-                    UpdateMetrics(selectedMods.Count);
                 });
-
-                _canNavigateForward = true;
             }
             catch (Exception ex)
             {
                 await Logger.LogExceptionAsync(ex, "Error during installation");
+                await UpdateUIAsync(() =>
+                {
+                    if (_checkpointStatusText != null)
+                    {
+                        _checkpointStatusText.Text = "Error during installation";
+                    }
+                });
             }
             finally
             {

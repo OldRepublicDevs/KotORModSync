@@ -82,13 +82,13 @@ namespace KOTORModSync.Core.Services
                 var sb = new StringBuilder();
                 _ = sb.AppendLine("⚠️ CIRCULAR DEPENDENCY DETECTED");
                 _ = sb.AppendLine();
-                _ = sb.AppendLine($"Found {result.Cycles.Count} circular dependency cycle(s):");
+                _ = sb.Append("Found ").Append(result.Cycles.Count).AppendLine(" circular dependency cycle(s):");
                 _ = sb.AppendLine();
 
                 for (int i = 0; i < result.Cycles.Count; i++)
                 {
                     List<Guid> cycle = result.Cycles[i];
-                    _ = sb.AppendLine($"Cycle #{i + 1}:");
+                    _ = sb.Append("Cycle #").Append(i + 1).Append(':').AppendLine();
                     for (int j = 0; j < cycle.Count; j++)
                     {
                         Guid guid = cycle[j];
@@ -97,7 +97,7 @@ namespace KOTORModSync.Core.Services
                             continue;
                         }
 
-                        _ = sb.Append($"  {j + 1}. {comp.Name}");
+                        _ = sb.Append("  ").Append(j + 1).Append(". ").Append(comp.Name);
                         if (!string.IsNullOrWhiteSpace(comp.Author))
                         {
                             _ = sb.Append($" by {comp.Author}");

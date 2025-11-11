@@ -68,7 +68,7 @@ namespace KOTORModSync.Tests
                 {
                     if (Directory.Exists(dir))
                     {
-                        Directory.Delete(dir, true);
+                        Directory.Delete(dir, recursive: true);
                     }
                 }
                 catch (Exception ex)
@@ -81,7 +81,7 @@ namespace KOTORModSync.Tests
             {
                 if (Directory.Exists(_testDirectory))
                 {
-                    Directory.Delete(_testDirectory, true);
+                    Directory.Delete(_testDirectory, recursive: true);
                 }
             }
             catch (Exception ex)
@@ -158,7 +158,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs changeEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Changed += (_, e) =>
             {
@@ -198,7 +198,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs createEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (_, e) =>
             {
@@ -609,7 +609,7 @@ namespace KOTORModSync.Tests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
-            long initialMemory = GC.GetTotalMemory(true);
+            long initialMemory = GC.GetTotalMemory(forceFullCollection: true);
 
             watcher.StartWatching();
             await Task.Delay(100);
@@ -645,7 +645,7 @@ namespace KOTORModSync.Tests
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
-            long finalMemory = GC.GetTotalMemory(true);
+            long finalMemory = GC.GetTotalMemory(forceFullCollection: true);
             long memoryIncrease = finalMemory - initialMemory;
             double memoryIncreaseMb = memoryIncrease / (1024.0 * 1024.0);
 
@@ -680,7 +680,7 @@ namespace KOTORModSync.Tests
             await Task.Delay(150);
 
             watcher.StopWatching();
-            Directory.Delete(tempDir, true);
+            Directory.Delete(tempDir, recursive: true);
             await Task.Delay(100);
 
             Assert.False(Directory.Exists(tempDir), "Directory should be deleted");

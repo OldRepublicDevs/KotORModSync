@@ -23,6 +23,8 @@ namespace KOTORModSync.Core.Services.FileSystem
         private readonly HashSet<string> _removedFiles;
         private readonly List<ValidationIssue> _issues;
         private readonly Dictionary<string, HashSet<string>> _archiveContents;
+        private readonly Dictionary<string, string> _archiveOriginalPaths;
+        private readonly HashSet<string> _initializedRoots;
         private readonly object _lockObject = new object();
         public bool IsDryRun => true;
 
@@ -37,6 +39,8 @@ namespace KOTORModSync.Core.Services.FileSystem
             _removedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             _issues = new List<ValidationIssue>();
             _archiveContents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            _archiveOriginalPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _initializedRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
         public void InitializeFromRealFileSystem(string rootPath)
@@ -48,76 +52,24 @@ namespace KOTORModSync.Core.Services.FileSystem
 
             try
             {
+                string normalizedRoot = Path.GetFullPath(rootPath);
                 lock (_lockObject)
                 {
-                    List<FileInfo> files = new DirectoryInfo(rootPath).GetFilesSafely("*.*", SearchOption.AllDirectories).ToList();
-                    foreach (string filePath in files.Select(file => file.FullName))
-                    {
-                        _virtualFiles.Add(filePath);
-
-                        if (IsArchiveFile(filePath))
-                        {
-                            ScanArchiveContents(filePath);
-                        }
-                    }
-
-                    foreach (DirectoryInfo dir in new DirectoryInfo(rootPath).GetDirectoriesSafely("*", SearchOption.AllDirectories))
-                    {
-                        _ = _virtualDirectories.Add(dir.FullName);
-                    }
+                    _initializedRoots.Add(normalizedRoot);
+                    _virtualDirectories.Add(normalizedRoot);
                 }
             }
             catch (Exception ex)
             {
                 AddIssue(ValidationSeverity.Warning, "FileSystemInitialization",
-                    $"Could not fully initialize virtual file system from real file system: {ex.Message}", null);
+                    $"Could not initialize virtual file system root: {ex.Message}", affectedPath: null);
             }
         }
 
-        private void ScanArchiveContents([NotNull] string archivePath)
-        {
-            if (_archiveContents.ContainsKey(archivePath))
-            {
-                return;
-            }
-
-            var contents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            try
-            {
-                using (FileStream stream = File.OpenRead(archivePath))
-                {
-                    IArchive archive = GetArchiveFromPath(archivePath, stream);
-                    if (archive is null)
-                    {
-                        AddIssue(ValidationSeverity.Warning, "ArchiveValidation",
-                            $"Could not determine archive type: {Path.GetFileName(archivePath)} - may not be a valid archive", archivePath);
-                        _archiveContents[archivePath] = contents;
-                        return;
-                    }
-
-                    using (archive)
-                    {
-                        foreach (IArchiveEntry entry in archive.Entries.Where(e => !e.IsDirectory))
-                        {
-                            _ = contents.Add(entry.Key);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                AddIssue(ValidationSeverity.Warning, "ArchiveValidation",
-                    $"Unable to scan archive '{Path.GetFileName(archivePath)}' - may be corrupted or not an archive: {ex.Message}", archivePath);
-                _archiveContents[archivePath] = contents;
-                return;
-            }
-
-            _archiveContents[archivePath] = contents;
-        }
 
         public async Task InitializeFromRealFileSystemAsync(string rootPath)
         {
+            await Task.CompletedTask.ConfigureAwait(false);
             if (!Directory.Exists(rootPath))
             {
                 return;
@@ -125,40 +77,26 @@ namespace KOTORModSync.Core.Services.FileSystem
 
             try
             {
-                foreach (FileInfo file in new DirectoryInfo(rootPath).GetFilesSafely("*.*", SearchOption.AllDirectories))
+                string normalizedRoot = Path.GetFullPath(rootPath);
+                lock (_lockObject)
                 {
-                    lock (_lockObject)
-                    {
-                        _virtualFiles.Add(file.FullName);
-                    }
-
-                    if (IsArchiveFile(file.FullName))
-                    {
-                        await ScanArchiveContentsAsync(file.FullName).ConfigureAwait(false);
-                    }
-                }
-
-                foreach (DirectoryInfo dir in new DirectoryInfo(rootPath).GetDirectoriesSafely("*", SearchOption.AllDirectories))
-                {
-                    lock (_lockObject)
-                    {
-                        _ = _virtualDirectories.Add(dir.FullName);
-                    }
+                    _initializedRoots.Add(normalizedRoot);
+                    _virtualDirectories.Add(normalizedRoot);
                 }
             }
             catch (Exception ex)
             {
                 AddIssue(ValidationSeverity.Warning, "FileSystemInitialization",
-                    $"Could not fully initialize virtual file system from real file system: {ex.Message}", null);
+                    $"Could not initialize virtual file system root: {ex.Message}", affectedPath: null);
             }
         }
 
         /// <summary>
-        /// Initializes VFS only with files relevant to the specific component(s), not the entire directory.
-        /// This is much faster than loading all of the potentially thousands of files in the mod directory.
+        /// Initializes VFS with root path for components. Files are loaded lazily as needed.
         /// </summary>
         public async Task InitializeFromRealFileSystemForComponentAsync(string rootPath, ModComponent component)
         {
+            await Task.CompletedTask.ConfigureAwait(false);
             if (component != null)
             {
                 await InitializeFromRealFileSystemForComponentsAsync(rootPath, new List<ModComponent> { component }).ConfigureAwait(false);
@@ -166,8 +104,8 @@ namespace KOTORModSync.Core.Services.FileSystem
         }
 
         /// <summary>
-        /// Initializes VFS only with files relevant to the specified components, not the entire directory.
-        /// This is much faster than loading all of the potentially thousands of files in the mod directory.
+        /// Initializes VFS with root path and optionally pre-loads files referenced by components.
+        /// Most files are still loaded lazily as needed during execution.
         /// </summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public async Task InitializeFromRealFileSystemForComponentsAsync(string rootPath, List<ModComponent> components)
@@ -179,8 +117,190 @@ namespace KOTORModSync.Core.Services.FileSystem
 
             try
             {
-                // Only load files that are referenced by the components' instructions
+                string normalizedRoot = NormalizePath(rootPath);
+                lock (_lockObject)
+                {
+                    _initializedRoots.Add(normalizedRoot);
+                    _virtualDirectories.Add(normalizedRoot);
+                }
+
+                string rootWithSeparator = normalizedRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.OrdinalIgnoreCase)
+                    ? normalizedRoot
+                    : normalizedRoot + Path.DirectorySeparatorChar;
+
                 var relevantFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var relevantDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    normalizedRoot,
+                };
+
+                var realFileSystem = new RealFileSystemProvider();
+                char[] wildcardChars = { '*', '?' };
+
+                bool IsWithinRoot(string path)
+                {
+                    if (string.IsNullOrEmpty(path))
+                    {
+                        return false;
+                    }
+
+                    if (path.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+
+                    return path.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase);
+                }
+
+                bool ContainsWildcard(string path) => path.IndexOfAny(wildcardChars) >= 0;
+
+                IEnumerable<string> ExpandResolvedPaths(string rawPath)
+                {
+                    if (string.IsNullOrWhiteSpace(rawPath))
+                    {
+                        return Array.Empty<string>();
+                    }
+
+                    string resolved = ResolvePath(rawPath);
+                    if (string.IsNullOrWhiteSpace(resolved))
+                    {
+                        return Array.Empty<string>();
+                    }
+
+                    string normalized = NormalizePath(resolved);
+                    if (!IsWithinRoot(normalized))
+                    {
+                        return Array.Empty<string>();
+                    }
+
+                    if (!ContainsWildcard(normalized))
+                    {
+                        return new[] { normalized };
+                    }
+
+                    try
+                    {
+                        List<string> matches = PathHelper.EnumerateFilesWithWildcards(
+                            new[] { normalized },
+                            realFileSystem,
+                            includeSubFolders: true);
+
+                        if (matches != null && matches.Count > 0)
+                        {
+                            return matches
+                                .Select(NormalizePath)
+                                .Where(IsWithinRoot)
+                                .ToList();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AddIssue(ValidationSeverity.Warning, "FileSystemInitialization",
+                            $"Failed expanding wildcard path '{rawPath}': {ex.Message}", affectedPath: null);
+                    }
+
+                    return new[] { normalized };
+                }
+
+                void AddDirectoryIfExists(string directoryPath)
+                {
+                    if (string.IsNullOrWhiteSpace(directoryPath))
+                    {
+                        return;
+                    }
+
+                    string normalizedDirectory = NormalizePath(directoryPath);
+                    if (!IsWithinRoot(normalizedDirectory))
+                    {
+                        return;
+                    }
+
+                    if (Directory.Exists(normalizedDirectory))
+                    {
+                        relevantDirectories.Add(normalizedDirectory);
+                    }
+                }
+
+                void AddFileOrDirectory(string rawPath, bool treatAsDirectory = false)
+                {
+                    foreach (string candidate in ExpandResolvedPaths(rawPath))
+                    {
+                        if (string.IsNullOrWhiteSpace(candidate))
+                        {
+                            continue;
+                        }
+
+                        if (File.Exists(candidate))
+                        {
+                            relevantFiles.Add(candidate);
+
+                            string directory = Path.GetDirectoryName(candidate);
+                            if (!string.IsNullOrEmpty(directory))
+                            {
+                                AddDirectoryIfExists(directory);
+                            }
+
+                            continue;
+                        }
+
+                        if (Directory.Exists(candidate))
+                        {
+                            AddDirectoryIfExists(candidate);
+                            continue;
+                        }
+
+                        if (treatAsDirectory)
+                        {
+                            AddDirectoryIfExists(candidate);
+                        }
+                        else
+                        {
+                            string parent = Path.GetDirectoryName(candidate);
+                            if (!string.IsNullOrEmpty(parent))
+                            {
+                                AddDirectoryIfExists(parent);
+                            }
+                        }
+                    }
+                }
+
+                void CollectInstructionPaths(IEnumerable<Instruction> instructions)
+                {
+                    if (instructions is null)
+                    {
+                        return;
+                    }
+
+                    foreach (Instruction instruction in instructions)
+                    {
+                        if (instruction is null)
+                        {
+                            continue;
+                        }
+
+                        if (instruction.Source != null)
+                        {
+                            foreach (string sourcePath in instruction.Source)
+                            {
+                                if (!string.IsNullOrWhiteSpace(sourcePath))
+                                {
+                                    AddFileOrDirectory(sourcePath);
+                                }
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(instruction.Destination))
+                        {
+                            bool destinationIsDirectory =
+                                instruction.Action == Instruction.ActionType.Extract ||
+                                instruction.Action == Instruction.ActionType.Copy ||
+                                instruction.Action == Instruction.ActionType.Move ||
+                                instruction.Action == Instruction.ActionType.DelDuplicate;
+
+                            AddFileOrDirectory(instruction.Destination, destinationIsDirectory);
+                        }
+                    }
+                }
 
                 foreach (ModComponent component in components)
                 {
@@ -189,84 +309,66 @@ namespace KOTORModSync.Core.Services.FileSystem
                         continue;
                     }
 
-                    // Get all source paths from component instructions
-                    foreach (Instruction instruction in component.Instructions)
-                    {
-                        if (instruction.Source != null)
-                        {
-                            foreach (string sourcePath in instruction.Source)
-                            {
-                                if (string.IsNullOrWhiteSpace(sourcePath))
-                                {
-                                    continue;
-                                }
+                    CollectInstructionPaths(component.Instructions);
 
-                                string resolvedPath = ResolvePath(sourcePath);
-                                if (File.Exists(resolvedPath))
-                                {
-                                    relevantFiles.Add(resolvedPath);
-                                }
-                            }
-                        }
-                    }
-
-                    // Get all source paths from option instructions
                     foreach (Option option in component.Options)
                     {
-                        foreach (Instruction instruction in option.Instructions)
-                        {
-                            if (instruction.Source != null)
-                            {
-                                foreach (string sourcePath in instruction.Source)
-                                {
-                                    if (string.IsNullOrWhiteSpace(sourcePath))
-                                    {
-                                        continue;
-                                    }
-
-                                    string resolvedPath = ResolvePath(sourcePath);
-                                    if (File.Exists(resolvedPath))
-                                    {
-                                        relevantFiles.Add(resolvedPath);
-                                    }
-                                }
-                            }
-                        }
+                        CollectInstructionPaths(option.Instructions);
                     }
                 }
 
-                // Load only the relevant files into VFS
-                foreach (string filePath in relevantFiles)
+                if (relevantFiles.Count > 0)
                 {
-                    lock (_lockObject)
-                    {
-                        _virtualFiles.Add(filePath);
-                    }
-
-                    // If it's an archive, scan its contents
-                    if (IsArchiveFile(filePath))
-                    {
-                        await ScanArchiveContentsAsync(filePath).ConfigureAwait(false);
-                    }
-                }
-
-                // Add directories for the relevant files
-                foreach (string filePath in relevantFiles)
-                {
-                    string directory = Path.GetDirectoryName(filePath);
-                    if (!string.IsNullOrEmpty(directory))
+                    foreach (string filePath in relevantFiles)
                     {
                         lock (_lockObject)
                         {
-                            _ = _virtualDirectories.Add(directory);
+                            _virtualFiles.Add(filePath);
+
+                            if (IsArchiveFile(filePath) && !_archiveOriginalPaths.ContainsKey(filePath))
+                            {
+                                _archiveOriginalPaths[filePath] = filePath;
+                            }
                         }
+
+                        if (IsArchiveFile(filePath))
+                        {
+                            await ScanArchiveContentsAsync(filePath).ConfigureAwait(false);
+                        }
+                    }
+                }
+
+#pragma warning disable CA1508 // determined to be false positive due to HashSet semantics
+                foreach (string directory in relevantDirectories)
+                {
+                    lock (_lockObject)
+                    {
+                        _virtualDirectories.Add(directory);
                     }
                 }
             }
             catch (Exception ex)
             {
                 AddIssue(ValidationSeverity.Warning, "FileSystemInitialization",
-                    $"Could not fully initialize virtual file system for components: {ex.Message}", null);
+                    $"Could not fully initialize virtual file system for components: {ex.Message}", affectedPath: null);
+            }
+        }
+
+        private static string NormalizePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return path ?? string.Empty;
+            }
+
+            string fixedPath = PathHelper.FixPathFormatting(path);
+            try
+            {
+                return Path.GetFullPath(fixedPath);
+            }
+            catch
+            {
+                return fixedPath;
             }
         }
 
@@ -294,21 +396,57 @@ namespace KOTORModSync.Core.Services.FileSystem
 
         private async Task ScanArchiveContentsAsync([NotNull] string archivePath)
         {
-            if (_archiveContents.ContainsKey(archivePath))
+            lock (_lockObject)
             {
-                return;
+                if (_archiveContents.ContainsKey(archivePath))
+                {
+                    return;
+                }
             }
 
             if (!ArchiveHelper.HasArchiveExtension(archivePath))
             {
-                _archiveContents[archivePath] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                lock (_lockObject)
+                {
+                    _archiveContents[archivePath] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                }
                 await Task.CompletedTask.ConfigureAwait(false);
                 return;
             }
 
-            if (ArchiveHelper.TryGetArchiveEntries(archivePath, out HashSet<string> entries, out string failureReason))
+            string pathToScan = archivePath;
+            lock (_lockObject)
             {
-                _archiveContents[archivePath] = entries;
+                if (_archiveOriginalPaths.TryGetValue(archivePath, out string originalPath))
+                {
+                    pathToScan = originalPath;
+                }
+            }
+
+            if (!File.Exists(pathToScan))
+            {
+                lock (_lockObject)
+                {
+                    if (!_archiveContents.ContainsKey(archivePath))
+                    {
+                        AddIssue(
+                            ValidationSeverity.Warning,
+                            "ArchiveValidation",
+                            $"Archive file does not exist on disk: {archivePath}",
+                            archivePath);
+                        _archiveContents[archivePath] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    }
+                }
+                await Task.CompletedTask.ConfigureAwait(false);
+                return;
+            }
+
+            if (ArchiveHelper.TryGetArchiveEntries(pathToScan, out HashSet<string> entries, out string failureReason))
+            {
+                lock (_lockObject)
+                {
+                    _archiveContents[archivePath] = entries;
+                }
             }
             else
             {
@@ -322,14 +460,14 @@ namespace KOTORModSync.Core.Services.FileSystem
                     message,
                     archivePath);
 
-                _archiveContents[archivePath] = entries ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                lock (_lockObject)
+                {
+                    _archiveContents[archivePath] = entries ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                }
             }
 
             await Task.CompletedTask.ConfigureAwait(false);
         }
-
-        private static IArchive GetArchiveFromPath([NotNull] string path, [NotNull] Stream stream) =>
-            ArchiveHelper.OpenArchiveFromStream(Path.GetExtension(path), stream);
 
         private static bool IsArchiveFile([NotNull] string path) => ArchiveHelper.HasArchiveExtension(path);
 
@@ -340,32 +478,43 @@ namespace KOTORModSync.Core.Services.FileSystem
                 return false;
             }
 
-            if (_removedFiles.Contains(path))
+            lock (_lockObject)
             {
-
-                return false;
-            }
-
-            bool inVirtual = _virtualFiles.Contains(path);
-            bool onDisk = File.Exists(path);
-            bool result = inVirtual || onDisk;
-
-            if (!result && _virtualFiles.Count > 0)
-            {
-                // This is informational - file doesn't exist yet (e.g., destination check before move)
-                // Only log as warning if it's likely an actual problem (not just a destination check)
-                AddIssue(ValidationSeverity.Warning, "FileExists",
-                    $"File not found: {path}", affectedPath: path);
-                // Only log in debug mode to avoid performance issues
-                if (MainConfig.DebugLogging)
+                if (_removedFiles.Contains(path))
                 {
-                    Logger.LogVerbose($"[VFS] FileExists: File not found (informational check): {path}");
+                    return false;
                 }
 
-                return false;
+                if (_virtualFiles.Contains(path))
+                {
+                    return true;
+                }
             }
 
-            return result;
+            bool onDisk = File.Exists(path);
+            if (onDisk)
+            {
+                lock (_lockObject)
+                {
+                    if (!_removedFiles.Contains(path))
+                    {
+                        _virtualFiles.Add(path);
+
+                        string directory = Path.GetDirectoryName(path);
+                        if (!string.IsNullOrEmpty(directory))
+                        {
+                            _virtualDirectories.Add(directory);
+                        }
+
+                        if (IsArchiveFile(path) && !_archiveContents.ContainsKey(path) && !_archiveOriginalPaths.ContainsKey(path))
+                        {
+                            _archiveOriginalPaths[path] = path;
+                        }
+                    }
+                }
+            }
+
+            return onDisk;
         }
 
         public bool DirectoryExists(string path)
@@ -377,8 +526,22 @@ namespace KOTORModSync.Core.Services.FileSystem
 
             lock (_lockObject)
             {
-                return _virtualDirectories.Contains(path) || Directory.Exists(path);
+                if (_virtualDirectories.Contains(path))
+                {
+                    return true;
+                }
             }
+
+            bool onDisk = Directory.Exists(path);
+            if (onDisk)
+            {
+                lock (_lockObject)
+                {
+                    _virtualDirectories.Add(path);
+                }
+            }
+
+            return onDisk;
         }
 
         public Task CopyFileAsync(string sourcePath, string destinationPath, bool overwrite)
@@ -402,9 +565,21 @@ namespace KOTORModSync.Core.Services.FileSystem
                 _ = _virtualFiles.Add(destinationPath);
                 _ = _removedFiles.Remove(destinationPath);
 
-                if (IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents))
+                if (IsArchiveFile(sourcePath))
                 {
-                    _archiveContents[destinationPath] = new HashSet<string>(archiveContents, StringComparer.OrdinalIgnoreCase);
+                    if (_archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents))
+                    {
+                        _archiveContents[destinationPath] = new HashSet<string>(archiveContents, StringComparer.OrdinalIgnoreCase);
+                    }
+
+                    if (_archiveOriginalPaths.TryGetValue(sourcePath, out string originalPath))
+                    {
+                        _archiveOriginalPaths[destinationPath] = originalPath;
+                    }
+                    else
+                    {
+                        _archiveOriginalPaths[destinationPath] = sourcePath;
+                    }
                 }
 
                 string parentDir = Path.GetDirectoryName(destinationPath);
@@ -483,10 +658,30 @@ namespace KOTORModSync.Core.Services.FileSystem
                 {
                     _ = _archiveContents.Remove(sourcePath);
                     _archiveContents[destinationPath] = archiveContents;
+
+                    if (_archiveOriginalPaths.TryGetValue(sourcePath, out string originalPath))
+                    {
+                        _archiveOriginalPaths[destinationPath] = originalPath;
+                        _ = _archiveOriginalPaths.Remove(sourcePath);
+                    }
+                    else
+                    {
+                        _archiveOriginalPaths[destinationPath] = sourcePath;
+                    }
+
                     if (MainConfig.DebugLogging)
                     {
                         Logger.LogVerbose($"[VFS] MoveFileAsync: Moved archive contents mapping from source to destination");
                     }
+                }
+                else if (IsArchiveFile(sourcePath))
+                {
+                    string originalPath = sourcePath;
+                    if (_archiveOriginalPaths.TryGetValue(sourcePath, out string existingOriginal))
+                    {
+                        originalPath = existingOriginal;
+                    }
+                    _archiveOriginalPaths[destinationPath] = originalPath;
                 }
 
                 string parentDir = Path.GetDirectoryName(destinationPath);
@@ -525,6 +720,7 @@ namespace KOTORModSync.Core.Services.FileSystem
                 if (IsArchiveFile(path))
                 {
                     _ = _archiveContents.Remove(path);
+                    _ = _archiveOriginalPaths.Remove(path);
                 }
             }
 
@@ -561,6 +757,25 @@ namespace KOTORModSync.Core.Services.FileSystem
                 {
                     _ = _archiveContents.Remove(sourcePath);
                     _archiveContents[destinationPath] = archiveContents;
+
+                    if (_archiveOriginalPaths.TryGetValue(sourcePath, out string originalPath))
+                    {
+                        _archiveOriginalPaths[destinationPath] = originalPath;
+                        _ = _archiveOriginalPaths.Remove(sourcePath);
+                    }
+                    else
+                    {
+                        _archiveOriginalPaths[destinationPath] = sourcePath;
+                    }
+                }
+                else if (IsArchiveFile(sourcePath))
+                {
+                    string originalPath = sourcePath;
+                    if (_archiveOriginalPaths.TryGetValue(sourcePath, out string existingOriginal))
+                    {
+                        originalPath = existingOriginal;
+                    }
+                    _archiveOriginalPaths[destinationPath] = originalPath;
                 }
             }
 
@@ -681,7 +896,6 @@ namespace KOTORModSync.Core.Services.FileSystem
 
             var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Take a snapshot of _virtualFiles and _removedFiles inside a lock to avoid enumeration issues
             List<string> virtualFilesSnapshot;
             HashSet<string> removedFilesSnapshot;
             lock (_lockObject)
@@ -690,7 +904,6 @@ namespace KOTORModSync.Core.Services.FileSystem
                 removedFilesSnapshot = new HashSet<string>(_removedFiles, StringComparer.OrdinalIgnoreCase);
             }
 
-            // Now enumerate the snapshot outside the lock
             foreach (string f in virtualFilesSnapshot)
             {
                 string fileDir = Path.GetDirectoryName(f);
@@ -719,18 +932,28 @@ namespace KOTORModSync.Core.Services.FileSystem
                         if (!removedFilesSnapshot.Contains(f))
                         {
                             files.Add(f);
+
+                            lock (_lockObject)
+                            {
+                                if (!_removedFiles.Contains(f))
+                                {
+                                    _virtualFiles.Add(f);
+                                }
+                            }
                         }
                     }
                 }
-                catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException ex)
                 {
                     AddIssue(ValidationSeverity.Warning, "GetFilesInDirectory",
                         $"Unauthorized access to directory: {directoryPath}", directoryPath);
+                    Logger.LogException(ex, $"[VFS] Unauthorized access while enumerating files in '{directoryPath}'.");
                 }
-                catch (DirectoryNotFoundException)
+                catch (DirectoryNotFoundException ex)
                 {
                     AddIssue(ValidationSeverity.Warning, "GetFilesInDirectory",
                         $"Directory not found: {directoryPath}", directoryPath);
+                    Logger.LogException(ex, $"[VFS] Directory not found while enumerating files in '{directoryPath}'.");
                 }
             }
 

@@ -357,7 +357,7 @@ namespace KOTORModSync.Controls
             {
                 textBox.ClearValue(TextBox.BorderBrushProperty);
                 textBox.ClearValue(TextBox.BorderThicknessProperty);
-                ToolTip.SetTip(textBox, null);
+                ToolTip.SetTip(textBox, value: null);
                 return;
             }
 
@@ -367,7 +367,7 @@ namespace KOTORModSync.Controls
             {
                 textBox.ClearValue(BorderBrushProperty);
                 textBox.ClearValue(BorderThicknessProperty);
-                ToolTip.SetTip(textBox, null);
+                ToolTip.SetTip(textBox, value: null);
                 return;
             }
 
@@ -383,7 +383,7 @@ namespace KOTORModSync.Controls
 
             textBox.ClearValue(BorderBrushProperty);
             textBox.ClearValue(BorderThicknessProperty);
-            ToolTip.SetTip(textBox, null);
+            ToolTip.SetTip(textBox, value: null);
         }
 
         private static bool IsValidUrl(string url)

@@ -523,7 +523,7 @@ namespace KOTORModSync.Core.Services
                     comparison = (a, b) => _mainConfig.allComponents.IndexOf(a).CompareTo(_mainConfig.allComponents.IndexOf(b));
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, null);
+                    throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, message: null);
             }
 
             if (sortOrder == SortOrder.Descending)

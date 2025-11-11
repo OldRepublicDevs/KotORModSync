@@ -22,15 +22,15 @@ namespace KOTORModSync.Core.Services.Download
         }
 
         public static DownloadResult Succeeded(string filePath, string message, DownloadSource downloadSource = DownloadSource.Direct) =>
-            new DownloadResult(true, message ?? string.Empty, filePath ?? string.Empty, false, downloadSource);
+            new DownloadResult(success: true, message ?? string.Empty, filePath ?? string.Empty, wasSkipped: false, downloadSource);
 
         public static DownloadResult Succeeded(string filePath) =>
-            new DownloadResult(true, string.Empty, filePath ?? string.Empty);
+            new DownloadResult(success: true, string.Empty, filePath ?? string.Empty);
 
         public static DownloadResult Failed(string message) =>
-            new DownloadResult(false, message ?? string.Empty, string.Empty);
+            new DownloadResult(success: false, message ?? string.Empty, string.Empty);
 
         public static DownloadResult Skipped(string filePath, string message) =>
-            new DownloadResult(true, message ?? string.Empty, filePath ?? string.Empty, true);
+            new DownloadResult(success: true, message ?? string.Empty, filePath ?? string.Empty, wasSkipped: true);
     }
 }

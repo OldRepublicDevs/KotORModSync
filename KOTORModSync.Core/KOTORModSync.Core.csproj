@@ -9,15 +9,31 @@
     <_NC2>Mon</_NC2>
   </PropertyGroup>
 
+
+  <!-- RuntimeIdentifiers: Forward-compatible dynamic assignment based on .NET version -->
+  <!-- .NET Framework 4.x: Windows-only with legacy RIDs -->
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net4'))">
+    <RuntimeIdentifiers>win7-x86;win7-x64;win10-x86;win10-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <!-- .NET 6-7: Legacy Windows RIDs + cross-platform -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net6.0' OR '$(TargetFramework)'=='net7.0'">
+    <RuntimeIdentifiers>win7-x86;win7-x64;win10-x86;win10-x64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <!-- .NET 8+: Modern Windows RIDs + cross-platform (forward-compatible with net10.0, net11.0, etc.) -->
+  <PropertyGroup Condition="!$(TargetFramework.StartsWith('net4')) AND '$(TargetFramework)'!='net6.0' AND '$(TargetFramework)'!='net7.0'">
+    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
   <!-- Release Configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
+    <!-- Use latest .NET (8) + .NET Framework 4.8 fallback for Windows-only legacy support -->
+    <TargetFrameworks>net8.0;net48</TargetFrameworks>
   </PropertyGroup>
 
   <!-- Debug Configuration: Optimized for faster development builds -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <!-- Build only net8.0 for Debug to speed up development builds (unless TargetFramework is explicitly set) -->
+    <!-- Build only latest .NET (net8.0) for Debug to speed up development builds (unless TargetFramework is explicitly set) -->
     <TargetFrameworks Condition="'$(TargetFramework)' == ''">net8.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
     <!-- Disable analyzers in Debug builds for faster compilation -->
@@ -109,10 +125,6 @@
       <IncludeAssets Condition="'$(Configuration)' == 'Release'">runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <IncludeAssets Condition="'$(Configuration)' == 'Debug'">runtime; native; contentfiles</IncludeAssets>
     </PackageReference>
-    <ProjectReference Include="..\KOTORModSync.Analyzers\KOTORModSync.Analyzers.csproj">
-      <OutputItemType>Analyzer</OutputItemType>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
 
 

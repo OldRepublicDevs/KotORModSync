@@ -16,6 +16,11 @@ namespace KOTORModSync.Dialogs.WizardPages
     {
         private ScrollViewer _contentScrollViewer;
 
+        public PreamblePage()
+            : this(string.Empty)
+        {
+        }
+
         public PreamblePage([NotNull] string beforeContent)
         {
             InitializeComponent();

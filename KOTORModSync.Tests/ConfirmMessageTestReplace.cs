@@ -28,12 +28,12 @@ namespace KOTORModSync.Tests
         {
             if (_testDirectoryPath != null)
             {
-                Directory.Delete(_testDirectoryPath, true);
+                Directory.Delete(_testDirectoryPath, recursive: true);
             }
         }
 
         [Test]
-        public void DisableConfirmations_NullDirectory_ThrowsArgumentNullException() => _ = Assert.Throws<ArgumentNullException>(() => IniHelper.ReplaceIniPattern(null, pattern: @"^\s*ConfirmMessage\s*=\s*.*$", replacement: "ConfirmMessage=N/A"));
+        public void DisableConfirmations_NullDirectory_ThrowsArgumentNullException() => _ = Assert.Throws<ArgumentNullException>(() => IniHelper.ReplaceIniPattern(directory: null, pattern: @"^\s*ConfirmMessage\s*=\s*.*$", replacement: "ConfirmMessage=N/A"));
 
         [Test]
         public void DisableConfirmations_NoIniFiles_ThrowsInvalidOperationException()

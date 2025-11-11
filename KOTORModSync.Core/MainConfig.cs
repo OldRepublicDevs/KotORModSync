@@ -178,7 +178,14 @@ namespace KOTORModSync.Core
         public bool editorMode
         {
             get => EditorMode;
-            set => EditorMode = value;
+            set
+            {
+                if (EditorMode != value)
+                {
+                    EditorMode = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         /// <summary>Spoiler-free mode hides mod names and descriptions to prevent story spoilers.</summary>
@@ -187,7 +194,14 @@ namespace KOTORModSync.Core
         public bool spoilerFreeMode
         {
             get => SpoilerFreeMode;
-            set => SpoilerFreeMode = value;
+            set
+            {
+                if (SpoilerFreeMode != value)
+                {
+                    SpoilerFreeMode = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         /// <summary>

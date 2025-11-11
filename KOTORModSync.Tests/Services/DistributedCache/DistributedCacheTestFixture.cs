@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core;
@@ -22,23 +20,26 @@ namespace KOTORModSync.Tests.Services.DistributedCache
     /// </summary>
     public class DistributedCacheTestFixture : IAsyncLifetime
     {
-        private readonly List<DockerBitTorrentClient> _containers = new List<DockerBitTorrentClient>();
+        private readonly List<DockerCacheClient> _containers = new List<DockerCacheClient>();
         private readonly List<string> _tempDirectories = new List<string>();
         private readonly List<string> _tempFiles = new List<string>();
+        private readonly Dictionary<string, DistributionPayload> _descriptorPayloads = new Dictionary<string, DistributionPayload>(StringComparer.OrdinalIgnoreCase);
 
         public string TestDataDirectory { get; private set; }
-        public string TorrentsDirectory { get; private set; }
+        public string DescriptorsDirectory { get; private set; }
         public string DownloadsDirectory { get; private set; }
 
         public async Task InitializeAsync()
         {
+            await DockerCacheClient.CleanupResidualContainersAsync().ConfigureAwait(false);
+
             // Create test directories
             TestDataDirectory = Path.Combine(Path.GetTempPath(), $"KMSTest_{Guid.NewGuid():N}");
-            TorrentsDirectory = Path.Combine(TestDataDirectory, "torrents");
+            DescriptorsDirectory = Path.Combine(TestDataDirectory, "descriptors");
             DownloadsDirectory = Path.Combine(TestDataDirectory, "downloads");
 
             Directory.CreateDirectory(TestDataDirectory);
-            Directory.CreateDirectory(TorrentsDirectory);
+            Directory.CreateDirectory(DescriptorsDirectory);
             Directory.CreateDirectory(DownloadsDirectory);
 
             _tempDirectories.Add(TestDataDirectory);
@@ -48,20 +49,20 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             {
                 sourcePath = new DirectoryInfo(TestDataDirectory),
                 destinationPath = new DirectoryInfo(DownloadsDirectory),
-                debugLogging = true
+                debugLogging = true,
             };
 
-            await Task.CompletedTask.ConfigureAwait(false);
+            await Task.CompletedTask;
         }
 
         public async Task DisposeAsync()
         {
             // Stop all containers
-            foreach (DockerBitTorrentClient container in _containers)
+            foreach (DockerCacheClient container in _containers)
             {
                 try
                 {
-                    await container.StopAsync().ConfigureAwait(false);
+                    await container.StopAsync();
                     container.Dispose();
                 }
                 catch
@@ -89,180 +90,70 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             {
                 try
                 {
-                    Directory.Delete(dir, true);
+                    Directory.Delete(dir, recursive: true);
                 }
                 catch
                 {
                     // Best effort
                 }
             }
+
+            await DockerCacheClient.CleanupResidualContainersAsync().ConfigureAwait(false);
         }
 
-        public async Task<DockerBitTorrentClient> StartContainerAsync(
-            DockerBitTorrentClient.BitTorrentClientType clientType,
+        public async Task<DockerCacheClient> StartContainerAsync(
+            DockerCacheClient.CacheClientFlavor clientType,
             CancellationToken cancellationToken = default)
         {
-            var client = new DockerBitTorrentClient(clientType);
-            await client.StartAsync(cancellationToken).ConfigureAwait(false);
+            var client = new DockerCacheClient(clientType);
+            await client.StartAsync(cancellationToken);
             _containers.Add(client);
             return client;
         }
 
         public string CreateTestFile(string filename, long sizeBytes, string content = null)
         {
-            string path = Path.Combine(TestDataDirectory, filename);
-
-            if (content != null)
-            {
-                File.WriteAllText(path, content);
-            }
-            else
-            {
-                // Create file with random data
-                using FileStream stream = File.Create(path);
-                var random = new Random(42); // Deterministic for tests
-                byte[] buffer = new byte[8192];
-                long remaining = sizeBytes;
-
-                while (remaining > 0)
-                {
-                    int toWrite = (int)Math.Min(remaining, buffer.Length);
-                    random.NextBytes(buffer);
-                    stream.Write(buffer, 0, toWrite);
-                    remaining -= toWrite;
-                }
-            }
-
+            string relativePath = filename.Replace('\\', Path.DirectorySeparatorChar);
+            string path = DistributionTestSupport.EnsureTestFile(TestDataDirectory, relativePath, sizeBytes, content);
             _tempFiles.Add(path);
             return path;
         }
 
-        public async Task<string> CreateTorrentFileAsync(
+        public async Task<string> CreateDescriptorFileAsync(
             string sourceFile,
-            string torrentName,
+            string descriptorName,
             int pieceLength = 262144,
-            List<string> trackers = null)
+            List<string> trackers = null,
+            CancellationToken cancellationToken = default)
         {
-            string torrentPath = Path.Combine(TorrentsDirectory, $"{torrentName}.torrent");
+            (string descriptorPath, DistributionPayload payload) = await DistributionTestSupport.CreateDescriptorAsync(
+                sourceFile,
+                DescriptorsDirectory,
+                descriptorName,
+                trackers,
+                pieceLength,
+                cancellationToken).ConfigureAwait(false);
 
-            // Build canonical info dict
-            var infoDict = new System.Collections.Generic.SortedDictionary<string, object>(StringComparer.Ordinal)
-            {
-                ["name"] = Path.GetFileName(sourceFile),
-                ["piece length"] = pieceLength,
-                ["length"] = new FileInfo(sourceFile).Length,
-                ["private"] = 0
-            };
-
-            // Compute piece hashes
-            using (FileStream fileStream = File.OpenRead(sourceFile))
-            using (var sha1 = SHA1.Create())
-            {
-                var pieceHashes = new List<byte>();
-                byte[] buffer = new byte[pieceLength];
-                int bytesRead;
-
-                while ((bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
-                {
-                    byte[] hash = sha1.ComputeHash(buffer, 0, bytesRead);
-                    pieceHashes.AddRange(hash);
-                }
-
-                infoDict["pieces"] = pieceHashes.ToArray();
-            }
-
-            // Encode info dict
-            byte[] encodedInfo = CanonicalBencoding.BencodeCanonical(infoDict);
-
-            // Compute ContentId (SHA-1 of bencoded info dict)
-            byte[] contentId;
-            using (var sha1Info = SHA1.Create())
-            {
-                contentId = sha1Info.ComputeHash(encodedInfo);
-            }
-
-            // Build full torrent dict
-            var torrentDict = new System.Collections.Generic.SortedDictionary<string, object>(StringComparer.Ordinal)
-            {
-                ["info"] = infoDict,
-                ["creation date"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-            };
-
-            if (trackers != null && trackers.Count > 0)
-            {
-                torrentDict["announce"] = trackers[0];
-                if (trackers.Count > 1)
-                {
-                    var announceList = new List<object>();
-                    foreach (string tracker in trackers)
-                    {
-                        announceList.Add(new List<object> { tracker });
-                    }
-                    torrentDict["announce-list"] = announceList;
-                }
-            }
-
-            // Encode and save
-            byte[] encodedTorrent = CanonicalBencoding.BencodeCanonical(torrentDict);
-            await File.WriteAllBytesAsync(torrentPath, encodedTorrent).ConfigureAwait(false);
-
-            _tempFiles.Add(torrentPath);
-            return torrentPath;
+            _tempFiles.Add(descriptorPath);
+            _descriptorPayloads[descriptorPath] = payload;
+            return descriptorPath;
         }
 
         public string ComputeContentId(string filePath)
         {
-            // Read file and compute ContentId same way DownloadCacheOptimizer does
-            long fileSize = new FileInfo(filePath).Length;
-            int pieceLength = DeterminePieceSize(fileSize);
-
-            var infoDict = new System.Collections.Generic.SortedDictionary<string, object>(StringComparer.Ordinal)
-            {
-                ["name"] = Path.GetFileName(filePath),
-                ["piece length"] = pieceLength,
-                ["length"] = fileSize,
-                ["private"] = 0
-            };
-
-            // Compute piece hashes
-            using (FileStream fileStream = File.OpenRead(filePath))
-            using (var sha1Piece = SHA1.Create())
-            {
-                var pieceHashes = new List<byte>();
-                byte[] buffer = new byte[pieceLength];
-                int bytesRead;
-
-                while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    byte[] hash = sha1Piece.ComputeHash(buffer, 0, bytesRead);
-                    pieceHashes.AddRange(hash);
-                }
-
-                infoDict["pieces"] = pieceHashes.ToArray();
-            }
-
-            // Encode and hash
-            byte[] encoded = CanonicalBencoding.BencodeCanonical(infoDict);
-            byte[] contentIdBytes;
-            using (var sha1 = SHA1.Create())
-            {
-                contentIdBytes = sha1.ComputeHash(encoded);
-            }
-
-            return BitConverter.ToString(contentIdBytes).Replace("-", "").ToLowerInvariant();
+            return DownloadCacheOptimizer.ComputeContentIdForFileAsync(filePath)
+                .GetAwaiter()
+                .GetResult();
         }
 
-        private static int DeterminePieceSize(long fileSize)
+        public DistributionPayload GetDescriptorPayload(string descriptorPath)
         {
-            int[] candidates = { 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304 };
-            foreach (int size in candidates)
+            if (!_descriptorPayloads.TryGetValue(descriptorPath, out DistributionPayload payload))
             {
-                if ((fileSize + size - 1) / size <= 1048576)
-                {
-                    return size;
-                }
+                throw new InvalidOperationException($"Descriptor payload not found for path '{descriptorPath}'. Ensure CreateDescriptorFileAsync was used to build it.");
             }
-            return 4194304;
+
+            return payload;
         }
 
         public string CreateTempDirectory(string name = null)
@@ -273,22 +164,18 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             return path;
         }
 
-        public async Task WaitForConditionAsync(
+        public Task WaitForConditionAsync(
             Func<Task<bool>> condition,
             TimeSpan timeout,
             string errorMessage,
             CancellationToken cancellationToken = default)
         {
-            DateTime deadline = DateTime.UtcNow.Add(timeout);
-            while (DateTime.UtcNow < deadline)
-            {
-                if (await condition().ConfigureAwait(false))
-                {
-                    return;
-                }
-                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
-            }
-            throw new TimeoutException(errorMessage);
+            return AsyncWaitHelper.WaitUntilAsync(
+                condition,
+                timeout,
+                pollInterval: TimeSpan.FromSeconds(1),
+                errorFactory: () => new TimeoutException(errorMessage),
+                cancellationToken: cancellationToken);
         }
     }
 }

@@ -327,7 +327,7 @@ StringComparer.Ordinal);
 
         public void Dispose()
         {
-            Dispose(true);
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
@@ -352,7 +352,7 @@ StringComparer.Ordinal);
             }
         }
 
-        ~CrossPlatformFileWatcher() => Dispose(false);
+        ~CrossPlatformFileWatcher() => Dispose(disposing: false);
 
         #endregion
     }

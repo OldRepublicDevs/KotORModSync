@@ -36,7 +36,12 @@ namespace KOTORModSync.Core.FileSystemUtils
             for (int i = 0; i < parts.Length; i++)
             {
                 string cumulativePath = string.Join(Path.DirectorySeparatorChar.ToString(), parts.Take(i + 1));
-                result[i] = new CaseAwarePath(cumulativePath);
+                result[i] = new CaseAwarePath(cumulativePath, skipPartsInitialization: true);
+                // Set Parent for each part
+                if (i > 0)
+                {
+                    result[i].Parent = result[i - 1];
+                }
             }
 
             Name = Path.GetFileName(_str);
@@ -48,6 +53,24 @@ namespace KOTORModSync.Core.FileSystemUtils
             Stem = Path.GetFileNameWithoutExtension(_str);
             Suffix = Path.GetExtension(_str);
 
+        }
+
+        // Private constructor to prevent infinite recursion when building Parts array
+        private CaseAwarePath(string path, bool skipPartsInitialization)
+        {
+            _str = FixPathFormatting(path);
+
+            if (ShouldResolveCase(_str))
+            {
+                _str = GetCaseSensitivePath();
+            }
+
+            Name = Path.GetFileName(_str);
+            Parent = null; // Will be set by parent constructor
+            Parts = Array.Empty<CaseAwarePath>(); // Empty to prevent recursion
+            Root = Path.GetPathRoot(_str);
+            Stem = Path.GetFileNameWithoutExtension(_str);
+            Suffix = Path.GetExtension(_str);
         }
 
         public string Name { get; }

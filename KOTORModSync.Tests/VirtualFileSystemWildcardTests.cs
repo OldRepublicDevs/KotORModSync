@@ -415,7 +415,6 @@ namespace KOTORModSync.Tests
         }
 
         [Test]
-        [Ignore("Wildcards in archive names for Extract operations not yet supported")]
         public async Task Test_WildcardInArchiveName()
         {
 

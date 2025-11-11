@@ -21,6 +21,11 @@ namespace KOTORModSync.Dialogs.WizardPages
         private TextBlock _selectedModsText;
         private StackPanel _modListPanel;
 
+        public InstallStartPage()
+            : this(new List<ModComponent>())
+        {
+        }
+
         public InstallStartPage([NotNull][ItemNotNull] List<ModComponent> allComponents)
         {
             _allComponents = allComponents ?? throw new ArgumentNullException(nameof(allComponents));
@@ -72,7 +77,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 _modListPanel.Children.Add(new TextBlock
                 {
                     Text = $"• {mod.Name}",
-                    TextWrapping = TextWrapping.Wrap
+                    TextWrapping = TextWrapping.Wrap,
                 });
             }
         }

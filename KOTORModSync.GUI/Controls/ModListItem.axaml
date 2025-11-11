@@ -7,6 +7,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:KOTORModSync.Converters"
     xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+    xmlns:helpers="clr-namespace:KOTORModSync.Helpers"
     xmlns:ThemeResourceHelper="clr-namespace:KOTORModSync"
     x:DataType="core:ModComponent">
 
@@ -16,6 +17,7 @@
         <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
         <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
         <converters:TierTooltipConverter x:Key="TierTooltipConverter" />
+        <converters:SpoilerFreeContentConverter x:Key="SpoilerFreeContentConverter" />
     </UserControl.Resources>
 
     <Grid Margin="2,1">
@@ -71,9 +73,18 @@
                             Margin="0,0,0,0"
                             FontSize="14"
                             FontWeight="SemiBold"
-                            Text="{Binding Name}"
                             TextTrimming="CharacterEllipsis"
-                            TextWrapping="NoWrap" />
+                            TextWrapping="NoWrap">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                    <Binding Source="{x:Static helpers:PropertyNames.Name}" />
+                                    <Binding Path="." />
+                                    <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                    <Binding Source="{x:Static helpers:PropertyNames.NameSpoilerFree}" />
+                                    <Binding Path="Name" />  <!-- Triggers update when Name changes -->
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
 
                         <!--  Validation Status Icon  -->
                         <TextBlock
@@ -205,14 +216,32 @@
                                         <TextBlock
                                             FontSize="12"
                                             FontWeight="Medium"
-                                            Text="{Binding Name}"
-                                            TextWrapping="Wrap" />
+                                            TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                                    <Binding Source="{x:Static helpers:PropertyNames.Name}" />
+                                                    <Binding Path="." />
+                                                    <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                                    <Binding Source="{x:Static helpers:PropertyNames.NameSpoilerFree}" />
+                                                    <Binding Path="Name" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                         <TextBlock
                                             FontSize="11"
                                             IsVisible="{Binding Description, Converter={StaticResource StringNotEmptyConverter}}"
                                             Opacity="0.8"
-                                            Text="{Binding Description}"
-                                            TextWrapping="Wrap" />
+                                            TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                                    <Binding Source="{x:Static helpers:PropertyNames.Description}" />
+                                                    <Binding Path="." />
+                                                    <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                                    <Binding Source="{x:Static helpers:PropertyNames.DescriptionSpoilerFree}" />
+                                                    <Binding Path="Description" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                     </StackPanel>
                                 </Grid>
                             </Border>

@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Services.Checkpoints;
 
 using Newtonsoft.Json;
 
@@ -41,7 +42,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
             }
 
             _gameDirectory = gameDirectory;
-            _checkpointDirectory = Path.Combine(gameDirectory, ".kotor_modsync", "checkpoints");
+            _checkpointDirectory = CheckpointPaths.GetCheckpointsRoot(gameDirectory);
 
             Directory.CreateDirectory(_checkpointDirectory);
 
@@ -507,7 +508,7 @@ $"Installation_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (fullPath.Contains(".kotor_modsync"))
+                if (fullPath.Contains(CheckpointPaths.CheckpointFolderName, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -639,7 +640,7 @@ $"Installation_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
 
         private static async Task WriteAllTextAsync(string path, string contents)
         {
-            using (var writer = new StreamWriter(path, false, Encoding.UTF8))
+            using (var writer = new StreamWriter(path, append: false, Encoding.UTF8))
             {
                 await writer.WriteAsync(contents).ConfigureAwait(false);
             }

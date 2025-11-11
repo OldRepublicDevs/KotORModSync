@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
@@ -15,7 +15,8 @@
   <!-- Release Configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
+    <!-- Use latest .NET (9) + .NET Framework 4.8 fallback for Windows-only legacy support -->
+    <TargetFrameworks>net9.0;net48</TargetFrameworks>
   </PropertyGroup>
 
   <!-- Debug Configuration: Optimized for faster development builds -->
@@ -23,7 +24,8 @@
     <!-- Disable analyzers in Debug builds for faster compilation -->
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
-    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net8.0</TargetFrameworks>
+    <!-- Build only latest .NET (net9.0) for Debug to speed up builds (unless TargetFramework is explicitly set) -->
+    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net9.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
   </PropertyGroup>
 

@@ -18,6 +18,14 @@ namespace KOTORModSync.Core
         private static bool s_isInitialized;
         private static readonly object s_initializationLock = new object();
         private static readonly NLog.Logger s_logger = LogManager.GetCurrentClassLogger();
+
+        public enum LogType
+        {
+            Info,
+            Warning,
+            Error,
+            Verbose,
+        }
         public static event Action<string> Logged = delegate { };
         public static event Action<Exception> ExceptionLogged = delegate { };
         public static void Initialize()
@@ -35,9 +43,9 @@ namespace KOTORModSync.Core
                 {
                     Console.OutputEncoding = System.Text.Encoding.UTF8;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // If setting UTF-8 fails (e.g., on some limited environments), continue anyway
+                    System.Diagnostics.Trace.WriteLine($"[Logger] Failed to set console encoding to UTF-8: {ex}");
                 }
 
                 // Configure NLog with debug logging setting
@@ -51,7 +59,8 @@ namespace KOTORModSync.Core
         [NotNull]
         private static async Task LogInternalAsync(
             [CanBeNull] string internalMessage,
-            LogLevel level
+            LogLevel level,
+            bool fileOnly = false
         )
         {
             internalMessage = internalMessage ?? string.Empty;
@@ -141,8 +150,9 @@ namespace KOTORModSync.Core
                         return true;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Trace.WriteLine($"[Logger] Failed to obtain process name for test context detection: {ex}");
                     // If we can't get the process name, assume we're not in a test
                     // This prevents stack overflow issues
                 }
@@ -216,64 +226,189 @@ namespace KOTORModSync.Core
                 }
             }
         }
-        public static void Log([CanBeNull] string message = null, bool fileOnly = false) =>
-            _ = LogInternalAsync(message, LogLevel.Info);
+        public static void Log(
+            [CanBeNull] string message = null,
+            bool fileOnly = false,
+            LogType logType = LogType.Info
+        ) =>
+            _ = LogAsync(message, fileOnly, logType);
 
         [NotNull]
-        public static Task LogAsync([CanBeNull] string message = "") => LogInternalAsync(message, LogLevel.Info);
+        public static Task LogAsync(
+            [CanBeNull] string message = "",
+            bool fileOnly = false,
+            LogType logType = LogType.Info
+        ) =>
+            LogCoreAsync(message, MapLogTypeToLogLevel(logType), ex: null);
 
-        public static void LogInfo([CanBeNull] string message = null, bool fileOnly = false) =>
-            _ = LogInternalAsync(message, LogLevel.Info);
-
-        [NotNull]
-        public static Task LogInfoAsync([CanBeNull] string message = "") => LogInternalAsync(message, LogLevel.Info);
-
-        public static void LogVerbose([CanBeNull] string message) =>
-            _ = LogInternalAsync($"[Verbose] {message}", LogLevel.Debug);
-
-        [NotNull]
-        public static Task LogVerboseAsync([CanBeNull] string message) =>
-            LogInternalAsync($"[Verbose] {message}", LogLevel.Debug);
-
-        public static void LogWarning([NotNull] string message) =>
-            _ = LogInternalAsync($"[Warning] {message}", LogLevel.Warn);
+        public static void LogInfo(
+            [CanBeNull] string message = null,
+            [CanBeNull] Exception ex = null,
+            bool fileOnly = false
+        ) =>
+            _ = LogInfoAsync(message, ex, fileOnly);
 
         [NotNull]
-        public static Task LogWarningAsync([NotNull] string message) =>
-            LogInternalAsync($"[Warning] {message}", LogLevel.Warn);
+        public static Task LogInfoAsync(
+            [CanBeNull] string message = "",
+            [CanBeNull] Exception ex = null,
+            bool fileOnly = false
+        ) =>
+            LogCoreAsync(message, LogLevel.Info, ex);
 
-        public static void LogError([CanBeNull] string message) =>
-            _ = LogInternalAsync($"[Error] {message}", LogLevel.Error);
+        public static void LogVerbose([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
+            _ = LogVerboseAsync(message, ex);
 
         [NotNull]
-        public static Task LogErrorAsync([CanBeNull] string message) =>
-            LogInternalAsync($"[Error] {message}", LogLevel.Error);
+        public static Task LogVerboseAsync([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
+            LogCoreAsync(message, LogLevel.Debug, ex);
 
-        public static void LogException([CanBeNull] Exception ex, [CanBeNull] string customMessage = null) =>
-            _ = LogExceptionAsync(ex, customMessage);
+        public static void LogWarning([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
+            _ = LogWarningAsync(message, ex);
+
         [NotNull]
-        public static async Task LogExceptionAsync([CanBeNull] Exception ex, [CanBeNull] string customMessage = null)
+        public static Task LogWarningAsync([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
+            LogCoreAsync(message, LogLevel.Warn, ex);
+
+        public static void LogError([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
+            _ = LogErrorAsync(message, ex);
+
+        [NotNull]
+        public static Task LogErrorAsync([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
+            LogCoreAsync(message, LogLevel.Error, ex);
+
+        public static void LogException([CanBeNull] Exception ex, [CanBeNull] string customMessage = null, bool fileOnly = false) =>
+            LogError(customMessage, ex);
+
+        [NotNull]
+        public static Task LogExceptionAsync([CanBeNull] Exception ex, [CanBeNull] string customMessage = null, bool fileOnly = false) =>
+            LogErrorAsync(customMessage, ex);
+
+        [NotNull]
+        private static Task LogCoreAsync(
+            [CanBeNull] string message,
+            LogLevel level,
+            [CanBeNull] Exception ex,
+            bool fileOnly = false
+        )
         {
-            ex = ex ?? new ApplicationException();
+            string customMessage = DetermineCustomMessage(message, ex);
+            string formattedMessage = ApplyLevelPrefix(customMessage, level);
+            return LogCoreInternalAsync(formattedMessage, level, ex, customMessage, fileOnly);
+        }
 
-            await LogErrorAsync(customMessage ?? $"Unhandled exception: {ex.GetType().Name}").ConfigureAwait(false);
-            await LogInternalAsync($"Exception: {ex.GetType().Name} - {ex.Message}", LogLevel.Error).ConfigureAwait(false);
-            await LogInternalAsync($"Stack trace:{Environment.NewLine}{ex.StackTrace}", LogLevel.Error).ConfigureAwait(false);
-            ExceptionLogged?.Invoke(ex);
+        [NotNull]
+        private static async Task LogCoreInternalAsync(
+            [NotNull] string formattedMessage,
+            LogLevel level,
+            [CanBeNull] Exception ex,
+            [NotNull] string customMessageForTelemetry,
+            bool fileOnly = false
+        )
+        {
+            await LogInternalAsync(formattedMessage, level, fileOnly).ConfigureAwait(false);
 
-            // Send exception to telemetry service
+            if (ex is null)
+            {
+                return;
+            }
+
+            await LogExceptionDetailsAsync(ex, customMessageForTelemetry).ConfigureAwait(false);
+        }
+
+        [NotNull]
+        private static string DetermineCustomMessage([CanBeNull] string message, [CanBeNull] Exception ex)
+        {
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                return message;
+            }
+
+            if (ex is null)
+            {
+                return string.Empty;
+            }
+
+            string exceptionName = ex.GetType().Name;
+            return $"Unhandled exception: {exceptionName}";
+        }
+
+        [NotNull]
+        private static string ApplyLevelPrefix([CanBeNull] string message, LogLevel level)
+        {
+            string nonNullMessage = message ?? string.Empty;
+            string prefix = string.Empty;
+
+            if (level == LogLevel.Warn)
+            {
+                prefix = "[Warning] ";
+            }
+            else if (level == LogLevel.Error)
+            {
+                prefix = "[Error] ";
+            }
+            else if (level == LogLevel.Debug)
+            {
+                prefix = "[Verbose] ";
+            }
+
+            if (string.IsNullOrEmpty(prefix))
+            {
+                return nonNullMessage;
+            }
+
+            if (nonNullMessage.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return nonNullMessage;
+            }
+
+            return $"{prefix}{nonNullMessage}";
+        }
+
+        private static LogLevel MapLogTypeToLogLevel(LogType logType)
+        {
+            switch (logType)
+            {
+                case LogType.Warning:
+                    return LogLevel.Warn;
+                case LogType.Error:
+                    return LogLevel.Error;
+                case LogType.Verbose:
+                    return LogLevel.Debug;
+                default:
+                    return LogLevel.Info;
+            }
+        }
+
+        [NotNull]
+        private static async Task LogExceptionDetailsAsync([CanBeNull] Exception ex, [NotNull] string customMessage)
+        {
+            Exception actualException = ex ?? new ApplicationException();
+
+            await LogInternalAsync(
+                $"Exception: {actualException.GetType().Name} - {actualException.Message}",
+                LogLevel.Error
+            ).ConfigureAwait(false);
+
+            await LogInternalAsync(
+                $"Stack trace:{Environment.NewLine}{actualException.StackTrace}",
+                LogLevel.Error
+            ).ConfigureAwait(false);
+
+            ExceptionLogged?.Invoke(actualException);
+
             try
             {
                 Services.TelemetryService.Instance.RecordError(
-                    errorType: ex.GetType().FullName ?? "UnknownException",
-                    errorMessage: customMessage ?? ex.Message,
-                    stackTrace: ex.StackTrace
+                    errorType: actualException.GetType().FullName ?? "UnknownException",
+                    errorMessage: string.IsNullOrWhiteSpace(customMessage)
+                        ? actualException.Message
+                        : customMessage,
+                    stackTrace: actualException.StackTrace
                 );
             }
             catch (Exception telemetryEx)
             {
-                // Don't let telemetry failures break the application
-                // Just log to appropriate output to avoid infinite recursion
                 string errorMessage = $"Failed to send exception to telemetry: {telemetryEx.Message}";
                 if (IsRunningInTestContext())
                 {

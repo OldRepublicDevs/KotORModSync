@@ -38,18 +38,25 @@
     <UseAppHost>true</UseAppHost>
   </PropertyGroup>
 
-  <!-- RuntimeIdentifiers for both TargetFrameworks -->
-  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0' OR '$(TargetFramework)'=='net9.0'">
-    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)'=='net48'">
+  <!-- RuntimeIdentifiers: Forward-compatible dynamic assignment based on .NET version -->
+  <!-- .NET Framework 4.x: Windows-only with legacy RIDs -->
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net4'))">
     <RuntimeIdentifiers>win7-x86;win7-x64;win10-x86;win10-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <!-- .NET 6-7: Legacy Windows RIDs + cross-platform -->
+  <PropertyGroup Condition="'$(TargetFramework)'=='net6.0' OR '$(TargetFramework)'=='net7.0'">
+    <RuntimeIdentifiers>win7-x86;win7-x64;win10-x86;win10-x64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <!-- .NET 8+: Modern Windows RIDs + cross-platform (forward-compatible with net10.0, net11.0, etc.) -->
+  <PropertyGroup Condition="!$(TargetFramework.StartsWith('net4')) AND '$(TargetFramework)'!='net6.0' AND '$(TargetFramework)'!='net7.0'">
+    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <!-- Release Configuration: Additional error handling, at the slight cost of performance. All
   optimizations enabled.-->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
+    <!-- Use latest .NET (9) + .NET Framework 4.8 fallback for Windows-only legacy support -->
+    <TargetFrameworks>net9.0;net8.0;net48</TargetFrameworks>
     <Optimize>true</Optimize>
     <AllowOptimize>true</AllowOptimize>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
@@ -71,7 +78,8 @@
     <AllowEditAndContinue>true</AllowEditAndContinue>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <!-- Build only net8.0 for Debug to speed up builds (unless TargetFramework is explicitly set) -->
+    <HotReloadEnabled>false</HotReloadEnabled>
+    <!-- Build only latest .NET (net8.0) for Debug to speed up builds (unless TargetFramework is explicitly set) -->
     <TargetFrameworks Condition="'$(TargetFramework)' == ''">net8.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
     <!-- Disable analyzers in Debug builds for faster compilation -->

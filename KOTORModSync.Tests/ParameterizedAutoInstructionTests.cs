@@ -119,7 +119,7 @@ namespace KOTORModSync.Tests
                             link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
                         .ToList();
 
-                    foreach (var component in deadlyStreamComponents)
+                    foreach (ModComponent component in deadlyStreamComponents)
                     {
                         string fileName = Path.GetFileNameWithoutExtension(mdFile);
                         string testName = $"K1_{fileName}_{component.Name}";
@@ -151,7 +151,7 @@ namespace KOTORModSync.Tests
                             link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
                         .ToList();
 
-                    foreach (var component in deadlyStreamComponents)
+                    foreach (ModComponent component in deadlyStreamComponents)
                     {
                         string fileName = Path.GetFileNameWithoutExtension(mdFile);
                         string testName = $"K2_{fileName}_{component.Name}";
@@ -231,7 +231,7 @@ namespace KOTORModSync.Tests
             int componentsWithInstructions = 0;
             int componentsAlreadyHaveInstructions = 0;
 
-            foreach (var component in deadlyStreamComponents)
+            foreach (ModComponent component in deadlyStreamComponents)
             {
                 bool hadInstructionsBeforeAutoGen = component.Instructions.Count > 0;
                 if (hadInstructionsBeforeAutoGen)
@@ -318,7 +318,7 @@ namespace KOTORModSync.Tests
             int deadlyStreamLinkCount = 0;
             int invalidLinks = 0;
 
-            foreach (var component in parseResult.Components)
+            foreach (ModComponent component in parseResult.Components)
             {
                 if (component.ResourceRegistry is null)
                 {
@@ -383,7 +383,7 @@ namespace KOTORModSync.Tests
             int componentsWithInstructions = 0;
             int componentsWithMalformedInstructions = 0;
 
-            foreach (var component in parseResult.Components)
+            foreach (ModComponent component in parseResult.Components)
             {
                 if (component.Instructions.Count == 0)
                 {
@@ -392,7 +392,7 @@ namespace KOTORModSync.Tests
 
                 componentsWithInstructions++;
 
-                foreach (var instruction in component.Instructions)
+                foreach (Instruction instruction in component.Instructions)
                 {
                     bool hasIssue = false;
 
@@ -475,7 +475,7 @@ namespace KOTORModSync.Tests
             var componentsWithDeadlyStream = new Dictionary<string, int>(StringComparer.Ordinal);
             var componentsWithInstructions = new Dictionary<string, int>(StringComparer.Ordinal);
 
-            foreach (var component in parseResult.Components)
+            foreach (ModComponent component in parseResult.Components)
             {
                 string method = component.InstallationMethod ?? "Not Specified";
 

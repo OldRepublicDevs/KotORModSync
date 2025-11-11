@@ -57,20 +57,18 @@ namespace KOTORModSync
                     );
                     return folders.Select(f => f.TryGetLocalPath()).ToArray();
                 }
-                else
-                {
-                    IReadOnlyList<IStorageFile> files = await _parentWindow.StorageProvider.OpenFilePickerAsync(
-                        new FilePickerOpenOptions
-                        {
-                            Title = windowName ?? "Choose file(s)",
-                            AllowMultiple = allowMultiple,
-                            FileTypeFilter = new[] { FilePickerFileTypes.All },
+
+                IReadOnlyList<IStorageFile> files = await _parentWindow.StorageProvider.OpenFilePickerAsync(
+                    new FilePickerOpenOptions
+                    {
+                        Title = windowName ?? "Choose file(s)",
+                        AllowMultiple = allowMultiple,
+                        FileTypeFilter = new[] { FilePickerFileTypes.All },
 
 
-                        }
-                    );
-                    return files.Select(f => f.TryGetLocalPath()).ToArray();
-                }
+                    }
+                );
+                return files.Select(f => f.TryGetLocalPath()).ToArray();
             }
             catch (Exception ex)
 

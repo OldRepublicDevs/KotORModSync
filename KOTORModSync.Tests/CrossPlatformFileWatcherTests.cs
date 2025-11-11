@@ -61,7 +61,7 @@ namespace KOTORModSync.Tests
                 {
                     if (Directory.Exists(dir))
                     {
-                        Directory.Delete(dir, true);
+                        Directory.Delete(dir, recursive: true);
                     }
                 }
                 catch { }
@@ -71,7 +71,7 @@ namespace KOTORModSync.Tests
             {
                 if (Directory.Exists(_testDirectory))
                 {
-                    Directory.Delete(_testDirectory, true);
+                    Directory.Delete(_testDirectory, recursive: true);
                 }
             }
             catch { }
@@ -80,7 +80,7 @@ namespace KOTORModSync.Tests
             {
                 if (Directory.Exists(_externalDirectory))
                 {
-                    Directory.Delete(_externalDirectory, true);
+                    Directory.Delete(_externalDirectory, recursive: true);
                 }
             }
             catch { }
@@ -111,7 +111,7 @@ namespace KOTORModSync.Tests
         public void Constructor_WithNullPath_ThrowsArgumentNullException()
         {
 
-            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CrossPlatformFileWatcher(null));
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CrossPlatformFileWatcher(path: null));
             Assert.Equal("path", exception.ParamName);
         }
 
@@ -173,7 +173,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (sender, e) =>
             {
@@ -245,7 +245,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (_, e) =>
             {
@@ -285,7 +285,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Deleted += (_, e) =>
             {
@@ -372,7 +372,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Changed += (_, e) =>
             {
@@ -456,7 +456,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (_, e) =>
             {
@@ -494,7 +494,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Deleted += (_, e) =>
             {
@@ -535,7 +535,7 @@ namespace KOTORModSync.Tests
             bool renamedEventRaised = false;
             bool deletedEventRaised = false;
             bool createdEventRaised = false;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Renamed += (_, e) =>
             {
@@ -598,7 +598,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (sender, e) =>
             {
@@ -643,7 +643,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (sender, e) =>
             {
@@ -832,7 +832,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (_, e) =>
             {
@@ -872,7 +872,7 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             FileSystemEventArgs capturedEvent = null;
-            var eventReceived = new ManualResetEventSlim(false);
+            var eventReceived = new ManualResetEventSlim(initialState: false);
 
             watcher.Created += (_, e) =>
             {
@@ -923,7 +923,7 @@ namespace KOTORModSync.Tests
             IEnumerable<Task> tasks = Enumerable.Range(0, fileCount).Select(async i =>
             {
                 string fileName = $"concurrent_{i:D3}.txt";
-                await Task.Run(() => CreateTestFile(_testDirectory, fileName, $"content {i}")).ConfigureAwait(false);
+                await Task.Run(() => CreateTestFile(_testDirectory, fileName, $"content {i}"));
             });
 
             await Task.WhenAll(tasks);

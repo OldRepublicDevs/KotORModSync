@@ -179,7 +179,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 {
                     try
                     {
-                        Directory.Delete(tempDir, true);
+                        Directory.Delete(tempDir, recursive: true);
                     }
                     catch
                     {
@@ -282,7 +282,7 @@ IsSelected = true
                 {
                     try
                     {
-                        Directory.Delete(tempDir, true);
+                        Directory.Delete(tempDir, recursive: true);
                     }
                     catch
                     {

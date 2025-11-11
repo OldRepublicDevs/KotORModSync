@@ -80,11 +80,12 @@ namespace KOTORModSync.Core
         private DateTimeOffset? _lastCompletedUtc;
 
 
-        public const string CheckpointFolderName = ".kotor_modsync";
+        public static string CheckpointFolderName => Services.Checkpoints.CheckpointPaths.CheckpointFolderName;
         [NotNull][ItemNotNull] private List<string> _language = new List<string>();
         [NotNull] private Dictionary<string, ResourceMetadata> _resourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.Ordinal);
         [NotNull] private List<string> _excludedDownloads = new List<string>();
         [NotNull] private string _name = string.Empty;
+        [NotNull] private string _nameSpoilerFree = string.Empty;
         [NotNull] private string _nameFieldContent = string.Empty;
         [NotNull] private string _heading = string.Empty;
         [NotNull] private ObservableCollection<Option> _options = new ObservableCollection<Option>();
@@ -107,6 +108,7 @@ namespace KOTORModSync.Core
                 OnPropertyChanged();
             }
         }
+
         [NotNull]
         public string Name
         {
@@ -119,6 +121,22 @@ namespace KOTORModSync.Core
                 }
 
                 _name = value;
+                OnPropertyChanged();
+            }
+        }
+
+        [NotNull]
+        public string NameSpoilerFree
+        {
+            get => _nameSpoilerFree;
+            set
+            {
+                if (string.Equals(_nameSpoilerFree, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _nameSpoilerFree = value;
                 OnPropertyChanged();
             }
         }
@@ -291,6 +309,7 @@ namespace KOTORModSync.Core
                 OnPropertyChanged();
             }
         }
+
         [NotNull]
         public string InstallationMethod
         {
@@ -308,6 +327,7 @@ namespace KOTORModSync.Core
                 OnPropertyChanged();
             }
         }
+
         [NotNull]
         public string Directions
         {
@@ -376,6 +396,7 @@ namespace KOTORModSync.Core
                 OnPropertyChanged();
             }
         }
+
         [NotNull]
         public string UsageWarning
         {
@@ -410,6 +431,7 @@ namespace KOTORModSync.Core
                 OnPropertyChanged();
             }
         }
+
         [NotNull]
         public string Screenshots
         {
@@ -444,6 +466,7 @@ namespace KOTORModSync.Core
                 OnPropertyChanged();
             }
         }
+
         [NotNull] private string _knownBugs = string.Empty;
         [NotNull]
         public string KnownBugs
@@ -901,7 +924,7 @@ namespace KOTORModSync.Core
 
             // Search for missing files in ResourceRegistry archives
             var archiveMatches = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            
+
             foreach (string missingFile in missingFiles)
             {
                 foreach (var resource in parentComponent.ResourceRegistry)
@@ -914,7 +937,7 @@ namespace KOTORModSync.Core
                     // Check if this resource contains the missing file
                     foreach (var file in resource.Value.Files)
                     {
-                        if (file.Value == true && 
+                        if (file.Value == true &&
                             (string.Equals(file.Key, missingFile, StringComparison.OrdinalIgnoreCase) ||
                              file.Key.EndsWith($"/{missingFile}", StringComparison.OrdinalIgnoreCase) ||
                              file.Key.EndsWith($"\\{missingFile}", StringComparison.OrdinalIgnoreCase)))
@@ -946,7 +969,7 @@ namespace KOTORModSync.Core
                     // Found exactly one archive containing this file - extract it
                     string archiveName = match.Value[0];
                     string archivePath = Path.Combine(MainConfig.SourcePath.FullName, archiveName);
-                    
+
                     if (fileSystemProvider.FileExists(archivePath))
                     {
                         await Logger.LogAsync(
@@ -956,7 +979,7 @@ namespace KOTORModSync.Core
                         var extractInstruction = new Instruction
                         {
                             Action = Instruction.ActionType.Extract,
-                            Source = new List<string> { archivePath }
+                            Source = new List<string> { archivePath },
                         };
                         extractInstruction.SetFileSystemProvider(fileSystemProvider);
                         extractInstruction.SetParentComponent(parentComponent);
@@ -965,7 +988,7 @@ namespace KOTORModSync.Core
                         {
                             extractInstruction.SetRealPaths();
                             var extractResult = await extractInstruction.ExtractFileAsync().ConfigureAwait(false);
-                            
+
                             if (extractResult != Instruction.ActionExitCode.Success)
                             {
                                 await Logger.LogWarningAsync(

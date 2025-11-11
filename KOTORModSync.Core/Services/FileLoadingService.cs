@@ -209,8 +209,9 @@ namespace KOTORModSync.Core.Services
 
                 return content;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.LogException(ex, $"Failed to read '{filePath}' with UTF-8 fallback. Falling back to default encoding.");
                 return File.ReadAllText(filePath);
             }
         }

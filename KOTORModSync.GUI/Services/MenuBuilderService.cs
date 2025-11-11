@@ -192,7 +192,7 @@ namespace KOTORModSync.Services
 
                     if (confirm == true)
                     {
-                        onRemoveComponent(null, null);
+                        onRemoveComponent(arg1: null, arg2: null);
                     }
                 }),
             });
@@ -241,7 +241,7 @@ namespace KOTORModSync.Services
                 Command = ReactiveCommand.Create(() =>
                 {
                     setCurrentComponent(component);
-                    onInstallSingle(null, null);
+                    onInstallSingle(arg1: null, arg2: null);
                 }),
             });
 
@@ -376,14 +376,14 @@ namespace KOTORModSync.Services
             menu.Items.Add(new MenuItem
             {
                 Header = "💾 Save Config",
-                Command = ReactiveCommand.Create(() => onSave(null, null)),
+                Command = ReactiveCommand.Create(() => onSave(arg1: null, arg2: null)),
                 InputGesture = new KeyGesture(Key.S, KeyModifiers.Control),
             });
 
             menu.Items.Add(new MenuItem
             {
                 Header = "❌ Close TOML",
-                Command = ReactiveCommand.Create(() => onClose(null, null)),
+                Command = ReactiveCommand.Create(() => onClose(arg1: null, arg2: null)),
             });
         }
 
@@ -449,14 +449,14 @@ namespace KOTORModSync.Services
             items.Add(new MenuItem
             {
                 Header = "💾 Save Config",
-                Command = ReactiveCommand.Create(() => onSave(null, null)),
+                Command = ReactiveCommand.Create(() => onSave(arg1: null, arg2: null)),
                 InputGesture = new KeyGesture(Key.S, KeyModifiers.Control),
             });
 
             items.Add(new MenuItem
             {
                 Header = "❌ Close TOML",
-                Command = ReactiveCommand.Create(() => onClose(null, null)),
+                Command = ReactiveCommand.Create(() => onClose(arg1: null, arg2: null)),
             });
         }
 

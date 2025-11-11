@@ -14,6 +14,7 @@ using JetBrains.Annotations;
 
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Installation;
+using KOTORModSync.Core.Services.Checkpoints;
 using KOTORModSync.Core.Utility;
 
 using Python.Included;
@@ -223,8 +224,9 @@ Py.Import("pip._internal");
                         Py.Import("ply");
                         return true;
                     }
-                    catch (PythonException)
+                    catch (PythonException ex)
                     {
+                        await Logger.LogVerboseAsync($"Python dependency check failed: {ex.Message}").ConfigureAwait(false);
                         return false;
                     }
                 }
@@ -550,10 +552,8 @@ Exception Type: {ex.GetType().FullName}";
             {
                 return await RunHolopatcherPyAsync(holopatcherPath, args).ConfigureAwait(false);
             }
-            else
-            {
-                return await PlatformAgnosticMethods.ExecuteProcessAsync(holopatcherPath, args).ConfigureAwait(false);
-            }
+
+            return await PlatformAgnosticMethods.ExecuteProcessAsync(holopatcherPath, args).ConfigureAwait(false);
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
@@ -842,26 +842,44 @@ Exception Type: {ex.GetType().FullName}";
                 {
                     case ModComponent.ComponentInstallState.Completed:
                         await Logger.LogAsync($"Skipping '{component.Name}' (already completed).").ConfigureAwait(false);
-                        coordinator.SessionManager.UpdateComponentState(component);
-                        await coordinator.SessionManager.SaveAsync().ConfigureAwait(false);
+                        coordinator.CheckpointManager.UpdateComponentState(component);
+                        await coordinator.CheckpointManager.SaveAsync().ConfigureAwait(false);
                         continue;
                     case ModComponent.ComponentInstallState.Skipped:
                     case ModComponent.ComponentInstallState.Blocked:
                         await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).").ConfigureAwait(false);
-                        coordinator.SessionManager.UpdateComponentState(component);
-                        await coordinator.SessionManager.SaveAsync().ConfigureAwait(false);
+                        coordinator.CheckpointManager.UpdateComponentState(component);
+                        await coordinator.CheckpointManager.SaveAsync().ConfigureAwait(false);
                         continue;
                 }
 
                 await Logger.LogAsync($"Start install of '{component.Name}'...").ConfigureAwait(false);
                 exitCode = await component.InstallAsync(allComponents, cancellationToken).ConfigureAwait(false);
-                coordinator.SessionManager.UpdateComponentState(component);
-                await coordinator.SessionManager.SaveAsync().ConfigureAwait(false);
+                coordinator.CheckpointManager.UpdateComponentState(component);
 
                 if (exitCode == ModComponent.InstallExitCode.Success)
                 {
                     await Logger.LogAsync($"Install of '{component.Name}' succeeded.").ConfigureAwait(false);
-                    await coordinator.BackupManager.PromoteSnapshotAsync(destination, cancellationToken).ConfigureAwait(false);
+
+                    // Create checkpoint after successful installation
+                    try
+                    {
+                        CheckpointInfo checkpoint = await coordinator.CheckpointService.CreateCheckpointAsync(
+                            component,
+                            index + 1,
+                            total,
+                            cancellationToken
+                        ).ConfigureAwait(false);
+
+                        coordinator.CheckpointManager.State.ComponentCheckpoints[component.Guid] = checkpoint.CommitId;
+                        await Logger.LogAsync($"✓ Checkpoint created: {checkpoint.ShortCommitId}").ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        await Logger.LogWarningAsync($"Failed to create checkpoint for '{component.Name}': {ex.Message}").ConfigureAwait(false);
+                    }
+
+                    await coordinator.CheckpointManager.PromoteSnapshotAsync(destination, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -869,11 +887,13 @@ Exception Type: {ex.GetType().FullName}";
                     InstallCoordinator.MarkBlockedDescendants(orderedComponents, component.Guid);
                     foreach (ModComponent blocked in orderedComponents.Where(c => c.InstallState == ModComponent.ComponentInstallState.Blocked))
                     {
-                        coordinator.SessionManager.UpdateComponentState(blocked);
+                        coordinator.CheckpointManager.UpdateComponentState(blocked);
                     }
-                    await coordinator.SessionManager.SaveAsync().ConfigureAwait(false);
+                    await coordinator.CheckpointManager.SaveAsync().ConfigureAwait(false);
                     break;
                 }
+
+                await coordinator.CheckpointManager.SaveAsync().ConfigureAwait(false);
             }
 
             return exitCode;

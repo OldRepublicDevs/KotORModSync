@@ -132,14 +132,12 @@ namespace KOTORModSync.Dialogs
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "Preview logic requires using actual MarkdownParser")]
         private void RecomputePreview()
         {
-            // Use the ACTUAL parser to show exactly what will be loaded
-            // NO SIMPLIFIED LOGIC - MUST BE 100% ACCURATE
             try
             {
                 // Parse using the exact same MarkdownParser that ConfirmLoad() uses
                 var parser = new MarkdownParser(Profile,
                     logInfo => Logger.LogVerbose(logInfo),
-                    Logger.LogVerbose);
+                    logVerbose => Logger.LogVerbose(logVerbose));
                 MarkdownParserResult result = parser.Parse(PreviewMarkdown);
                 _lastParseResult = result;
 
@@ -178,7 +176,7 @@ namespace KOTORModSync.Dialogs
                 // Use the ACTUAL MarkdownParser to get parsed components
                 var parser = new MarkdownParser(Profile,
                     logInfo => Logger.LogVerbose(logInfo),
-                    Logger.LogVerbose);
+                    logVerbose => Logger.LogVerbose(logVerbose));
                 MarkdownParserResult result = parser.Parse(PreviewMarkdown);
                 _lastParseResult = result;
 
@@ -385,7 +383,7 @@ namespace KOTORModSync.Dialogs
             // This is the ONLY time we actually parse into ModComponent objects
             var parser = new MarkdownParser(Profile,
                 logInfo => Logger.Log(logInfo),
-                Logger.LogVerbose);
+                logVerbose => Logger.LogVerbose(logVerbose));
             return parser.Parse(PreviewMarkdown);
         }
 
@@ -440,25 +438,25 @@ namespace KOTORModSync.Dialogs
                 if (component != null)
                 {
                     var sb = new System.Text.StringBuilder();
-                    sb.AppendLine($"ModComponent #{containingSection.ComponentIndex}");
-                    sb.AppendLine($"GUID: {component.Guid}");
-                    sb.AppendLine($"Name: {component.Name ?? "<null>"}");
-                    sb.AppendLine($"Author: {component.Author ?? "<null>"}");
-                    sb.AppendLine($"Category: {string.Join(" & ", component.Category ?? new List<string>())}");
-                    sb.AppendLine($"Tier: {component.Tier ?? "<null>"}");
+                    sb.Append("ModComponent #").Append(containingSection.ComponentIndex).AppendLine();
+                    sb.Append("GUID: ").Append(component.Guid).AppendLine();
+                    sb.Append("Name: ").Append(component.Name ?? "<null>").AppendLine();
+                    sb.Append("Author: ").Append(component.Author ?? "<null>").AppendLine();
+                    sb.Append("Category: ").Append(string.Join(" & ", component.Category ?? new List<string>())).AppendLine();
+                    sb.Append("Tier: ").Append(component.Tier ?? "<null>").AppendLine();
                     if (!string.IsNullOrEmpty(component.Description))
                     {
-                        sb.AppendLine($"Description: {component.Description.Substring(0, Math.Min(100, component.Description.Length))}...");
+                        sb.Append("Description: ").Append(component.Description.Substring(0, Math.Min(100, component.Description.Length))).AppendLine("...");
                     }
 
                     if (component.ResourceRegistry?.Count > 0)
                     {
-                        sb.AppendLine($"Links: {component.ResourceRegistry.Count}");
+                        sb.Append("Links: ").Append(component.ResourceRegistry.Count).AppendLine();
                     }
 
                     if (component.Dependencies?.Count > 0)
                     {
-                        sb.AppendLine($"Dependencies: {component.Dependencies.Count} mod(s)");
+                        sb.Append("Dependencies: ").Append(component.Dependencies.Count).AppendLine(" mod(s)");
                     }
 
                     return sb.ToString();

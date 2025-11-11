@@ -37,7 +37,6 @@ namespace KOTORModSync.Controls
         public event EventHandler<RoutedEventArgs> BrowseSourceFiles;
         public event EventHandler<RoutedEventArgs> BrowseModFiles;
         public event EventHandler<RoutedEventArgs> BrowseDestination;
-        public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstruction;
 
         private void AddNewInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => AddNewInstruction?.Invoke(this, e);
 
@@ -60,14 +59,6 @@ namespace KOTORModSync.Controls
         }
 
         private void BrowseDestination_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseDestination?.Invoke(this, e);
-
-        private void JumpToBlockingInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
-        {
-            if (sender is Button button && button.Tag is Core.Services.Validation.PathValidationResult validationResult)
-            {
-                JumpToBlockingInstruction?.Invoke(this, validationResult);
-            }
-        }
 
         protected override void OnDataContextChanged(EventArgs e)
         {
@@ -164,7 +155,7 @@ namespace KOTORModSync.Controls
                     {
                         // Use reflection to call OnPropertyChanged if it exists
                         string propertyName = string.Equals(button.Name, "SourceRefreshButton", StringComparison.Ordinal) ? "Source" : "Destination";
-                        MethodInfo onPropertyChangedMethod = instruction.GetType().GetMethod("OnPropertyChanged", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(string) }, null)
+                        MethodInfo onPropertyChangedMethod = instruction.GetType().GetMethod("OnPropertyChanged", BindingFlags.NonPublic | BindingFlags.Instance, binder: null, new[] { typeof(string) }, modifiers: null)
                             ?? throw new InvalidOperationException("OnPropertyChanged method not found");
                         onPropertyChangedMethod.Invoke(instruction, new object[] { propertyName });
                     }

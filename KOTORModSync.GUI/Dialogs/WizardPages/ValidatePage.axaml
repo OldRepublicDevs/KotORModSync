@@ -23,30 +23,78 @@
         </Border>
 
         <!--  Action Bar  -->
-        <Border Grid.Row="1" Padding="16,12" CornerRadius="8" Margin="0,0,0,12">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-                <Button
-                    x:Name="ValidateButton"
-                    Grid.Column="0"
-                    Padding="16,10"
-                    Content="🔍 Run Validation"
-                    ToolTip.Tip="Check for compatibility issues and missing files" />
+        <StackPanel Grid.Row="1" Spacing="12" Margin="0,0,0,12">
+            <Border Padding="16,12" CornerRadius="8">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Button
+                        x:Name="ValidateButton"
+                        Grid.Column="0"
+                        Padding="16,10"
+                        Content="🔍 Run Validation"
+                        ToolTip.Tip="Check for compatibility issues and missing files" />
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                    <ProgressBar
-                        x:Name="ValidationProgress"
-                        Width="200"
-                        Height="8"
-                        IsIndeterminate="True"
-                        IsVisible="False" />
-                    <TextBlock
-                        x:Name="StatusText"
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        VerticalAlignment="Center" />
-                </StackPanel>
-            </Grid>
-        </Border>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <ProgressBar
+                            x:Name="ValidationProgress"
+                            Width="200"
+                            Height="8"
+                            IsIndeterminate="True"
+                            IsVisible="False" />
+                        <TextBlock
+                            x:Name="StatusText"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Expander
+                x:Name="LogExpander"
+                IsExpanded="False"
+                IsVisible="False"
+                Padding="12">
+                <Expander.Header>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                            <TextBlock
+                                x:Name="LogHeaderText"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Text="📋 Validation Log" />
+                            <TextBlock
+                                x:Name="LogProgressText"
+                                FontSize="12"
+                                Opacity="0.7"
+                                Text="" />
+                        </StackPanel>
+                        <TextBlock
+                            Grid.Column="1"
+                            FontSize="11"
+                            Opacity="0.6"
+                            Text="Click to expand" />
+                    </Grid>
+                </Expander.Header>
+                <Border
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12"
+                    Margin="0,8,0,0">
+                    <ScrollViewer
+                        x:Name="LogScrollViewer"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        MaxHeight="300">
+                        <TextBlock
+                            x:Name="LogText"
+                            FontFamily="Consolas,Courier New,monospace"
+                            FontSize="11"
+                            Text="Starting validation..."
+                            TextWrapping="Wrap" />
+                    </ScrollViewer>
+                </Border>
+            </Expander>
+        </StackPanel>
 
         <!--  Results Area  -->
         <Border Grid.Row="2" Padding="12" CornerRadius="8">

@@ -256,10 +256,20 @@ namespace KOTORModSync.Core
                     if (newSourcePaths.IsNullOrEmptyOrAllNull())
                     {
                         Logger.LogVerbose($"[Instruction.SetRealPaths] ERROR: newSourcePaths is null/empty after wildcard expansion");
-                        throw new Exceptions.WildcardPatternNotFoundException(
-                            Source,
-                            _parentComponent?.Name
-                        );
+                        bool containsWildcards = processedSource.Any(path => path != null && (path.Contains('*') || path.Contains('?')));
+                        if (containsWildcards)
+                        {
+                            throw new Exceptions.WildcardPatternNotFoundException(
+                                Source,
+                                _parentComponent?.Name
+                            );
+                        }
+                        else
+                        {
+                            throw new FileNotFoundException(
+                                $"Could not find file(s) in the 'Source' path on disk! Got [{string.Join(separator: ", ", Source)}]"
+                            );
+                        }
                     }
                     var missingFiles = newSourcePaths.Where(f => !_fileSystemProvider.FileExists(f)).ToList();
                     if (missingFiles.Count > 0)
@@ -285,6 +295,7 @@ namespace KOTORModSync.Core
             string destinationPath = UtilityHelper.ReplaceCustomVariables(Destination);
             Logger.LogVerbose($"[Instruction.SetRealPaths] Raw Destination: {Destination ?? "NULL"}");
             Logger.LogVerbose($"[Instruction.SetRealPaths] After ReplaceCustomVariables on Destination: {destinationPath ?? "NULL"}");
+
             DirectoryInfo thisDestination = PathHelper.TryGetValidDirectoryInfo(destinationPath);
             Logger.LogVerbose($"[Instruction.SetRealPaths] TryGetValidDirectoryInfo result: {thisDestination?.FullName ?? "NULL"}");
             if (sourceIsNotFilePath)

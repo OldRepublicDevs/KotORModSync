@@ -297,6 +297,7 @@ csharp_style_throw_expression = true:suggestion
 
 # IDE0017: Simplify object initialization
 dotnet_style_object_initializer = true:suggestion
+dotnet_diagnostic.IDE0017.severity = none
 
 # IDE0018: Inline variable declaration
 csharp_style_inlined_variable_declaration = true:suggestion
@@ -497,7 +498,7 @@ dotnet_diagnostic.IDE0303.severity = none
 dotnet_diagnostic.IDE0304.severity = none
 # IDE0305: Use collection expression for dictionary (C# 12 - NOT compatible with C# 7.3)
 dotnet_diagnostic.IDE0305.severity = none
-# IDE1006: Naming rule violation - DISABLED GLOBALLY
+# IDE1006: Naming rule violation
 # Allows underscore (_) and s_ prefixes that don't match naming conventions
 dotnet_diagnostic.IDE1006.severity = none
 # IDE1007: Use 'throw' expression
@@ -518,22 +519,28 @@ dotnet_diagnostic.CS8625.severity = none
 dotnet_diagnostic.CS8629.severity = none
 
 
-# MA0004: Use Task.ConfigureAwait(false) - DISABLED GLOBALLY
+# MA0004: Use Task.ConfigureAwait(false)
 dotnet_diagnostic.MA0004.severity = none
+
+# SYSLIB1054: Target frameworks before .NET 7.0 require generated IL stubs
+dotnet_diagnostic.SYSLIB1054.severity = none
 
 # MA0011: Use an overload of 'ToLower' that has a 'System.Globalization.CultureInfo' parameter
 dotnet_diagnostic.MA0011.severity = silent
 
-# MA0020: Use 'Exists()' instead of 'Any()' - DISABLED GLOBALLY
+# MA0089: Use an overload with 'char'
+dotnet_diagnostic.MA0089.severity = none
+
+# MA0020: Use 'Exists()' instead of 'Any()'
 dotnet_diagnostic.MA0020.severity = none
 
-# MA0025: Implement the functionality (or raise NotSupportedException or PlatformNotSupportedException) - DISABLED GLOBALLY
+# MA0025: Implement the functionality (or raise NotSupportedException or PlatformNotSupportedException)
 dotnet_diagnostic.MA0025.severity = none
 
 # MA0016: Prefer using collection abstraction instead of implementation
 dotnet_diagnostic.MA0016.severity = none
 
-# MA0023: Add RegexOptions.ExplicitCapture - DISABLED GLOBALLY
+# MA0023: Add RegexOptions.ExplicitCapture
 # ExplicitCapture prevents numbered groups from working, which breaks replacement strings like $1-$2
 dotnet_diagnostic.MA0023.severity = none
 
@@ -558,35 +565,41 @@ dotnet_diagnostic.CS1998.severity = none
 # S2376: Provide a getter for property or replace with method
 dotnet_diagnostic.S2376.severity = silent
 
+# S101: Types should be named in PascalCase
+dotnet_diagnostic.S101.severity = none
+
 # S2583: Conditionally executed code should be reachable
 dotnet_diagnostic.S2583.severity = silent
 
-# S2589: Boolean expressions should not be gratuitous - DISABLED GLOBALLY
+# S2589: Boolean expressions should not be gratuitous
 dotnet_diagnostic.S2589.severity = none
 
 # S3267: Loops should be simplified using the "Where" LINQ method
 dotnet_diagnostic.S3267.severity = none
 
-# S1075: URIs should not be hardcoded - DISABLED GLOBALLY
+# S1075: URIs should not be hardcoded
 dotnet_diagnostic.S1075.severity = none
 
-# S3358: Extract nested ternary operation into an independent statement - DISABLED GLOBALLY
+# S3358: Extract nested ternary operation into an independent statement
 dotnet_diagnostic.S3358.severity = none
 
-# S6602: "Find" method should be used instead of "FirstOrDefault" extension method - DISABLED GLOBALLY
+# S6602: "Find" method should be used instead of "FirstOrDefault" extension method
 dotnet_diagnostic.S6602.severity = none
 
-# S6605: Collection-specific "Exists" method should be used instead of "Any" extension - DISABLED GLOBALLY
+# S6605: Collection-specific "Exists" method should be used instead of "Any" extension
 dotnet_diagnostic.S6605.severity = none
+
+# S6603: Collection-specific "TrueForAll" method should be used instead of "All" extension
+dotnet_code_quality.S6603 = false
 
 # S1481: Unused local variables - disable for variables prefixed with underscore
 # Variables starting with underscore explicitly indicate "I don't care" usage
 dotnet_diagnostic.S1481.severity = silent
 
-# S1854: Remove this useless assignment to local variable '_' - DISABLED GLOBALLY
+# S1854: Remove this useless assignment to local variable '_'
 dotnet_diagnostic.S1854.severity = none
 
-# S3878: Arrays should not be created for params parameters - DISABLED GLOBALLY
+# S3878: Arrays should not be created for params parameters
 dotnet_diagnostic.S3878.severity = none
 
 #### Project-Specific Analyzer Rules ####

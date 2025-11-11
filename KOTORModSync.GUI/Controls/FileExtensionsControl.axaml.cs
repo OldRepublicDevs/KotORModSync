@@ -252,7 +252,7 @@ namespace KOTORModSync.Controls
 
                 textBox.ClearValue(BorderBrushProperty);
                 textBox.ClearValue(BorderThicknessProperty);
-                ToolTip.SetTip(textBox, null);
+                ToolTip.SetTip(textBox, value: null);
             }
             else if (isValid)
             {

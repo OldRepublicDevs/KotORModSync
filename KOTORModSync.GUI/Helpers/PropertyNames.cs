@@ -9,6 +9,8 @@ namespace KOTORModSync.Helpers
     /// </summary>
     public static class PropertyNames
     {
+        public const string Name = "Name";
+        public const string NameSpoilerFree = "NameSpoilerFree";
         public const string Description = "Description";
         public const string DescriptionSpoilerFree = "DescriptionSpoilerFree";
         public const string Directions = "Directions";

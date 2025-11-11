@@ -364,11 +364,9 @@ namespace KOTORModSync.Controls
 
                 return;
             }
-            else
-            {
 
-                border.Opacity = 1.0;
-            }
+
+            border.Opacity = 1.0;
 
             if (!component.IsSelected)
             {
@@ -569,49 +567,67 @@ namespace KOTORModSync.Controls
         private static string CreateBasicTooltip(ModComponent component, bool spoilerFreeMode = false)
         {
             var sb = new System.Text.StringBuilder();
-            string description = spoilerFreeMode ? component.DescriptionSpoilerFree : component.Description;
+            string displayName = GetDisplayName(component, spoilerFreeMode);
+            string description;
+            if (spoilerFreeMode)
+            {
+                // Only use custom spoiler-free description if it's provided
+                if (!string.IsNullOrWhiteSpace(component.DescriptionSpoilerFree))
+                {
+                    description = component.DescriptionSpoilerFree;
+                }
+                else
+                {
+                    // Fall back to auto-generated spoiler-free description
+                    description = Converters.SpoilerFreeContentConverter.GenerateSpoilerFreeDescription(component);
+                }
+            }
+            else
+            {
+                description = component.Description;
+            }
 
             if (!component.IsSelected)
             {
 
-                _ = sb.AppendLine($"📦 {component.Name}");
+                _ = sb.Append("📦 ").Append(displayName).AppendLine();
                 if (!string.IsNullOrWhiteSpace(component.Author))
                 {
-                    _ = sb.AppendLine($"👤 Author: {component.Author}");
+                    _ = sb.Append("👤 Author: ").Append(component.Author).AppendLine();
                 }
 
                 if (component.Category.Count > 0)
                 {
-                    _ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
+                    _ = sb.Append("🏷️ Category: ").Append(string.Join(", ", component.Category)).AppendLine();
                 }
 
                 if (!string.IsNullOrWhiteSpace(component.Tier))
                 {
-                    _ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+                    _ = sb.Append("⭐ Tier: ").Append(component.Tier).AppendLine();
                 }
 
                 if (!string.IsNullOrWhiteSpace(description))
                 {
                     string desc = description.Length > 200 ? description.Substring(0, 200) + "..." : description;
-                    _ = sb.AppendLine($"📝 {desc}");
+                    _ = sb.Append("📝 ").Append(desc).AppendLine();
                 }
                 return sb.ToString();
             }
 
-            _ = sb.AppendLine($"📦 {component.Name}");
+            _ = sb.Append("📦 ").Append(displayName).AppendLine();
             if (!string.IsNullOrWhiteSpace(component.Author))
             {
-                _ = sb.AppendLine($"👤 Author: {component.Author}");
+                _ = sb.Append("👤 Author: ").Append(component.Author).AppendLine();
             }
 
             if (component.Category.Count > 0)
             {
-                _ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
+                _ = sb.Append("🏷️ Category: ").Append(string.Join(", ", component.Category)).AppendLine();
             }
 
             if (!string.IsNullOrWhiteSpace(component.Tier))
             {
-                _ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+                _ = sb.Append("⭐ Tier: ").Append(component.Tier).AppendLine();
             }
 
             bool isMissingDownload = !component.IsDownloaded;
@@ -634,7 +650,7 @@ namespace KOTORModSync.Controls
                     _ = sb.AppendLine("  2. Or manually download from the mod links");
                     if (component.ResourceRegistry.Count > 0)
                     {
-                        _ = sb.AppendLine($"  3. Download Links: {string.Join(", ", component.ResourceRegistry.Keys)}");
+                        _ = sb.Append("  3. Download Links: ").Append(string.Join(", ", component.ResourceRegistry.Keys)).AppendLine();
                     }
 
                     _ = sb.AppendLine();
@@ -646,7 +662,7 @@ namespace KOTORModSync.Controls
                     string[] errors = errorReasons.Split('\n');
                     foreach (string error in errors)
                     {
-                        _ = sb.AppendLine($"  • {error}");
+                        _ = sb.Append("  • ").Append(error).AppendLine();
                     }
                     _ = sb.AppendLine();
                     _ = sb.AppendLine("How to fix:");
@@ -671,12 +687,30 @@ namespace KOTORModSync.Controls
         private static string CreateRichTooltipAsync(ModComponent component, bool spoilerFreeMode = false)
         {
             var sb = new System.Text.StringBuilder();
-            string description = spoilerFreeMode ? component.DescriptionSpoilerFree : component.Description;
+            string displayName = GetDisplayName(component, spoilerFreeMode);
+            string description;
+            if (spoilerFreeMode)
+            {
+                // Only use custom spoiler-free description if it's provided
+                if (!string.IsNullOrWhiteSpace(component.DescriptionSpoilerFree))
+                {
+                    description = component.DescriptionSpoilerFree;
+                }
+                else
+                {
+                    // Fall back to auto-generated spoiler-free description
+                    description = Converters.SpoilerFreeContentConverter.GenerateSpoilerFreeDescription(component);
+                }
+            }
+            else
+            {
+                description = component.Description;
+            }
 
             if (!component.IsSelected)
             {
 
-                _ = sb.Append("📦 ").Append(component.Name).AppendLine();
+                _ = sb.Append("📦 ").Append(displayName).AppendLine();
                 if (!string.IsNullOrWhiteSpace(component.Author))
                 {
                     _ = sb.Append("👤 Author: ").Append(component.Author).AppendLine();
@@ -684,7 +718,7 @@ namespace KOTORModSync.Controls
 
                 if (component.Category.Count > 0)
                 {
-                    _ = sb.Append("🏷️ Category: ").Append(string.Join(", ", component.Category)).AppendLine();
+                    _ = sb.Append("🏷️ Category: ").AppendJoin(", ", component.Category).AppendLine();
                 }
 
                 if (!string.IsNullOrWhiteSpace(component.Tier))
@@ -700,7 +734,7 @@ namespace KOTORModSync.Controls
                 return sb.ToString();
             }
 
-            _ = sb.Append("📦 ").Append(component.Name).AppendLine();
+            _ = sb.Append("📦 ").Append(displayName).AppendLine();
             if (!string.IsNullOrWhiteSpace(component.Author))
             {
                 _ = sb.Append("👤 Author: ").Append(component.Author).AppendLine();
@@ -708,7 +742,7 @@ namespace KOTORModSync.Controls
 
             if (component.Category.Count > 0)
             {
-                _ = sb.Append("🏷️ Category: ").Append(string.Join(", ", component.Category)).AppendLine();
+                _ = sb.Append("🏷️ Category: ").AppendJoin(", ", component.Category).AppendLine();
             }
 
             if (!string.IsNullOrWhiteSpace(component.Tier))
@@ -763,7 +797,7 @@ namespace KOTORModSync.Controls
                     _ = sb.AppendLine("  2. Or manually download from the mod links");
                     if (component.ResourceRegistry.Count > 0)
                     {
-                        _ = sb.Append("  3. Download Links: ").Append(string.Join(", ", component.ResourceRegistry.Keys)).AppendLine();
+                        _ = sb.Append("  3. Download Links: ").AppendJoin(", ", component.ResourceRegistry.Keys).AppendLine();
                     }
 
                     _ = sb.AppendLine();
@@ -775,7 +809,7 @@ namespace KOTORModSync.Controls
                     string[] errors = errorReasons.Split('\n');
                     foreach (string error in errors)
                     {
-                        _ = sb.AppendLine($"  • {error}");
+                        _ = sb.Append("  • ").Append(error).AppendLine();
                     }
                     _ = sb.AppendLine();
                     _ = sb.AppendLine("How to fix:");
@@ -803,15 +837,15 @@ namespace KOTORModSync.Controls
 
             if (component.ResourceRegistry.Count > 0)
             {
-                _ = sb.AppendLine($"🔗 Download Links ({component.ResourceRegistry.Count}):");
+                _ = sb.Append("🔗 Download Links (").Append(component.ResourceRegistry.Count).AppendLine("):");
                 var linkNames = component.ResourceRegistry.Keys.ToList();
                 for (int i = 0; i < Math.Min(linkNames.Count, 3); i++)
                 {
-                    _ = sb.AppendLine($"  {i + 1}. {linkNames[i]}");
+                    _ = sb.Append("  ").Append(i + 1).Append(". ").Append(linkNames[i]).AppendLine();
                 }
                 if (linkNames.Count > 3)
                 {
-                    _ = sb.AppendLine($"  ... and {linkNames.Count - 3} more");
+                    _ = sb.Append("  ... and ").Append(linkNames.Count - 3).AppendLine(" more");
                 }
 
                 _ = sb.AppendLine();
@@ -819,18 +853,18 @@ namespace KOTORModSync.Controls
 
             if (component.Dependencies.Count > 0)
             {
-                _ = sb.AppendLine($"🔗 Dependencies ({component.Dependencies.Count}):");
+                _ = sb.Append("🔗 Dependencies (").Append(component.Dependencies.Count).AppendLine("):");
                 foreach (Guid depGuid in component.Dependencies)
                 {
                     ModComponent depComponent = MainConfig.AllComponents.Find(c => c.Guid == depGuid);
                     if (!(depComponent is null))
                     {
                         string status = depComponent.IsSelected ? "✅" : "❌";
-                        _ = sb.AppendLine($"  {status} {depComponent.Name}");
+                        _ = sb.Append("  ").Append(status).Append(' ').Append(depComponent.Name).AppendLine();
                     }
                     else
                     {
-                        _ = sb.AppendLine($"  ❓ Unknown dependency ({depGuid})");
+                        _ = sb.Append("  ❓ Unknown dependency (").Append(depGuid).Append(')').AppendLine();
                     }
                 }
                 _ = sb.AppendLine();
@@ -838,7 +872,7 @@ namespace KOTORModSync.Controls
 
             if (component.Restrictions.Count > 0)
             {
-                _ = sb.AppendLine($"⚠️ Conflicts ({component.Restrictions.Count}):");
+                _ = sb.Append("⚠️ Conflicts (").Append(component.Restrictions.Count).AppendLine("):");
                 foreach (Guid restrictGuid in component.Restrictions)
                 {
                     ModComponent restrictComponent = MainConfig.AllComponents.Find(c => c.Guid == restrictGuid);
@@ -1047,6 +1081,34 @@ namespace KOTORModSync.Controls
 
             // Return unique errors only (in case multiple instructions have the same issue)
             return errors.Distinct(StringComparer.Ordinal).ToList();
+        }
+
+        /// <summary>
+        /// Gets the display name for a component based on spoiler-free mode.
+        /// Returns the spoiler-free name if available and mode is enabled,
+        /// otherwise returns the regular name or generates a fallback.
+        /// </summary>
+        private static string GetDisplayName(ModComponent component, bool spoilerFreeMode)
+        {
+            if (component == null)
+            {
+                return "Unknown Mod";
+            }
+
+            if (spoilerFreeMode)
+            {
+                // If spoiler-free name is provided, use it
+                if (!string.IsNullOrWhiteSpace(component.NameSpoilerFree))
+                {
+                    return component.NameSpoilerFree;
+                }
+
+                // Generate automatic spoiler-free name
+                return Converters.SpoilerFreeContentConverter.GenerateAutoName(component);
+            }
+
+            // Return regular name
+            return component.Name ?? "Unnamed Mod";
         }
     }
 }

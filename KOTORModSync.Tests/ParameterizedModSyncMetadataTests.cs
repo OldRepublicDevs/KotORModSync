@@ -89,7 +89,7 @@ namespace KOTORModSync.Tests
             int componentsWithMetadata = 0;
             int componentsWithValidGuids = 0;
 
-            foreach (var component in result.Components)
+            foreach (ModComponent component in result.Components)
             {
 
                 if (component.Instructions.Count > 0 || component.Options.Count > 0)
@@ -134,16 +134,16 @@ namespace KOTORModSync.Tests
 
             int totalInstructions = 0;
 
-            foreach (var component in result.Components)
+            foreach (ModComponent component in result.Components)
             {
-                foreach (var instruction in component.Instructions)
+                foreach (Instruction instruction in component.Instructions)
                 {
                     totalInstructions++;
                 }
 
-                foreach (var option in component.Options)
+                foreach (Option option in component.Options)
                 {
-                    foreach (var instruction in option.Instructions)
+                    foreach (Instruction instruction in option.Instructions)
                     {
                         totalInstructions++;
                     }
@@ -170,9 +170,9 @@ namespace KOTORModSync.Tests
             int totalOptions = 0;
             int invalidGuids = 0;
 
-            foreach (var component in result.Components)
+            foreach (ModComponent component in result.Components)
             {
-                foreach (var option in component.Options)
+                foreach (Option option in component.Options)
                 {
                     totalOptions++;
                     if (option.Guid == Guid.Empty)
@@ -227,8 +227,8 @@ namespace KOTORModSync.Tests
 
             for (int i = 0; i < componentsWithMetadata.Count; i++)
             {
-                var first = componentsWithMetadata[i];
-                var second = secondParse.Components[i];
+                ModComponent first = componentsWithMetadata[i];
+                ModComponent second = secondParse.Components[i];
 
                 WriteLogAndConsole($"\nComparing component: {first.Name}");
 
@@ -281,9 +281,9 @@ namespace KOTORModSync.Tests
             var validActions = Enum.GetValues(typeof(Instruction.ActionType)).Cast<Instruction.ActionType>().ToList();
             var actionCounts = new Dictionary<Instruction.ActionType, int>();
 
-            foreach (var component in result.Components)
+            foreach (ModComponent component in result.Components)
             {
-                foreach (var instruction in component.Instructions)
+                foreach (Instruction instruction in component.Instructions)
                 {
                     Assert.That(validActions, Contains.Item(instruction.Action),
                         $"{component.Name}: Instruction has invalid action {instruction.Action}");
@@ -296,9 +296,9 @@ namespace KOTORModSync.Tests
                     actionCounts[instruction.Action]++;
                 }
 
-                foreach (var option in component.Options)
+                foreach (Option option in component.Options)
                 {
-                    foreach (var instruction in option.Instructions)
+                    foreach (Instruction instruction in option.Instructions)
                     {
                         Assert.That(validActions, Contains.Item(instruction.Action),
                             $"{component.Name} -> {option.Name}: Instruction has invalid action {instruction.Action}");
@@ -316,7 +316,7 @@ namespace KOTORModSync.Tests
             if (actionCounts.Count > 0)
             {
                 WriteLogAndConsole("\nAction distribution:");
-                foreach (var kvp in actionCounts.OrderByDescending(x => x.Value))
+                foreach (KeyValuePair<Instruction.ActionType, int> kvp in actionCounts.OrderByDescending(x => x.Value))
                 {
                     WriteLogAndConsole($"  {kvp.Key}: {kvp.Value}");
                 }
@@ -337,9 +337,9 @@ namespace KOTORModSync.Tests
 
             WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
 
-            foreach (var component in result.Components)
+            foreach (ModComponent component in result.Components)
             {
-                foreach (var instruction in component.Instructions)
+                foreach (Instruction instruction in component.Instructions)
                 {
 
                     switch (instruction.Action)

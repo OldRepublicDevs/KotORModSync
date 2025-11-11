@@ -16,7 +16,7 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.FileSystemUtils
 {
-    public static class PathHelper
+    public static partial class PathHelper
     {
         [CanBeNull]
         public static Tuple<FileInfo, DirectoryInfo> TryGetValidFileSystemInfos([CanBeNull] string folderPath)
@@ -93,9 +93,9 @@ namespace KOTORModSync.Core.FileSystemUtils
             {
                 return new DirectoryInfo(formattedPath);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                Logger.LogException(ex, $"Failed to create DirectoryInfo for path '{formattedPath}'.");
                 return null;
             }
         }
@@ -118,9 +118,9 @@ namespace KOTORModSync.Core.FileSystemUtils
             {
                 return new FileInfo(formattedPath);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                Logger.LogException(ex, $"Failed to create FileInfo for path '{formattedPath}'.");
                 return null;
             }
         }
@@ -140,7 +140,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
             if (!PathValidator.IsValidPath(path))
             {
-                throw new ArgumentException($"{path} is not a valid path!");
+                throw new ArgumentException($"{path} is not a valid path!", nameof(path));
             }
 
             const uint FILE_SHARE_READ = 1;
@@ -189,7 +189,10 @@ namespace KOTORModSync.Core.FileSystemUtils
         }
 
         [NotNull]
-        public static string GetRelativePath([NotNull] string relativeTo, [NotNull] string path) => GetRelativePath(relativeTo, path, StringComparison.OrdinalIgnoreCase);
+        public static string GetRelativePath([NotNull] string relativeTo, [NotNull] string path)
+        {
+            return GetRelativePath(relativeTo, path, StringComparison.OrdinalIgnoreCase);
+        }
 
         [NotNull]
         private static string GetRelativePath(
@@ -263,18 +266,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
             var sb = new StringBuilder(Math.Max(relativeTo.Length, path.Length));
 
-            if (commonLength < relativeTo.Length)
-            {
-
-                for (int i = commonLength + 1; i < relativeTo.Length; i++)
-                {
-                    if (relativeTo[i] == Path.DirectorySeparatorChar)
-                    {
-
-                    }
-                }
-            }
-            else if (path[commonLength] == Path.DirectorySeparatorChar)
+            if (commonLength >= relativeTo.Length && path[commonLength] == Path.DirectorySeparatorChar)
             {
                 commonLength++;
             }
@@ -292,7 +284,7 @@ namespace KOTORModSync.Core.FileSystemUtils
                     _ = sb.Append(Path.DirectorySeparatorChar);
                 }
 
-                _ = sb.Append(path.Substring(commonLength, differenceLength));
+                _ = sb.Append(path, commonLength, differenceLength);
             }
 
             string result = sb.ToString();
@@ -341,20 +333,20 @@ namespace KOTORModSync.Core.FileSystemUtils
             return commonLength;
         }
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern uint GetFinalPathNameByHandle(
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "GetFinalPathNameByHandleW")]
+        private static extern uint GetFinalPathNameByHandleNative(
             IntPtr hFile,
             StringBuilder lpszFilePath,
             uint cchFilePath,
             uint dwFlags
         );
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        [DllImport("kernel32.dll", SetLastError = true, EntryPoint = "CloseHandle")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CloseHandle(IntPtr hObject);
+        private static extern bool CloseHandleNative(IntPtr hObject);
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern IntPtr CreateFile(
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "CreateFileW")]
+        private static extern IntPtr CreateFileNative(
             string lpFileName,
             uint dwDesiredAccess,
             uint dwShareMode,
@@ -363,6 +355,60 @@ namespace KOTORModSync.Core.FileSystemUtils
             uint dwFlagsAndAttributes,
             IntPtr hTemplateFile
         );
+
+        private static uint GetFinalPathNameByHandle(
+            IntPtr hFile,
+            StringBuilder lpszFilePath,
+            uint cchFilePath,
+            uint dwFlags
+        )
+        {
+            if (Utility.UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
+            {
+                Logger.LogWarning("Attempted to resolve a Windows handle path on a non-Windows platform.");
+                return 0;
+            }
+
+            return GetFinalPathNameByHandleNative(hFile, lpszFilePath, cchFilePath, dwFlags);
+        }
+
+        private static bool CloseHandle(IntPtr hObject)
+        {
+            if (Utility.UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
+            {
+                Logger.LogWarning("Attempted to close a Windows handle on a non-Windows platform.");
+                return false;
+            }
+
+            return CloseHandleNative(hObject);
+        }
+
+        private static IntPtr CreateFile(
+            string lpFileName,
+            uint dwDesiredAccess,
+            uint dwShareMode,
+            IntPtr lpSecurityAttributes,
+            uint dwCreationDisposition,
+            uint dwFlagsAndAttributes,
+            IntPtr hTemplateFile
+        )
+        {
+            if (Utility.UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
+            {
+                Logger.LogWarning("Attempted to create a Win32 file handle on a non-Windows platform.");
+                return IntPtr.Zero;
+            }
+
+            return CreateFileNative(
+                lpFileName,
+                dwDesiredAccess,
+                dwShareMode,
+                lpSecurityAttributes,
+                dwCreationDisposition,
+                dwFlagsAndAttributes,
+                hTemplateFile
+            );
+        }
 
         public static FileSystemInfo GetCaseSensitivePath(FileSystemInfo fileSystemInfoItem)
         {
@@ -423,7 +469,7 @@ namespace KOTORModSync.Core.FileSystemUtils
                 parts = new[] { currentPath }.Concat(parts).ToArray();
             }
 
-            if (parts[0].EndsWith(":", StringComparison.Ordinal))
+            if (parts[0].EndsWith(':'))
             {
                 parts[0] += Path.DirectorySeparatorChar;
             }
@@ -665,7 +711,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
                             if (!(thisDuplicateFolder is DirectoryInfo dirInfo))
                             {
-                                throw new NullReferenceException(nameof(dirInfo));
+                                throw new InvalidOperationException(nameof(dirInfo));
                             }
 
                             List<string> duplicateFiles = fileSystemProvider.GetFilesInDirectory(
@@ -755,7 +801,7 @@ namespace KOTORModSync.Core.FileSystemUtils
             patternInput = patternInput.Replace(oldValue: @"\*", newValue: ".*")
                 .Replace(oldValue: @"\?", newValue: ".");
 
-            return Regex.IsMatch(input, $"^{patternInput}$");
+            return Regex.IsMatch(input, $"^{patternInput}$", RegexOptions.None, TimeSpan.FromSeconds(10));
         }
 
         [NotNull]
@@ -779,7 +825,7 @@ namespace KOTORModSync.Core.FileSystemUtils
                 formattedPath,
                 $"(?<!:){Path.DirectorySeparatorChar}{Path.DirectorySeparatorChar}+",
                 Path.DirectorySeparatorChar.ToString()
-            );
+            , RegexOptions.None, TimeSpan.FromSeconds(10));
 
             if (formattedPath.Length > 1)
             {
@@ -808,6 +854,27 @@ namespace KOTORModSync.Core.FileSystemUtils
             bool? isFile = null
         )
         {
+            FindCaseInsensitiveDuplicatesContext context = ValidateFindCaseInsensitiveDuplicatesParameters(path, isFile);
+
+            if (context is null)
+            {
+                return Array.Empty<FileSystemInfo>();
+            }
+
+            return FindCaseInsensitiveDuplicatesIterator(
+                context.Directory,
+                context.FileName,
+                includeSubFolders,
+                context.IsFile
+            );
+        }
+
+        [CanBeNull]
+        private static FindCaseInsensitiveDuplicatesContext ValidateFindCaseInsensitiveDuplicatesParameters(
+            [NotNull] string path,
+            bool? isFile
+        )
+        {
             if (path is null)
             {
                 throw new ArgumentNullException(nameof(path));
@@ -816,17 +883,19 @@ namespace KOTORModSync.Core.FileSystemUtils
             string formattedPath = FixPathFormatting(path);
             if (!PathValidator.IsValidPath(formattedPath))
             {
-                throw new ArgumentException($"'{path}' is not a valid path string");
+                throw new ArgumentException($"'{path}' is not a valid path string", nameof(path));
             }
 
             if (Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                yield break;
+                return null;
             }
 
             DirectoryInfo dirInfo = null;
             string fileName = Path.GetFileName(formattedPath);
-            switch (isFile)
+            bool? resolvedIsFile = isFile;
+
+            switch (resolvedIsFile)
             {
                 case false:
                     {
@@ -841,9 +910,13 @@ namespace KOTORModSync.Core.FileSystemUtils
                 case true:
                     {
                         string parentDir = Path.GetDirectoryName(formattedPath);
-                        if (!string.IsNullOrEmpty(parentDir) && !(dirInfo = new DirectoryInfo(parentDir)).Exists)
+                        if (!string.IsNullOrEmpty(parentDir))
                         {
-                            dirInfo = new DirectoryInfo(GetCaseSensitivePath(parentDir).Item1);
+                            dirInfo = new DirectoryInfo(parentDir);
+                            if (!dirInfo.Exists)
+                            {
+                                dirInfo = new DirectoryInfo(GetCaseSensitivePath(parentDir).Item1);
+                            }
                         }
 
                         break;
@@ -861,7 +934,7 @@ namespace KOTORModSync.Core.FileSystemUtils
                         if (!dirInfo.Exists)
                         {
                             string folderPath = Path.GetDirectoryName(caseSensitivePath);
-                            isFile = true;
+                            resolvedIsFile = true;
                             if (!(folderPath is null))
                             {
                                 dirInfo = new DirectoryInfo(folderPath);
@@ -874,9 +947,19 @@ namespace KOTORModSync.Core.FileSystemUtils
 
             if (!dirInfo?.Exists ?? false)
             {
-                throw new ArgumentException($"Path item doesn't exist on disk: '{formattedPath}'");
+                throw new ArgumentException($"Path item doesn't exist on disk: '{formattedPath}'", nameof(path));
             }
 
+            return new FindCaseInsensitiveDuplicatesContext(dirInfo, fileName, resolvedIsFile);
+        }
+
+        private static IEnumerable<FileSystemInfo> FindCaseInsensitiveDuplicatesIterator(
+            DirectoryInfo dirInfo,
+            string fileName,
+            bool includeSubFolders,
+            bool? isFile
+        )
+        {
             var fileList = new Dictionary<string, List<FileSystemInfo>>(StringComparer.OrdinalIgnoreCase);
             var folderList = new Dictionary<string, List<FileSystemInfo>>(StringComparer.OrdinalIgnoreCase);
             foreach (FileInfo file in dirInfo.EnumerateFilesSafely())
@@ -955,6 +1038,22 @@ namespace KOTORModSync.Core.FileSystemUtils
                     yield return duplicate;
                 }
             }
+        }
+
+        private sealed class FindCaseInsensitiveDuplicatesContext
+        {
+            public FindCaseInsensitiveDuplicatesContext(DirectoryInfo directory, string fileName, bool? isFile)
+            {
+                Directory = directory;
+                FileName = fileName;
+                IsFile = isFile;
+            }
+
+            public DirectoryInfo Directory { get; }
+
+            public string FileName { get; }
+
+            public bool? IsFile { get; }
         }
     }
 }

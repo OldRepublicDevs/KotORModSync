@@ -18,6 +18,11 @@ namespace KOTORModSync.Dialogs.WizardPages
         private readonly List<ModComponent> _widescreenMods;
         private StackPanel _modListPanel;
 
+        public WidescreenModSelectionPage()
+            : this(new List<ModComponent>())
+        {
+        }
+
         public WidescreenModSelectionPage([NotNull][ItemNotNull] List<ModComponent> widescreenMods)
         {
             _widescreenMods = widescreenMods ?? throw new ArgumentNullException(nameof(widescreenMods));

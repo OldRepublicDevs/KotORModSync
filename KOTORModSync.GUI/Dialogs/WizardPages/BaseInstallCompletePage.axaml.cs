@@ -2,75 +2,217 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-using System.Collections.Generic;
+using System;
+using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using JetBrains.Annotations;
+using KOTORModSync.Core;
 
 namespace KOTORModSync.Dialogs.WizardPages
 {
     public partial class BaseInstallCompletePage : WizardPageBase
     {
-        private ItemsControl _summaryItems;
+        private TextBlock _modsInstalledText;
+        private TextBlock _checkpointsCreatedText;
+        private TextBlock _timeElapsedText;
+        private TextBlock _filesModifiedText;
+        private Button _viewLogsButton;
+        private Button _manageCheckpointsButton;
+        private Button _openGameFolderButton;
+        private Button _openModFolderButton;
 
         public BaseInstallCompletePage()
+            : this(0, TimeSpan.Zero)
         {
+        }
+
+        public BaseInstallCompletePage(
+            int modsInstalled,
+            TimeSpan timeElapsed,
+            int filesModified = 0,
+            int checkpointsCreated = 0)
+        {
+
             InitializeComponent();
-            InitializeSummary();
+            CacheControls();
+            InitializeStatistics(modsInstalled, timeElapsed, filesModified, checkpointsCreated);
+            HookEvents();
         }
 
         public override string Title => "Base Installation Complete";
-
         public override string Subtitle => "The base mod installation has finished successfully";
-
         public override bool CanNavigateBack => false;
-
         public override bool CanCancel => false;
 
         public override Task OnNavigatedToAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
         public override Task OnNavigatingFromAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public override Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
             => Task.FromResult((true, (string)null));
 
-        private void InitializeComponent()
+        private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+        private void CacheControls()
         {
-            AvaloniaXamlLoader.Load(this);
-            _summaryItems = this.FindControl<ItemsControl>("SummaryItems");
+            _modsInstalledText = this.FindControl<TextBlock>("ModsInstalledText");
+            _checkpointsCreatedText = this.FindControl<TextBlock>("CheckpointsCreatedText");
+            _timeElapsedText = this.FindControl<TextBlock>("TimeElapsedText");
+            _filesModifiedText = this.FindControl<TextBlock>("FilesModifiedText");
+            _viewLogsButton = this.FindControl<Button>("ViewLogsButton");
+            _manageCheckpointsButton = this.FindControl<Button>("ManageCheckpointsButton");
+            _openGameFolderButton = this.FindControl<Button>("OpenGameFolderButton");
+            _openModFolderButton = this.FindControl<Button>("OpenModFolderButton");
         }
 
-        private void InitializeSummary()
+        private void InitializeStatistics(int modsInstalled, TimeSpan timeElapsed, int filesModified, int checkpointsCreated)
         {
-            if (_summaryItems is null)
+            if (_modsInstalledText != null)
             {
-                return;
+                _modsInstalledText.Text = modsInstalled.ToString();
             }
 
-            var summary = new List<SummaryItem>
+            if (_checkpointsCreatedText != null)
             {
-                new SummaryItem("Mods Installed", "TBD"),
-                new SummaryItem("Time Elapsed", "TBD"),
-                new SummaryItem("Checkpoints Created", "TBD"),
-                new SummaryItem("Warnings", "TBD"),
-                new SummaryItem("Errors", "TBD"),
-            };
+                _checkpointsCreatedText.Text = checkpointsCreated.ToString();
+            }
 
-            _summaryItems.ItemsSource = summary;
+            if (_timeElapsedText != null)
+            {
+                _timeElapsedText.Text = timeElapsed.TotalMinutes >= 1
+                    ? $"{(int)timeElapsed.TotalMinutes}:{timeElapsed.Seconds:D2}"
+                    : $"{timeElapsed.Seconds}s";
+            }
+
+            if (_filesModifiedText != null)
+            {
+                _filesModifiedText.Text = filesModified > 0 ? filesModified.ToString() : "N/A";
+            }
         }
 
-        private sealed class SummaryItem
+        private void HookEvents()
         {
-            public SummaryItem(string label, string value)
+            if (_viewLogsButton != null)
             {
-                Label = label;
-                Value = value;
+                _viewLogsButton.Click += OnViewLogsClicked;
             }
 
-            public string Label { get; }
+            if (_manageCheckpointsButton != null)
+            {
+                _manageCheckpointsButton.Click += OnManageCheckpointsClicked;
+            }
 
-            public string Value { get; }
+            if (_openGameFolderButton != null)
+            {
+                _openGameFolderButton.Click += OnOpenGameFolderClicked;
+            }
+
+            if (_openModFolderButton != null)
+            {
+                _openModFolderButton.Click += OnOpenModFolderClicked;
+            }
+        }
+
+        private async void OnViewLogsClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+                if (Directory.Exists(logPath))
+                {
+                    _ = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = logPath,
+                        UseShellExecute = true,
+                    });
+                }
+                else
+                {
+                    await Logger.LogWarningAsync($"Log directory not found: {logPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Failed to open logs folder");
+            }
+        }
+
+        private async void OnOpenGameFolderClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (Directory.Exists(MainConfig.DestinationPath.FullName))
+                {
+                    _ = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = MainConfig.DestinationPath.FullName,
+                        UseShellExecute = true,
+                    });
+                }
+                else
+                {
+                    await Logger.LogWarningAsync($"Game directory not found: {MainConfig.DestinationPath.FullName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Failed to open game folder");
+            }
+        }
+
+        private async void OnOpenModFolderClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (Directory.Exists(MainConfig.SourcePath.FullName))
+                {
+                    _ = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = MainConfig.SourcePath.FullName,
+                        UseShellExecute = true,
+                    });
+                }
+                else
+                {
+                    await Logger.LogWarningAsync($"Mod directory not found: {MainConfig.SourcePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Failed to open mod folder");
+            }
+        }
+
+        private async void OnManageCheckpointsClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (MainConfig.DestinationPath?.FullName == null)
+                {
+                    await Logger.LogWarningAsync("Game directory not configured");
+                    return;
+                }
+
+                var checkpointBrowser = new GitCheckpointBrowserDialog(MainConfig.DestinationPath.FullName);
+
+                // Find the parent window
+                if (TopLevel.GetTopLevel(this) is Window parentWindow)
+                {
+                    await checkpointBrowser.ShowDialog(parentWindow);
+                }
+                else
+                {
+                    checkpointBrowser.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Failed to open checkpoint browser");
+            }
         }
     }
 }

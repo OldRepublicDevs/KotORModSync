@@ -170,7 +170,7 @@ namespace KOTORModSync.Tests
                 Assert.That(component.Options, Has.Count.EqualTo(3), "Should create three options for three folders");
             });
 
-            foreach (var option in component.Options)
+            foreach (Option option in component.Options)
             {
                 Assert.That(option.Instructions, Has.Count.EqualTo(1));
                 Assert.Multiple(() =>

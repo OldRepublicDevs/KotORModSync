@@ -9,6 +9,7 @@ using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Services.ImmutableCheckpoint;
+using KOTORModSync.Core.Services.Checkpoints;
 
 namespace KOTORModSync.Tests
 {
@@ -604,7 +605,7 @@ namespace KOTORModSync.Tests
 			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 
-			string casObjectsDir = Path.Combine(_gameDirectory.FullName, ".kotor_modsync", "checkpoints", "objects");
+			string casObjectsDir = Path.Combine(CheckpointPaths.GetCheckpointsRoot(_gameDirectory.FullName), "objects");
 			if (Directory.Exists(casObjectsDir))
 			{
 				Directory.Delete(casObjectsDir, true);
@@ -665,7 +666,7 @@ namespace KOTORModSync.Tests
 
 			Assert.That(orphanedCount, Is.GreaterThan(0), "Should have collected orphaned objects");
 
-			string casDir = Path.Combine(_gameDirectory.FullName, ".kotor_modsync", "checkpoints", "objects");
+			string casDir = Path.Combine(CheckpointPaths.GetCheckpointsRoot(_gameDirectory.FullName), "objects");
 			if (Directory.Exists(casDir))
 			{
 				int remainingObjects = Directory.GetFiles(casDir, "*", SearchOption.AllDirectories).Length;

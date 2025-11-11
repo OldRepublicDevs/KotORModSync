@@ -37,7 +37,7 @@ namespace KOTORModSync.Core.TSLPatcher
                 string filePath = file.FullName;
                 string fileContents = File.ReadAllText(filePath);
 
-                fileContents = Regex.Replace(fileContents, pattern, replacement, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                fileContents = Regex.Replace(fileContents, pattern, replacement, RegexOptions.IgnoreCase | RegexOptions.Multiline, TimeSpan.FromSeconds(10));
 
                 File.WriteAllText(filePath, fileContents);
             }
@@ -61,7 +61,7 @@ namespace KOTORModSync.Core.TSLPatcher
                 }
             }
 
-            return null;
+            return new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
         }
 
         public static Dictionary<string, Dictionary<string, string>> ReadNamespacesIniFromArchive(
@@ -80,15 +80,15 @@ namespace KOTORModSync.Core.TSLPatcher
                     return TraverseDirectories(archive.Entries);
                 }
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-
-                return null;
+                Logger.LogException(ex, "Failed to read namespaces.ini from archive stream due to invalid archive operation.");
+                return new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                return null;
+                Logger.LogException(ex, "Unexpected error while reading namespaces.ini from archive stream.");
+                return new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
             }
         }
         private static readonly char[] s_separator = new[] { '/', '\\' };
@@ -98,15 +98,12 @@ namespace KOTORModSync.Core.TSLPatcher
         )
         {
             IEnumerable<IArchiveEntry> archiveEntries = entries as IArchiveEntry[]
-                                                        ?? entries?.ToArray() ?? throw new NullReferenceException(nameof(entries));
+                ?? entries?.ToArray() ?? Array.Empty<IArchiveEntry>();
             foreach (IArchiveEntry entry in archiveEntries)
             {
-                if (entry != null && entry.IsDirectory)
+                if (entry.IsDirectory)
                 {
-
                     IEnumerable<IArchiveEntry> subDirectoryEntries = archiveEntries.Where(
-
-
                         e => e != null && (e.Key.StartsWith(entry.Key + "/", StringComparison.Ordinal) || e.Key.StartsWith(entry.Key + "\\", StringComparison.Ordinal))
                     );
                     Dictionary<string, Dictionary<string, string>> result = TraverseDirectories(
@@ -138,7 +135,7 @@ namespace KOTORModSync.Core.TSLPatcher
                 }
             }
 
-            return null;
+            return new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         }
 
         public static Dictionary<string, Dictionary<string, string>> ParseNamespacesIni(StreamReader reader)
@@ -148,7 +145,7 @@ namespace KOTORModSync.Core.TSLPatcher
                 throw new ArgumentNullException(nameof(reader));
             }
 
-            var sections = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+            var sections = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
             Dictionary<string, string> currentSection = null;
 
             string line;
@@ -156,13 +153,13 @@ namespace KOTORModSync.Core.TSLPatcher
             {
                 line = line.Trim();
 
-                if (line.StartsWith("[", StringComparison.Ordinal) && line.EndsWith("]", StringComparison.Ordinal))
+                if (line.StartsWith('[') && line.EndsWith(']'))
                 {
                     string sectionName = line.Substring(startIndex: 1, line.Length - 2);
-                    currentSection = new Dictionary<string, string>(StringComparer.Ordinal);
+                    currentSection = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     sections[sectionName] = currentSection;
                 }
-                else if (currentSection != null && line.Contains("="))
+                else if (currentSection != null && line.Contains("=", StringComparison.Ordinal))
                 {
                     string[] keyValue = line.Split('=');
                     if (keyValue.Length != 2)

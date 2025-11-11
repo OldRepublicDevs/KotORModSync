@@ -73,7 +73,7 @@ namespace KOTORModSync.Tests
 
             var service = new ResolutionFilterService(enableFiltering: true);
 
-            List<string> filtered = service.FilterByResolution(null);
+            List<string> filtered = service.FilterByResolution(urlsOrFilenames: null);
 
             Assert.That(filtered, Is.Not.Null, "Filtered list should not be null");
             Assert.That(filtered, Is.Empty, "Null input should return empty output");

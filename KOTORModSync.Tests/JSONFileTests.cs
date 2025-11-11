@@ -132,7 +132,7 @@ namespace KOTORModSync.Tests
                     {
                         Action = Instruction.ActionType.Extract,
                         Source = new List<string> { "test.rar" },
-                        Destination = "%temp%\\test"
+                        Destination = "%temp%\\test",
                     },
                 },
             };
@@ -331,7 +331,7 @@ namespace KOTORModSync.Tests
                         Source = new List<string> { "test.rar" },
                         Overwrite = true,
                         Destination = "some/path",
-                        Arguments = "some args"
+                        Arguments = "some args",
                     },
                 },
             };
@@ -436,8 +436,8 @@ namespace KOTORModSync.Tests
                             Action = Instruction.ActionType.Move,
                             Source = new List<string> { "<<modDirectory>>\\optional\\file1.txt" },
                             Destination = "<<kotorDirectory>>\\Override",
-                            Overwrite = true
-                        }
+                            Overwrite = true,
+                        },
                     },
                 },
                 new Option
@@ -454,8 +454,8 @@ namespace KOTORModSync.Tests
                             Source = new List<string> { "<<modDirectory>>\\optional\\file2.txt" },
                             Destination = "<<kotorDirectory>>\\Override",
                             Overwrite = false
-                        }
-                    }
+                        },
+                    },
                 },
             },
             };
@@ -497,9 +497,9 @@ namespace KOTORModSync.Tests
             });
             Assert.That(loadedComponent.ResourceRegistry.ContainsKey("https://example.com/mod.zip"), Is.True);
             Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files.Count, Is.EqualTo(3), "First URL should have 3 filenames");
-            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v1.0.zip"], Is.EqualTo(true));
-            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v2.0.zip"], Is.EqualTo(false));
-            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_beta.zip"], Is.EqualTo(null));
+            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v1.0.zip"], Is.EqualTo(expected: true));
+            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v2.0.zip"], Is.EqualTo(expected: false));
+            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_beta.zip"], Is.EqualTo(expected: null));
 
             // Verify ExcludedDownloads
             Assert.That(loadedComponent.ExcludedDownloads.Count, Is.EqualTo(2), "Should have 2 excluded downloads");

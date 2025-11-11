@@ -37,6 +37,11 @@ namespace KOTORModSync.Dialogs
         private bool _hasWidescreenMods;
         private List<ModComponent> _widescreenMods;
 
+        public InstallWizardDialog()
+            : this(new MainConfig(), new List<ModComponent>())
+        {
+        }
+
         public InstallWizardDialog([NotNull] MainConfig mainConfig, [NotNull] List<ModComponent> allComponents)
         {
             _mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
@@ -113,7 +118,7 @@ namespace KOTORModSync.Dialogs
             _pages.Add(new InstallingPage(_allComponents, _mainConfig, _cancellationTokenSource));
 
             // 12. BaseInstallComplete
-            _pages.Add(new BaseInstallCompletePage());
+            _pages.Add(new BaseInstallCompletePage(0, TimeSpan.Zero, 0, 0));
 
             // Note: Widescreen-specific pages will be added dynamically after base install if needed
 
@@ -172,7 +177,7 @@ namespace KOTORModSync.Dialogs
                 {
                     IsCompleted = oldInfo.IsCompleted,
                     IsCurrent = oldInfo.IsCurrent,
-                    IsAccessible = oldInfo.IsAccessible
+                    IsAccessible = oldInfo.IsAccessible,
                 };
             }
         }

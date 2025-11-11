@@ -139,13 +139,13 @@ namespace KOTORModSync.Dialogs
             CheckBox dontShowCheckBox = this.FindControl<CheckBox>("DontShowAgainCheckBox");
             DontShowAgain = dontShowCheckBox?.IsChecked == true;
             UserCancelled = false;
-            Close(true);
+            Close(dialogResult: true);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
             UserCancelled = true;
-            Close(false);
+            Close(dialogResult: false);
         }
     }
 }

@@ -134,11 +134,9 @@ namespace KOTORModSync.Core.Services
                         Logger.LogVerbose($"[ComponentValidationService] Using cached validation result for component: {component.Name}");
                         return (cachedResult.urls, cachedResult.simulationFailed);
                     }
-                    else
-                    {
-                        // Cache expired, remove it
-                        _ = s_validationCache.Remove(cacheKey);
-                    }
+
+                    // Cache expired, remove it
+                    _ = s_validationCache.Remove(cacheKey);
                 }
             }
 
@@ -1112,135 +1110,6 @@ namespace KOTORModSync.Core.Services
                 await Logger.LogWarningAsync($"  • {fn}").ConfigureAwait(false);
             }
             return null;
-        }
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private static async Task<bool> TryFixArchiveNameMismatchesAsync(
-            ModComponent component,
-            IReadOnlyList<string> failedPatterns,
-            VirtualFileSystemProvider vfs,
-            string modArchiveDirectory,
-            CancellationToken cancellationToken)
-        {
-            await Logger.LogVerboseAsync("[ComponentValidationService] Scanning for archive name mismatches...").ConfigureAwait(false);
-
-            // Gather known archive filenames from the component's ResourceRegistry (resource-index)
-            var archiveFilenames = component.ResourceRegistry.Values
-                .SelectMany(meta => meta.Files?.Keys ?? Enumerable.Empty<string>())
-                .Where(fn => !string.IsNullOrWhiteSpace(fn) && ArchiveHelper.IsArchive(fn))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (archiveFilenames.Count == 0)
-            {
-                await Logger.LogVerboseAsync("[ComponentValidationService] No known archives found in ResourceRegistry").ConfigureAwait(false);
-                return false;
-            }
-
-            bool anyFixApplied = false;
-            var originalInstructions = new List<(Instruction instruction, List<string> source, string destination)>();
-
-            // Backup all instructions
-            foreach (Instruction instruction in component.Instructions)
-            {
-                originalInstructions.Add((
-                    instruction,
-                    new List<string>(instruction.Source),
-                    instruction.Destination
-                ));
-            }
-            foreach (Option option in component.Options)
-            {
-                foreach (Instruction instruction in option.Instructions)
-                {
-                    originalInstructions.Add((
-                        instruction,
-                        new List<string>(instruction.Source),
-                        instruction.Destination
-                    ));
-                }
-            }
-
-            try
-            {
-                foreach (string failedPattern in failedPatterns)
-                {
-                    string expectedArchive = ExtractFilenameFromSource(failedPattern);
-                    if (string.IsNullOrEmpty(expectedArchive) || !ArchiveHelper.IsArchive(expectedArchive))
-                    {
-                        continue;
-                    }
-
-                    string expectedBase = Path.GetFileNameWithoutExtension(expectedArchive);
-                    string normalizedExpected = NormalizeModName(expectedBase);
-
-                    // Find matching archive filename
-                    string matchingArchive = null;
-                    foreach (string archiveName in archiveFilenames)
-                    {
-                        string entryBase = Path.GetFileNameWithoutExtension(archiveName);
-                        string normalizedEntry = NormalizeModName(entryBase);
-
-                        if (normalizedExpected.Equals(normalizedEntry, StringComparison.OrdinalIgnoreCase) ||
-                             (!(entryBase is null) && expectedBase.IndexOf(entryBase, StringComparison.OrdinalIgnoreCase) >= 0) ||
-                             (!(entryBase is null) && entryBase.IndexOf(expectedBase, StringComparison.OrdinalIgnoreCase) >= 0))
-                        {
-                            matchingArchive = archiveName;
-                            break;
-                        }
-                    }
-
-                    if (matchingArchive is null)
-                    {
-                        await Logger.LogVerboseAsync($"[ComponentValidationService] No matching cached archive for '{expectedArchive}'").ConfigureAwait(false);
-                        continue;
-                    }
-
-                    // Find the Extract instruction with this pattern
-                    Instruction extractInstruction = component.Instructions
-                        .FirstOrDefault(i => i.Action == Instruction.ActionType.Extract &&
-                                             i.Source.Any(s => FileMatchesPattern(expectedArchive, ExtractFilenameFromSource(s))));
-
-                    if (extractInstruction is null)
-                    {
-                        // Check options
-                        foreach (Option option in component.Options)
-                        {
-                            extractInstruction = option.Instructions
-                                .FirstOrDefault(i => i.Action == Instruction.ActionType.Extract &&
-                                                     i.Source.Any(s => FileMatchesPattern(expectedArchive,
-                                             ExtractFilenameFromSource(s))));
-                            if (extractInstruction != null)
-                            {
-                                break;
-                            }
-                        }
-                    }
-
-                    if (extractInstruction is null)
-                    {
-                        await Logger.LogVerboseAsync($"[ComponentValidationService] No Extract instruction found for '{expectedArchive}'").ConfigureAwait(false);
-                        continue;
-                    }
-
-                    // Apply fix
-                    bool fixSuccess = await TryFixSingleMismatchAsync(component, extractInstruction, matchingArchive, vfs, modArchiveDirectory, cancellationToken).ConfigureAwait(false);
-
-                    if (fixSuccess)
-                    {
-                        anyFixApplied = true;
-                        await Logger.LogAsync($"[ComponentValidationService] ✓ Fixed mismatch for '{expectedArchive}' -> '{matchingArchive}'").ConfigureAwait(false);
-                    }
-                }
-
-                return anyFixApplied;
-            }
-            catch (Exception ex)
-            {
-                await Logger.LogExceptionAsync(ex, "[ComponentValidationService] Error during mismatch fix").ConfigureAwait(false);
-                RollbackInstructions(originalInstructions);
-                return false;
-            }
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]

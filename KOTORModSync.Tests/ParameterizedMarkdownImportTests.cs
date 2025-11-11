@@ -195,7 +195,7 @@ namespace KOTORModSync.Tests
 
             MarkdownParserResult result = parser.Parse(markdown);
 
-            foreach (var c in result.Components.Take(3))
+            foreach (ModComponent c in result.Components.Take(3))
             {
                 WriteLogAndConsole($"Component: {c.Name}");
                 WriteLogAndConsole($"  Category.Count: {c.Category.Count}");
@@ -466,7 +466,7 @@ namespace KOTORModSync.Tests
             if (nameGroups.Count != 0)
             {
                 WriteLogAndConsole($"\nWarning: Found {nameGroups.Count} duplicate name(s):");
-                foreach (var group in nameGroups)
+                foreach (IGrouping<string, ModComponent> group in nameGroups)
                 {
                     WriteLogAndConsole($"  - '{group.Key}' appears {group.Count()} times");
                 }

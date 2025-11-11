@@ -20,13 +20,13 @@ using KOTORModSync.Core;
 using KOTORModSync.Dialogs;
 using KOTORModSync.Dialogs.WizardPages;
 using KOTORModSync.Services;
+using KOTORModSync;
 
 namespace KOTORModSync.Controls
 {
     public partial class WizardHostControl : UserControl
     {
         private readonly List<IWizardPage> _pages = new List<IWizardPage>();
-        private LoadInstructionPage _loadInstructionPage;
         private ModDirectoryPage _modDirectoryPage;
         private GameDirectoryPage _gameDirectoryPage;
         private int _currentPageIndex = 0;
@@ -116,7 +116,6 @@ namespace KOTORModSync.Controls
             _cancellationTokenSource = null;
             _downloadSidebarStartIndex = -1;
             _downloadSidebarEnabled = false;
-            _loadInstructionPage = null;
             _modDirectoryPage = null;
             _gameDirectoryPage = null;
             ResetDownloadStatus();
@@ -126,24 +125,23 @@ namespace KOTORModSync.Controls
         {
             _pages.Clear();
 
-            // 1. Load instruction file
-            _loadInstructionPage = new LoadInstructionPage(_mainConfig);
-            _pages.Add(_loadInstructionPage);
+            // NOTE: LoadInstructionPage removed - it should be shown as LandingPageView outside wizard
+            // The wizard should only start after an instruction file is loaded
 
-            // 2. Welcome
+            // 1. Welcome
             _pages.Add(new WelcomePage());
 
-            // 3. Preamble (conditional)
+            // 2. Preamble (conditional)
             if (!string.IsNullOrWhiteSpace(_mainConfig.preambleContent))
             {
                 _pages.Add(new PreamblePage(_mainConfig.preambleContent));
             }
 
-            // 4. Mod workspace directory
+            // 3. Mod workspace directory
             _modDirectoryPage = new ModDirectoryPage(_mainConfig);
             _pages.Add(_modDirectoryPage);
 
-            // 5. Game directory
+            // 4. Game directory
             _gameDirectoryPage = new GameDirectoryPage(_mainConfig);
             _pages.Add(_gameDirectoryPage);
 
@@ -160,7 +158,7 @@ namespace KOTORModSync.Controls
             }
 
             // 7. ModSelection
-            _pages.Add(new ModSelectionPage(_allComponents));
+            _pages.Add(new ModSelectionPage(_allComponents, _parentWindow as MainWindow));
 
             // 8. DownloadsExplain
             _pages.Add(new DownloadsExplainPage());
@@ -175,17 +173,14 @@ namespace KOTORModSync.Controls
             _pages.Add(new InstallingPage(_allComponents, _mainConfig, _cancellationTokenSource));
 
             // 12. BaseInstallComplete
-            _pages.Add(new BaseInstallCompletePage());
+            _pages.Add(new BaseInstallCompletePage(0, TimeSpan.Zero, 0, 0));
 
             // Note: Widescreen-specific pages will be inserted dynamically after the base install if needed
 
             // Finished
             _pages.Add(new FinishedPage());
             _downloadSidebarStartIndex = _pages.FindIndex(page => page is DownloadsExplainPage);
-            if (_loadInstructionPage != null && (MainConfig.AllComponents?.Count ?? 0) > 0)
-            {
-                _loadInstructionPage.InstructionFileLoaded();
-            }
+            // NOTE: LoadInstructionPage removed - instruction file should already be loaded before wizard starts
         }
 
         private void AddWidescreenPages()
@@ -948,30 +943,6 @@ namespace KOTORModSync.Controls
             }
         }
 
-        private void ClearCurrentPageContent()
-        {
-            Logger.LogVerbose("[ClearCurrentPageContent] START");
-
-            // Hide sidebar if visible
-            if (_downloadSidebar != null)
-            {
-                Logger.LogVerbose("[ClearCurrentPageContent] Hiding sidebar");
-                _downloadSidebar.IsVisible = false;
-            }
-
-            // Clear the page content (this will handle detachment of all visuals)
-            Logger.LogVerbose("[ClearCurrentPageContent] Calling ClearPageContent...");
-            ClearPageContent();
-            Logger.LogVerbose("[ClearCurrentPageContent] PageContent cleared");
-
-            if (PageContent is null)
-            {
-                Logger.LogError("[ClearCurrentPageContent] ERROR: PageContent is null");
-            }
-
-            Logger.LogVerbose("[ClearCurrentPageContent] COMPLETE");
-        }
-
         public void Cleanup()
         {
             _cancellationTokenSource?.Cancel();
@@ -994,14 +965,8 @@ namespace KOTORModSync.Controls
                 _downloadStatusBar.IsVisible = false;
             }
             ResetDownloadStatus();
-            _loadInstructionPage = null;
             _modDirectoryPage = null;
             _gameDirectoryPage = null;
-        }
-
-        public void NotifyInstructionFileLoaded()
-        {
-            _loadInstructionPage?.InstructionFileLoaded();
         }
     }
 }

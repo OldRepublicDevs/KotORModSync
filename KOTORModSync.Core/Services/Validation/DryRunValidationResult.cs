@@ -39,13 +39,13 @@ namespace KOTORModSync.Core.Services.Validation
 
             if (errorCount > 0)
             {
-                _ = sb.AppendLine($"✗ Validation failed with {errorCount} error(s) and {warningCount} warning(s).");
+                _ = sb.Append("✗ Validation failed with ").Append(errorCount).Append(" error(s) and ").Append(warningCount).AppendLine(" warning(s).");
                 _ = sb.AppendLine();
                 _ = sb.AppendLine("The following issues must be resolved before installation:");
             }
             else if (warningCount > 0)
             {
-                _ = sb.AppendLine($"⚠ Validation passed with {warningCount} warning(s).");
+                _ = sb.Append("⚠ Validation passed with ").Append(warningCount).AppendLine(" warning(s).");
                 _ = sb.AppendLine();
                 _ = sb.AppendLine("You may proceed, but review the following warnings:");
             }
@@ -74,7 +74,7 @@ namespace KOTORModSync.Core.Services.Validation
                 foreach (IGrouping<ModComponent, ValidationIssue> group in componentIssues)
                 {
                     ModComponent component = group.Key;
-                    _ = sb.AppendLine($"━━━ {component.Name} ━━━");
+                    _ = sb.Append("━━━ ").Append(component.Name).AppendLine(" ━━━");
 
                     foreach (ValidationIssue issue in group)
                     {
@@ -92,13 +92,13 @@ namespace KOTORModSync.Core.Services.Validation
                             icon = "ℹ";
                         }
 
-                        _ = sb.AppendLine($"{icon} {issue.Message}");
+                        _ = sb.Append(icon).Append(' ').Append(issue.Message).AppendLine();
 
 
                         string advice = GetEndUserAdvice(issue);
                         if (!string.IsNullOrEmpty(advice))
                         {
-                            _ = sb.AppendLine($"   → {advice}");
+                            _ = sb.Append("   → ").Append(advice).AppendLine();
                         }
 
                         _ = sb.AppendLine();
@@ -127,12 +127,12 @@ namespace KOTORModSync.Core.Services.Validation
                         icon = "ℹ";
                     }
 
-                    _ = sb.AppendLine($"{icon} {issue.Message}");
+                    _ = sb.Append(icon).Append(' ').Append(issue.Message).AppendLine();
 
                     string advice = GetEndUserAdvice(issue);
                     if (!string.IsNullOrEmpty(advice))
                     {
-                        _ = sb.AppendLine($"   → {advice}");
+                        _ = sb.Append("   → ").Append(advice).AppendLine();
                     }
 
                     _ = sb.AppendLine();
@@ -160,7 +160,7 @@ namespace KOTORModSync.Core.Services.Validation
                 foreach (IGrouping<ModComponent, ValidationIssue> group in componentIssues)
                 {
                     ModComponent component = group.Key;
-                    _ = sb.AppendLine($"━━━ ModComponent: {component.Name} (GUID: {component.Guid}) ━━━");
+                    _ = sb.Append("━━━ ModComponent: ").Append(component.Name).Append(" (GUID: ").Append(component.Guid).AppendLine(") ━━━");
                     _ = sb.AppendLine();
 
                     IOrderedEnumerable<IGrouping<int, ValidationIssue>> instructionGroups = group.GroupBy(i => i.InstructionIndex).OrderBy(g => g.Key);
@@ -169,19 +169,19 @@ namespace KOTORModSync.Core.Services.Validation
                     {
                         if (instrGroup.Key > 0)
                         {
-                            _ = sb.AppendLine($"  Instruction #{instrGroup.Key}:");
+                            _ = sb.Append("  Instruction #").Append(instrGroup.Key).Append(':').AppendLine();
 
                             ValidationIssue firstIssue = instrGroup.First();
                             if (firstIssue.AffectedInstruction != null)
                             {
-                                _ = sb.AppendLine($"    Action: {firstIssue.AffectedInstruction.Action}");
+                                _ = sb.Append("    Action: ").Append(firstIssue.AffectedInstruction.Action).AppendLine();
                                 if (firstIssue.AffectedInstruction.Source.Count != 0)
                                 {
-                                    _ = sb.AppendLine($"    Source: {string.Join(", ", firstIssue.AffectedInstruction.Source)}");
+                                    _ = sb.Append("    Source: ").Append(string.Join(", ", firstIssue.AffectedInstruction.Source)).AppendLine();
                                 }
                                 if (!string.IsNullOrEmpty(firstIssue.AffectedInstruction.Destination))
                                 {
-                                    _ = sb.AppendLine($"    Destination: {firstIssue.AffectedInstruction.Destination}");
+                                    _ = sb.Append("    Destination: ").Append(firstIssue.AffectedInstruction.Destination).AppendLine();
                                 }
                             }
                             _ = sb.AppendLine();
@@ -203,12 +203,12 @@ namespace KOTORModSync.Core.Services.Validation
                                 icon = "ℹ";
                             }
 
-                            _ = sb.AppendLine($"  {icon} [{issue.Category}] {issue.Message}");
+                            _ = sb.Append("  ").Append(icon).Append(" [").Append(issue.Category).Append("] ").Append(issue.Message).AppendLine();
 
                             string advice = GetEditorAdvice(issue);
                             if (!string.IsNullOrEmpty(advice))
                             {
-                                _ = sb.AppendLine($"     → {advice}");
+                                _ = sb.Append("     → ").Append(advice).AppendLine();
                             }
                         }
 

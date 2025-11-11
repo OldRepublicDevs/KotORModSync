@@ -19,8 +19,8 @@
                     <TextBlock
                         HorizontalAlignment="Center"
                         FontSize="64"
-                        Text="⚡"
-                        TextAlignment="Center" />
+                        Text="&#x26A1;&#xFE0F;"
+                        TextAlignment="Center" />  <!-- ⚡ = &#x26A1;&#xFE0F; -->
                     <TextBlock
                         HorizontalAlignment="Center"
                         FontSize="36"
@@ -60,7 +60,7 @@
                         <TextBlock
                             FontSize="20"
                             FontWeight="Bold"
-                            Text="❌ The Problem" />
+                            Text="&#x274C; The Problem" />  <!-- ❌ = &#x274C; -->
                         <TextBlock
                             FontSize="14"
                             Opacity="0.85"
@@ -85,7 +85,7 @@
                         <TextBlock
                             FontSize="20"
                             FontWeight="Bold"
-                            Text="✅ The Solution" />
+                            Text="&#x2705; The Solution" />  <!-- ✅ = &#x2705; -->
                         <TextBlock
                             FontSize="14"
                             Opacity="0.85"
@@ -107,9 +107,7 @@
                 <StackPanel Spacing="20">
                     <TextBlock
                         HorizontalAlignment="Center"
-                        FontSize="24"
-                        FontWeight="Bold"
-                        Text="📋 Installation Process" />
+                        Text="&#x1F4CB; Installation Process" />
 
                     <StackPanel Spacing="16">
                         <!--  Step 1  -->
@@ -124,18 +122,12 @@
                                     <TextBlock
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        FontSize="18"
-                                        FontWeight="Bold"
                                         Text="1" />
                                 </Border>
                                 <StackPanel Grid.Column="2" Spacing="6">
                                     <TextBlock
-                                        FontSize="17"
-                                        FontWeight="SemiBold"
-                                        Text="📁 Configure Directories" />
+                                        Text="&#x1F4C1; Configure Directories" />  <!-- 📁 = &#x1F4C1; -->
                                     <TextBlock
-                                        FontSize="14"
-                                        Opacity="0.8"
                                         Text="Point to your KOTOR installation and mod workspace folder"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
@@ -154,18 +146,12 @@
                                     <TextBlock
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        FontSize="18"
-                                        FontWeight="Bold"
                                         Text="2" />
                                 </Border>
                                 <StackPanel Grid.Column="2" Spacing="6">
                                     <TextBlock
-                                        FontSize="17"
-                                        FontWeight="SemiBold"
-                                        Text="📄 Load Instruction File" />
+                                        Text="&#x1F4C4; Load Instruction File" />  <!-- 📄 = &#x1F4C4; -->
                                     <TextBlock
-                                        FontSize="14"
-                                        Opacity="0.8"
                                         Text="Choose a curated mod build from popular configurations"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
@@ -184,18 +170,12 @@
                                     <TextBlock
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        FontSize="18"
-                                        FontWeight="Bold"
                                         Text="3" />
                                 </Border>
                                 <StackPanel Grid.Column="2" Spacing="6">
                                     <TextBlock
-                                        FontSize="17"
-                                        FontWeight="SemiBold"
-                                        Text="🎯 Select Your Mods" />
+                                        Text="&#x1F3AF; Select Your Mods" />  <!-- 🎯 = &#x1F3AF; -->
                                     <TextBlock
-                                        FontSize="14"
-                                        Opacity="0.8"
                                         Text="Browse mods by category, filter by tier, search by name - dependencies auto-select"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
@@ -214,18 +194,12 @@
                                     <TextBlock
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        FontSize="18"
-                                        FontWeight="Bold"
                                         Text="4" />
                                 </Border>
                                 <StackPanel Grid.Column="2" Spacing="6">
                                     <TextBlock
-                                        FontSize="17"
-                                        FontWeight="SemiBold"
-                                        Text="⬇️ Automatic Downloads" />
+                                        Text="&#x2B07;&#xFE0F; Automatic Downloads" />  <!-- ⬇️ = &#x2B07;&#xFE0F; -->
                                     <TextBlock
-                                        FontSize="14"
-                                        Opacity="0.8"
                                         Text="Missing mods? We'll download them automatically while you continue"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
@@ -244,18 +218,12 @@
                                     <TextBlock
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        FontSize="18"
-                                        FontWeight="Bold"
                                         Text="5" />
                                 </Border>
                                 <StackPanel Grid.Column="2" Spacing="6">
                                     <TextBlock
-                                        FontSize="17"
-                                        FontWeight="SemiBold"
-                                        Text="✅ Validation & Install" />
+                                        Text="&#x2705; Validation &amp; Install" />  <!-- ✅ = &#x2705; -->
                                     <TextBlock
-                                        FontSize="14"
-                                        Opacity="0.8"
                                         Text="Verify everything is ready, then sit back as mods install automatically"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
@@ -272,7 +240,7 @@
                         HorizontalAlignment="Center"
                         FontSize="24"
                         FontWeight="Bold"
-                        Text="🌟 Key Features" />
+                        Text="&#x1F31F; Key Features" />  <!-- 🌟 = &#x1F31F; -->
 
                     <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,12,Auto">
                         <!--  Feature 1  -->
@@ -281,10 +249,10 @@
                             Grid.Column="0"
                             Padding="20,16"
                             CornerRadius="10">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="10">  <!-- 🔄 = &#x1F504; -->
                                 <TextBlock
                                     FontSize="28"
-                                    Text="🔄"
+                                    Text="&#x1F504;"
                                     TextAlignment="Center" />
                                 <TextBlock
                                     FontSize="16"
@@ -306,10 +274,10 @@
                             Grid.Column="2"
                             Padding="20,16"
                             CornerRadius="10">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="10">  <!-- 🔍 = &#x1F50D; -->
                                 <TextBlock
                                     FontSize="28"
-                                    Text="🔍"
+                                    Text="&#x1F50D;"
                                     TextAlignment="Center" />
                                 <TextBlock
                                     FontSize="16"
@@ -331,10 +299,10 @@
                             Grid.Column="0"
                             Padding="20,16"
                             CornerRadius="10">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="10">  <!-- 💾 = &#x1F4BE; -->
                                 <TextBlock
                                     FontSize="28"
-                                    Text="💾"
+                                    Text="&#x1F4BE;"
                                     TextAlignment="Center" />
                                 <TextBlock
                                     FontSize="16"
@@ -356,10 +324,10 @@
                             Grid.Column="2"
                             Padding="20,16"
                             CornerRadius="10">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="10">  <!-- 🌐 = &#x1F310; -->
                                 <TextBlock
                                     FontSize="28"
-                                    Text="🌐"
+                                    Text="&#x1F310;"
                                     TextAlignment="Center" />
                                 <TextBlock
                                     FontSize="16"
@@ -385,12 +353,12 @@
                         Grid.Column="0"
                         VerticalAlignment="Top"
                         FontSize="32"
-                        Text="⚠️" />
+                        Text="&#x26A0;&#xFE0F;" />  <!-- ⚠️ = &#x26A0;&#xFE0F; -->
                     <StackPanel Grid.Column="2" Spacing="10">
                         <TextBlock
                             FontSize="18"
                             FontWeight="Bold"
-                            Text="Important: Fresh Installation Required" />
+                            Text="Important: Fresh Installation Required" />  <!-- 🔍 = &#x1F50D; -->
                         <TextBlock
                             FontSize="14"
                             Opacity="0.9"

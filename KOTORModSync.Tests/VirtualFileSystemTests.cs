@@ -101,7 +101,11 @@ namespace KOTORModSync.Tests
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogWarning("7-Zip not found. Please install 7-Zip to run these tests.", ex);
+                throw;
+            }
 
             throw new InvalidOperationException("7-Zip not found. Please install 7-Zip to run these tests.");
         }
@@ -112,7 +116,7 @@ namespace KOTORModSync.Tests
             Directory.CreateDirectory(tempDir);
             try
             {
-                foreach (var file in files)
+                foreach (KeyValuePair<string, string> file in files)
                 {
                     string filePath = Path.Combine(tempDir, file.Key);
                     string fileDir = Path.GetDirectoryName(filePath);
@@ -1113,9 +1117,9 @@ namespace KOTORModSync.Tests
                         break;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    await TestContext.Progress.WriteLineAsync($"Failed to get full path for {path}: {ex.Message}");
                 }
             }
 
@@ -1305,9 +1309,9 @@ namespace KOTORModSync.Tests
                                     return true;
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
-
+                                await TestContext.Progress.WriteLineAsync($"Failed to get full path for {cleanSource}: {ex.Message}");
                             }
                         }
                         else

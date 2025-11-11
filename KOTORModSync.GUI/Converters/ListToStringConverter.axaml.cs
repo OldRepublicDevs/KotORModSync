@@ -36,7 +36,7 @@ namespace KOTORModSync.Converters
                     continue;
                 }
 
-                _ = serializedList.AppendLine(item.ToString());
+                _ = serializedList.Append(item).AppendLine();
             }
 
             return serializedList.ToString();

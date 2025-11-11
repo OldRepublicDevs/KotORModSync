@@ -43,6 +43,11 @@ namespace KOTORModSync.Core.Utility
             "*.exe",
         };
 
+        private static readonly object s_sevenZipInitLock = new object();
+        private static bool s_sevenZipInitialized;
+        private static bool s_sevenZipAvailable;
+        private static bool s_missingSevenZipLogged;
+
         public static bool IsArchive([NotNull] string filePath)
         {
             if (filePath is null)
@@ -94,9 +99,11 @@ namespace KOTORModSync.Core.Utility
                 throw new ArgumentException(message: "Path must be a valid file on disk.", nameof(archivePath));
             }
 
+            FileStream stream = null;
+
             try
             {
-                FileStream stream = File.OpenRead(archivePath);
+                stream = File.OpenRead(archivePath);
                 IArchive archive = null;
 
                 if (archivePath.EndsWith(value: ".zip", StringComparison.OrdinalIgnoreCase))
@@ -116,7 +123,17 @@ namespace KOTORModSync.Core.Utility
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
+                stream?.Dispose();
+
+                if (IsExpectedArchiveFormatException(ex))
+                {
+                    Logger.LogVerbose($"[ArchiveHelper] SharpCompress could not open '{Path.GetFileName(archivePath)}': {ex.Message}");
+                }
+                else
+                {
+                    Logger.LogException(ex, $"[ArchiveHelper] Failed to open archive '{Path.GetFileName(archivePath)}'");
+                }
+
                 return (null, null);
             }
         }
@@ -313,7 +330,7 @@ namespace KOTORModSync.Core.Utility
                             exePath = reader.Entry.Key;
                         }
 
-                        if (!(directory is null) && directory.Contains("tslpatchdata"))
+                        if (!(directory is null) && directory.Contains("tslpatchdata", StringComparison.OrdinalIgnoreCase))
                         {
                             tslPatchDataFolderExists = true;
                         }
@@ -330,7 +347,7 @@ namespace KOTORModSync.Core.Utility
             if (
                 exePath != null
                 && tslPatchDataFolderExists
-                && Path.GetDirectoryName(exePath).Contains("tslpatchdata")
+                && Path.GetDirectoryName(exePath).Contains("tslpatchdata", StringComparison.OrdinalIgnoreCase)
             )
             {
                 return exePath;
@@ -913,6 +930,9 @@ namespace KOTORModSync.Core.Utility
                 return true;
             }
 
+            bool shouldTrySevenZipFallback = ShouldAttemptSevenZipFallback(archivePath);
+            string localFailureMessage = null;
+
             try
             {
                 (IArchive archive, FileStream stream) = OpenArchive(archivePath);
@@ -942,9 +962,21 @@ namespace KOTORModSync.Core.Utility
                     }
                     return true;
                 }
-                else
+
+                stream?.Dispose();
+
+                if (shouldTrySevenZipFallback)
                 {
-                    stream?.Dispose();
+                    if (TryEnumerateEntriesWithSevenZip(archivePath, entries, out string sevenZipFailure))
+                    {
+                        failureMessage = null;
+                        return true;
+                    }
+
+                    if (!string.IsNullOrEmpty(sevenZipFailure))
+                    {
+                        localFailureMessage = sevenZipFailure;
+                    }
                 }
 
                 if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
@@ -978,13 +1010,28 @@ namespace KOTORModSync.Core.Utility
                     return true;
                 }
 
-                failureMessage = "Unknown archive format";
+                failureMessage = localFailureMessage ?? "Unknown archive format";
                 return false;
             }
             catch (Exception ex)
             {
                 failureMessage = ex.Message;
                 Logger.LogVerbose($"[ArchiveHelper] Failed to enumerate archive '{archivePath}': {ex.Message}");
+
+                if (shouldTrySevenZipFallback)
+                {
+                    if (TryEnumerateEntriesWithSevenZip(archivePath, entries, out string sevenZipFailure))
+                    {
+                        failureMessage = null;
+                        return true;
+                    }
+
+                    if (!string.IsNullOrEmpty(sevenZipFailure))
+                    {
+                        failureMessage = sevenZipFailure;
+                    }
+                }
+
                 return false;
             }
         }
@@ -1044,20 +1091,20 @@ namespace KOTORModSync.Core.Utility
             {
                 if (normalizedExtension.Equals(".zip", StringComparison.Ordinal))
                 {
-                    return SharpCompress.Archives.Zip.ZipArchive.Open(stream);
+                    return ZipArchive.Open(stream);
                 }
-                else if (normalizedExtension.Equals(".rar", StringComparison.Ordinal))
+
+                if (normalizedExtension.Equals(".rar", StringComparison.Ordinal))
                 {
-                    return SharpCompress.Archives.Rar.RarArchive.Open(stream);
+                    return RarArchive.Open(stream);
                 }
-                else if (normalizedExtension.Equals(".7z", StringComparison.Ordinal) || normalizedExtension.Equals(".exe", StringComparison.Ordinal))
+
+                if (normalizedExtension.Equals(".7z", StringComparison.Ordinal) || normalizedExtension.Equals(".exe", StringComparison.Ordinal))
                 {
-                    return SharpCompress.Archives.SevenZip.SevenZipArchive.Open(stream);
+                    return SevenZipArchive.Open(stream);
                 }
-                else
-                {
-                    return ArchiveFactory.Open(stream);
-                }
+
+                return ArchiveFactory.Open(stream);
             }
             catch
             {
@@ -1180,6 +1227,171 @@ namespace KOTORModSync.Core.Utility
                     Matches = false,
                 };
             }
+        }
+
+        private static bool ShouldAttemptSevenZipFallback([NotNull] string archivePath)
+        {
+            if (archivePath is null)
+            {
+                throw new ArgumentNullException(nameof(archivePath));
+            }
+
+            string extension = Path.GetExtension(archivePath);
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                return false;
+            }
+
+            return extension.Equals(".7z", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".xz", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".gz", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".tar", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".zip", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryEnumerateEntriesWithSevenZip(
+            [NotNull] string archivePath,
+            [NotNull] HashSet<string> entries,
+            out string failureMessage
+        )
+        {
+            if (archivePath is null)
+            {
+                throw new ArgumentNullException(nameof(archivePath));
+            }
+
+            if (entries is null)
+            {
+                throw new ArgumentNullException(nameof(entries));
+            }
+
+            failureMessage = null;
+
+            if (!EnsureSevenZipLibraryLoaded())
+            {
+                failureMessage = "7z.dll is not available for archive enumeration.";
+                return false;
+            }
+
+            try
+            {
+                using (var extractor = new SevenZipExtractor(archivePath))
+                {
+                    foreach (ArchiveFileInfo fileInfo in extractor.ArchiveFileData.Where(data => !data.IsDirectory))
+                    {
+                        string normalizedKey = fileInfo.FileName
+                            .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
+                            .Replace('\\', Path.DirectorySeparatorChar)
+                            .Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                        if (string.IsNullOrEmpty(normalizedKey))
+                        {
+                            continue;
+                        }
+
+                        entries.Add(normalizedKey);
+
+                        string fileName = Path.GetFileName(normalizedKey);
+                        if (!string.IsNullOrEmpty(fileName))
+                        {
+                            entries.Add(fileName);
+                        }
+                    }
+                }
+
+                Logger.LogVerbose($"[ArchiveHelper] Enumerated archive '{Path.GetFileName(archivePath)}' using 7z.dll fallback.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                failureMessage = ex.Message;
+                Logger.LogVerbose($"[ArchiveHelper] 7z.dll fallback failed for '{archivePath}': {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool EnsureSevenZipLibraryLoaded()
+        {
+            if (s_sevenZipInitialized)
+            {
+                return s_sevenZipAvailable;
+            }
+
+            lock (s_sevenZipInitLock)
+            {
+                if (s_sevenZipInitialized)
+                {
+                    return s_sevenZipAvailable;
+                }
+
+                s_sevenZipInitialized = true;
+
+                try
+                {
+                    if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
+                    {
+                        s_sevenZipAvailable = false;
+                        Logger.LogVerbose("[ArchiveHelper] 7z.dll fallback is only available on Windows.");
+                        return false;
+                    }
+
+                    string libraryPath = Path.Combine(UtilityHelper.GetResourcesDirectory(), "7z.dll");
+                    if (!File.Exists(libraryPath))
+                    {
+                        s_sevenZipAvailable = false;
+                        if (!s_missingSevenZipLogged)
+                        {
+                            Logger.LogVerbose($"[ArchiveHelper] 7z.dll not found at '{libraryPath}'. SevenZip fallback will be skipped.");
+                            s_missingSevenZipLogged = true;
+                        }
+                        return false;
+                    }
+
+                    SevenZipBase.SetLibraryPath(libraryPath);
+                    s_sevenZipAvailable = true;
+                    Logger.LogVerbose($"[ArchiveHelper] Loaded 7z.dll from '{libraryPath}'");
+                }
+                catch (Exception ex)
+                {
+                    s_sevenZipAvailable = false;
+                    Logger.LogVerbose($"[ArchiveHelper] Failed to load 7z.dll: {ex.Message}");
+                }
+
+                return s_sevenZipAvailable;
+            }
+        }
+
+        private static bool IsExpectedArchiveFormatException([NotNull] Exception ex)
+        {
+            if (ex is null)
+            {
+                throw new ArgumentNullException(nameof(ex));
+            }
+
+            if (ex is InvalidOperationException || ex is EndOfStreamException)
+            {
+                return true;
+            }
+
+            if (ex is ArchiveException)
+            {
+                return true;
+            }
+
+            string message = ex.Message?.ToLowerInvariant() ?? string.Empty;
+            return message.Contains("nextheaderoffset", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("header offset", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("unknown archive format", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("failed to locate", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("zip header", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("corrupt", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("invalid archive", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("unexpected end", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("invalid header", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("bad archive", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("crc mismatch", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("data error", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

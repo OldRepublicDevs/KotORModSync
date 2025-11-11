@@ -11,9 +11,6 @@ namespace KOTORModSync
 {
     internal static class Program
     {
-
-
-
         [STAThread]
         public static void Main(string[] args)
         {
@@ -69,7 +66,7 @@ namespace KOTORModSync
                     completed: false
                 );
                 Core.Services.TelemetryService.Instance.Flush();
-                
+
                 // Attempt graceful cache shutdown even on crash
                 try
                 {
@@ -79,7 +76,7 @@ namespace KOTORModSync
                 {
                     // Ignore errors during emergency shutdown
                 }
-                
+
                 throw;
             }
         }

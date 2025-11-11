@@ -706,13 +706,13 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
             {
                 ModComponent component = kvp.Key;
                 List<ModComponent> dependencies = kvp.Value;
-                _ = sb.AppendLine($"{component.Name} (GUID: {component.Guid.ToString().Substring(0, 8)}...)");
+                _ = sb.Append(component.Name).Append(" (GUID: ").Append(component.Guid.ToString().Substring(0, 8)).AppendLine("...)");
                 if (dependencies.Any())
                 {
                     _ = sb.AppendLine("  Depends on:");
                     foreach (ModComponent dep in dependencies)
                     {
-                        _ = sb.AppendLine($"    - {dep.Name}");
+                        _ = sb.Append("    - ").Append(dep.Name).AppendLine();
                     }
                 }
                 else
@@ -1403,14 +1403,14 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
                     {
                         var report = new System.Text.StringBuilder();
                         _ = report.AppendLine("Version Analysis:\n");
-                        _ = report.AppendLine($"Found {potentialDuplicates.Count} mod(s) with potential duplicates:\n");
+                        _ = report.Append("Found ").Append(potentialDuplicates.Count).AppendLine(" mod(s) with potential duplicates:\n");
 
                         foreach (KeyValuePair<string, List<ModComponent>> group in potentialDuplicates.Take(10))
                         {
-                            _ = report.AppendLine($"'{group.Key}' has {group.Value.Count} version(s):");
+                            _ = report.Append('\'').Append(group.Key).Append("' has ").Append(group.Value.Count).AppendLine(" version(s):");
                             foreach (ModComponent comp in group.Value)
                             {
-                                _ = report.AppendLine($"  • {comp.Name}");
+                                _ = report.Append("  • ").Append(comp.Name).AppendLine();
                             }
 
                             _ = report.AppendLine();
@@ -1418,7 +1418,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
 
                         if (potentialDuplicates.Count > 10)
                         {
-                            _ = report.AppendLine($"... and {potentialDuplicates.Count - 10} more groups.\n");
+                            _ = report.Append("... and ").Append(potentialDuplicates.Count - 10).AppendLine(" more groups.\n");
                         }
 
                         _ = report.AppendLine("💡 Tip: Review these mods and consider keeping only the latest version.");

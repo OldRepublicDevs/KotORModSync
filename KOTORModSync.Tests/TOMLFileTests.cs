@@ -135,7 +135,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
         public void SaveAndLoadTOMLFile_CaseInsensitive()
         {
 
-            var originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
 
             Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
             string tomlContents = File.ReadAllText(_filePath);
@@ -145,7 +145,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
             File.WriteAllText(modifiedFilePath, tomlContents);
 
-            var loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList() ?? throw new InvalidDataException();
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList() ?? throw new InvalidDataException();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -162,7 +162,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
         public void SaveAndLoadTOMLFile_WhitespaceTests()
         {
 
-            var originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
 
             Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
             string tomlContents = File.ReadAllText(_filePath);
@@ -172,7 +172,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
             File.WriteAllText(modifiedFilePath, tomlContents);
 
-            var loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList() ?? throw new InvalidDataException();
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList() ?? throw new InvalidDataException();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -269,7 +269,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             };
 
             FileLoadingService.SaveToFile(originalComponents, _filePath);
-            var loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -286,12 +286,12 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
         public void SaveAndLoadTOMLFile_ModifyComponents()
         {
 
-            var originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
 
             originalComponents[0].Name = "Modified Name";
 
             FileLoadingService.SaveToFile(originalComponents, _filePath);
-            var loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList() ?? throw new InvalidDataException();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -442,7 +442,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
                     Source = new List<string> { "test.rar" },
                     Overwrite = true,
                     Destination = "some/path",
-                    Arguments = "some args"
+                    Arguments = "some args",
                 },
             },
             };
@@ -466,7 +466,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
                     Source = new List<string> { "test.txt" },
                     Destination = "<<kotorDirectory>>\\Override",
                     Overwrite = true,
-                    Arguments = "should not appear"
+                    Arguments = "should not appear",
                 },
             },
             };
@@ -490,7 +490,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
                     Source = new List<string> { "tslpatchdata" },
                     Destination = "<<kotorDirectory>>",
                     Arguments = "0",
-                    Overwrite = true
+                    Overwrite = true,
                 },
             },
             };
@@ -514,7 +514,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
                     Source = new List<string> { "setup.exe" },
                     Arguments = "/silent",
                     Overwrite = true,
-                    Destination = "some/path"
+                    Destination = "some/path",
                 },
             },
             };
@@ -637,11 +637,11 @@ Instructions = [
                 // Verify Instructions - should have Extract and Choose
                 Assert.That(component.Instructions, Has.Count.EqualTo(2));
 
-                var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract) ?? throw new InvalidOperationException();
+                Instruction extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract) ?? throw new InvalidOperationException();
                 Assert.That(extractInstruction, Is.Not.Null, "Extract instruction should be present");
                 Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
 
-                var chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose) ?? throw new InvalidOperationException();
+                Instruction chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose) ?? throw new InvalidOperationException();
                 Assert.That(chooseInstruction, Is.Not.Null, "Choose instruction should be present");
                 Assert.That(chooseInstruction.Source, Has.Count.EqualTo(2));
                 Assert.That(chooseInstruction.Source, Contains.Item("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48"));
@@ -653,7 +653,7 @@ Instructions = [
                     Assert.That(component.Options, Has.Count.EqualTo(2));
                 });
 
-                var standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
+                Option standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
                 Assert.That(standardOption, Is.Not.Null);
                 Assert.Multiple(() =>
                 {
@@ -664,7 +664,7 @@ Instructions = [
                 });
                 if (standardOption.Instructions.Count > 0)
                 {
-                    var standardInstruction = standardOption.Instructions[0];
+                    Instruction standardInstruction = standardOption.Instructions[0];
                     Assert.Multiple(() =>
                     {
                         Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
@@ -673,7 +673,7 @@ Instructions = [
                     });
                 }
 
-                var revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
+                Option revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
                 Assert.That(revisedOption, Is.Not.Null);
                 Assert.Multiple(() =>
                 {
@@ -684,7 +684,7 @@ Instructions = [
                 });
                 if (revisedOption.Instructions.Count > 0)
                 {
-                    var revisedInstruction = revisedOption.Instructions[0];
+                    Instruction revisedInstruction = revisedOption.Instructions[0];
                     Assert.Multiple(() =>
                     {
                         Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
@@ -797,7 +797,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 // Verify Instructions
                 Assert.That(component.Instructions, Has.Count.EqualTo(2));
 
-                var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
+                Instruction extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
                 Assert.That(extractInstruction, Is.Not.Null);
                 Assert.Multiple(() =>
                 {
@@ -805,7 +805,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                     Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
                 });
 
-                var chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
+                Instruction chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
                 Assert.That(chooseInstruction, Is.Not.Null);
                 Assert.Multiple(() =>
                 {
@@ -821,7 +821,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                     Assert.That(component.Options, Has.Count.EqualTo(2));
                 });
 
-                var standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
+                Option standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
                 Assert.That(standardOption, Is.Not.Null);
                 Assert.Multiple(() =>
                 {
@@ -830,7 +830,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                     Assert.That(standardOption.Restrictions, Contains.Item(Guid.Parse("6d593186-e356-4994-b6a8-f71445869937")));
                 });
 
-                var revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
+                Option revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
                 Assert.That(revisedOption, Is.Not.Null);
                 Assert.Multiple(() =>
                 {
@@ -842,7 +842,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                     // Verify Option Instructions
                     Assert.That(standardOption.Instructions, Has.Count.EqualTo(1));
                 });
-                var standardInstruction = standardOption.Instructions[0];
+                Instruction standardInstruction = standardOption.Instructions[0];
                 Assert.Multiple(() =>
                 {
                     Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
@@ -851,7 +851,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
 
                     Assert.That(revisedOption.Instructions, Has.Count.EqualTo(1));
                 });
-                var revisedInstruction = revisedOption.Instructions[0];
+                Instruction revisedInstruction = revisedOption.Instructions[0];
                 Assert.Multiple(() =>
                 {
                     Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));

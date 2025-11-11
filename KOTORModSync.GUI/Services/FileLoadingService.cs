@@ -249,7 +249,7 @@ namespace KOTORModSync.Services
                         configuredProfile = profile ?? MarkdownImportProfile.CreateDefault();
                         var parser = new MarkdownParser(configuredProfile,
                             logInfo => Logger.Log(logInfo),
-                            Logger.LogVerbose);
+                            logVerbose => Logger.LogVerbose(logVerbose));
                         parseResult = parser.Parse(fileContents);
 
                         ProcessModLinks(parseResult.Components);

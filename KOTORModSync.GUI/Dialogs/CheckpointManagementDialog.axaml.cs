@@ -18,6 +18,7 @@ using Avalonia.Threading;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Services.Checkpoints;
 using KOTORModSync.Core.Services.ImmutableCheckpoint;
 
 namespace KOTORModSync.Dialogs
@@ -104,7 +105,7 @@ namespace KOTORModSync.Dialogs
 
             try
             {
-                string checkpointBaseDir = Path.Combine(_destinationPath, ".kotor_modsync", "checkpoints");
+                string checkpointBaseDir = CheckpointPaths.GetCheckpointsRoot(_destinationPath);
 
                 if (!Directory.Exists(checkpointBaseDir))
                 {
@@ -332,13 +333,11 @@ namespace KOTORModSync.Dialogs
                 long freedSpace = 0;
                 foreach (CheckpointSession session in completedSessions)
                 {
-                    string sessionPath = Path.Combine(_destinationPath, ".kotor_modsync", "checkpoints", "sessions", session.Id);
+                    string sessionPath = Path.Combine(CheckpointPaths.GetCheckpointsRoot(_destinationPath), "sessions", session.Id);
                     if (Directory.Exists(sessionPath))
                     {
                         string[] files = Directory.GetFiles(sessionPath, "*", SearchOption.AllDirectories);
                         freedSpace += files.Sum(f => new FileInfo(f).Length);
-
-
                     }
 
                     await _checkpointService.DeleteSessionAsync(session.Id);

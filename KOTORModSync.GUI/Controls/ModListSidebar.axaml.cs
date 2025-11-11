@@ -66,11 +66,9 @@ namespace KOTORModSync.Controls
                     // Safe to access UI elements directly
                     return this.FindControl<ListBox>("ModListBoxElement");
                 }
-                else
-                {
-                    // We're on a background thread, use dispatcher to access UI
-                    return Dispatcher.UIThread.InvokeAsync(() => this.FindControl<ListBox>("ModListBoxElement")).GetAwaiter().GetResult();
-                }
+
+                // We're on a background thread, use dispatcher to access UI
+                return Dispatcher.UIThread.InvokeAsync(() => this.FindControl<ListBox>("ModListBoxElement")).GetAwaiter().GetResult();
             }
         }
         public TextBlock ModCountTextBlock

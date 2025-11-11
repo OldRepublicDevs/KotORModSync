@@ -223,7 +223,7 @@ namespace KOTORModSync.Services
                         foreach (ModComponent component in _mainConfig.allComponents)
                         {
                             component.IsSelected = true;
-                            onComponentChecked?.Invoke(component, finishedComponents, true);
+                            onComponentChecked?.Invoke(component, finishedComponents, arg3: true);
                         }
                         break;
                     case false:
@@ -231,7 +231,7 @@ namespace KOTORModSync.Services
                         foreach (ModComponent component in _mainConfig.allComponents)
                         {
                             component.IsSelected = false;
-                            onComponentUnchecked?.Invoke(component, finishedComponents, true);
+                            onComponentUnchecked?.Invoke(component, finishedComponents, arg3: true);
                         }
                         break;
                     case null:
@@ -239,7 +239,7 @@ namespace KOTORModSync.Services
                         foreach (ModComponent component in _mainConfig.allComponents)
                         {
                             component.IsSelected = true;
-                            onComponentChecked?.Invoke(component, finishedComponents, true);
+                            onComponentChecked?.Invoke(component, finishedComponents, arg3: true);
                         }
                         break;
                 }

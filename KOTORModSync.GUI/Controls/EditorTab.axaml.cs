@@ -48,49 +48,6 @@ namespace KOTORModSync.Controls
 
                 // Update the validation watcher to monitor this component's files
                 _validationWatcher?.SetCurrentComponent(value);
-
-                // Trigger initial validation when component is loaded
-                if (value != null)
-                {
-                    _ = ValidateCurrentComponentAsync();
-                }
-            }
-        }
-
-        private async Task ValidateCurrentComponentAsync()
-        {
-            if (CurrentComponent == null)
-            {
-                return;
-            }
-
-            try
-            {
-                // Validate all instructions in the component
-                foreach (Instruction instruction in CurrentComponent.Instructions)
-                {
-                    if (instruction.Source != null)
-                    {
-                        foreach (string sourcePath in instruction.Source)
-                        {
-                            if (!string.IsNullOrWhiteSpace(sourcePath))
-                            {
-                                await Core.Services.Validation.PathValidationCache.ValidateAndCacheAsync(
-                                    sourcePath, instruction, CurrentComponent).ConfigureAwait(false);
-                            }
-                        }
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(instruction.Destination))
-                    {
-                        await Core.Services.Validation.PathValidationCache.ValidateAndCacheAsync(
-                            instruction.Destination, instruction, CurrentComponent).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                await Logger.LogExceptionAsync(ex, "Error validating component");
             }
         }
 
@@ -130,9 +87,6 @@ namespace KOTORModSync.Controls
         public event EventHandler<RoutedEventArgs> DeleteOptionRequested;
         public event EventHandler<RoutedEventArgs> MoveOptionUpRequested;
         public event EventHandler<RoutedEventArgs> MoveOptionDownRequested;
-
-        [SuppressMessage("Design", "MA0046:Use EventHandler<T> to declare events", Justification = "<Pending>")]
-        public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstructionRequested;
 
         public EditorTab()
         {

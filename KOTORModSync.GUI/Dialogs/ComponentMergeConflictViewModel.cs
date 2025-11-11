@@ -709,12 +709,12 @@ namespace KOTORModSync.Dialogs
                 ModComponent component = item.ModComponent;
 
                 var sb = new System.Text.StringBuilder();
-                _ = sb.AppendLine($"ModComponent: {component.Name}");
-                _ = sb.AppendLine($"Author: {component.Author}");
+                _ = sb.Append("ModComponent: ").Append(component.Name).AppendLine();
+                _ = sb.Append("Author: ").Append(component.Author).AppendLine();
                 string categoryStr = component.Category != null && component.Category.Count > 0
                     ? string.Join(", ", component.Category)
                     : "No category";
-                _ = sb.AppendLine($"Category: {categoryStr} / {component.Tier}");
+                _ = sb.Append("Category: ").Append(categoryStr).Append(" / ").Append(component.Tier).AppendLine();
                 _ = sb.AppendLine($"Instructions: {component.Instructions.Count}");
                 _ = sb.AppendLine($"Options: {component.Options.Count}");
                 _ = sb.AppendLine($"Dependencies: {component.Dependencies.Count}");
@@ -902,7 +902,7 @@ namespace KOTORModSync.Dialogs
                 if (existingToIncomingMatch.ContainsKey(existing))
                 {
 
-                    existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.Matched);
+                    existingItem = new ComponentConflictItem(existing, isFromExisting: true, ComponentConflictStatus.Matched);
                     existingItem.PropertyChanged += OnItemSelectionChanged;
                     existingItem.IsSelected = false;
 
@@ -911,7 +911,7 @@ namespace KOTORModSync.Dialogs
                 else
                 {
 
-                    existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.ExistingOnly);
+                    existingItem = new ComponentConflictItem(existing, isFromExisting: true, ComponentConflictStatus.ExistingOnly);
                     existingItem.PropertyChanged += OnItemSelectionChanged;
                     existingItem.IsSelected = true;
                     _existingOnly.Add(existingItem);
@@ -927,7 +927,7 @@ namespace KOTORModSync.Dialogs
                 if (incomingToExistingMatch.ContainsKey(incoming))
                 {
 
-                    incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.Matched);
+                    incomingItem = new ComponentConflictItem(incoming, isFromExisting: false, ComponentConflictStatus.Matched);
                     incomingItem.PropertyChanged += OnItemSelectionChanged;
                     incomingItem.IsSelected = true;
 
@@ -936,7 +936,7 @@ namespace KOTORModSync.Dialogs
                 else
                 {
 
-                    incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.New);
+                    incomingItem = new ComponentConflictItem(incoming, isFromExisting: false, ComponentConflictStatus.New);
                     incomingItem.PropertyChanged += OnItemSelectionChanged;
                     incomingItem.IsSelected = true;
                     _incomingOnly.Add(incomingItem);
@@ -2440,7 +2440,7 @@ namespace KOTORModSync.Dialogs
                     _ = sb.AppendLine();
                 }
 
-                _ = sb.AppendLine($"# ModComponent {i + 1}: {components[i].Name}");
+                _ = sb.Append("# ModComponent ").Append(i + 1).Append(": ").Append(components[i].Name).AppendLine();
                 _ = sb.Append(components[i].SerializeComponent());
             }
 
@@ -2841,22 +2841,22 @@ namespace KOTORModSync.Dialogs
                     var sb = new System.Text.StringBuilder();
                     ModComponent component = ModComponent;
 
-                    _ = sb.AppendLine($"📦 {component.Name}");
+                    _ = sb.Append("📦 ").Append(component.Name).AppendLine();
                     _ = sb.AppendLine();
 
                     if (!string.IsNullOrEmpty(component.Author))
                     {
-                        _ = sb.AppendLine($"👤 Author: {component.Author}");
+                        _ = sb.Append("👤 Author: ").Append(component.Author).AppendLine();
                     }
 
                     if (component.Category.Count > 0)
                     {
-                        _ = sb.AppendLine($"📁 Category: {string.Join(", ", component.Category)}");
+                        _ = sb.Append("📁 Category: ").Append(string.Join(", ", component.Category)).AppendLine();
                     }
 
                     if (!string.IsNullOrEmpty(component.Tier))
                     {
-                        _ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+                        _ = sb.Append("⭐ Tier: ").Append(component.Tier).AppendLine();
                     }
 
                     if (!string.IsNullOrEmpty(component.Description))
@@ -2870,31 +2870,31 @@ namespace KOTORModSync.Dialogs
                     }
 
                     _ = sb.AppendLine();
-                    _ = sb.AppendLine($"🔧 Instructions: {component.Instructions.Count}");
+                    _ = sb.Append("🔧 Instructions: ").Append(component.Instructions.Count).AppendLine();
 
                     if (!string.IsNullOrEmpty(component.InstallationMethod))
                     {
-                        _ = sb.AppendLine($"⚙️ Method: {component.InstallationMethod}");
+                        _ = sb.Append("⚙️ Method: ").Append(component.InstallationMethod).AppendLine();
                     }
 
                     if (component.Dependencies.Count > 0)
                     {
                         _ = sb.AppendLine();
-                        _ = sb.AppendLine($"✓ Requires: {component.Dependencies.Count} mod(s)");
+                        _ = sb.Append("✓ Requires: ").Append(component.Dependencies.Count).AppendLine(" mod(s)");
                     }
 
                     if (component.Restrictions.Count > 0)
                     {
-                        _ = sb.AppendLine($"✗ Conflicts with: {component.Restrictions.Count} mod(s)");
+                        _ = sb.Append("✗ Conflicts with: ").Append(component.Restrictions.Count).AppendLine(" mod(s)");
                     }
 
                     if (component.Options.Count > 0)
                     {
-                        _ = sb.AppendLine($"⚙️ Has {component.Options.Count} optional component(s)");
+                        _ = sb.Append("⚙️ Has ").Append(component.Options.Count).AppendLine(" optional component(s)");
                     }
 
                     _ = sb.AppendLine();
-                    _ = sb.AppendLine($"📊 Status: {Status}");
+                    _ = sb.Append("📊 Status: ").Append(Status).AppendLine();
 
                     if (!component.IsDownloaded)
                     {
@@ -2902,7 +2902,7 @@ namespace KOTORModSync.Dialogs
                         _ = sb.AppendLine("⚠️ Mod archive not downloaded");
                         if (component.ResourceRegistry.Count > 0)
                         {
-                            _ = sb.AppendLine($"🔗 Download: {component.ResourceRegistry.Keys.FirstOrDefault()}");
+                            _ = sb.Append("🔗 Download: ").Append(component.ResourceRegistry.Keys.FirstOrDefault()).AppendLine();
                         }
                     }
 
@@ -3021,29 +3021,29 @@ namespace KOTORModSync.Dialogs
                     }
 
                     var sb = new System.Text.StringBuilder();
-                    _ = sb.AppendLine($"📦 {ModComponent.Name}");
+                    _ = sb.Append("📦 ").Append(ModComponent.Name).AppendLine();
                     _ = sb.AppendLine();
 
                     if (!string.IsNullOrEmpty(ModComponent.Author))
                     {
-                        _ = sb.AppendLine($"👤 Author: {ModComponent.Author}");
+                        _ = sb.Append("👤 Author: ").Append(ModComponent.Author).AppendLine();
                     }
 
                     if (ModComponent.Category.Count > 0)
                     {
-                        _ = sb.AppendLine($"📁 Category: {string.Join(", ", ModComponent.Category)}");
+                        _ = sb.Append("📁 Category: ").Append(string.Join(", ", ModComponent.Category)).AppendLine();
                     }
 
                     if (!string.IsNullOrEmpty(ModComponent.Tier))
                     {
-                        _ = sb.AppendLine($"⭐ Tier: {ModComponent.Tier}");
+                        _ = sb.Append("⭐ Tier: ").Append(ModComponent.Tier).AppendLine();
                     }
 
-                    _ = sb.AppendLine($"📋 Source: {Source}");
+                    _ = sb.Append("📋 Source: ").Append(Source).AppendLine();
 
                     if (!string.IsNullOrEmpty(PositionChange))
                     {
-                        _ = sb.AppendLine($"🔄 Position: {PositionChange}");
+                        _ = sb.Append("🔄 Position: ").Append(PositionChange).AppendLine();
                     }
 
                     return sb.ToString();

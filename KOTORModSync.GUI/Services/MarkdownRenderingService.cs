@@ -70,7 +70,7 @@ namespace KOTORModSync.Services
                     return new List<Inline>();
                 }
 
-                TextBlock renderedContent = MarkdownRenderer.RenderToTextBlock(markdownContent, null);
+                TextBlock renderedContent = MarkdownRenderer.RenderToTextBlock(markdownContent, onLinkClick: null);
                 return renderedContent.Inlines?.Count > 0
                     ? new List<Inline>(renderedContent.Inlines)
                     : new List<Inline>();
@@ -129,18 +129,48 @@ namespace KOTORModSync.Services
 
                 if (descriptionTextBlock != null)
                 {
-                    string descriptionContent = spoilerFreeMode
-                        ? component.DescriptionSpoilerFree
-                        : component.Description;
+                    string descriptionContent;
+                    if (spoilerFreeMode)
+                    {
+                        // Only use custom spoiler-free description if it's provided
+                        if (!string.IsNullOrWhiteSpace(component.DescriptionSpoilerFree))
+                        {
+                            descriptionContent = component.DescriptionSpoilerFree;
+                        }
+                        else
+                        {
+                            // Fall back to auto-generated spoiler-free description
+                            descriptionContent = Converters.SpoilerFreeContentConverter.GenerateSpoilerFreeDescription(component);
+                        }
+                    }
+                    else
+                    {
+                        descriptionContent = component.Description;
+                    }
 
                     RenderMarkdownToTextBlock(descriptionTextBlock, descriptionContent);
                 }
 
                 if (directionsTextBlock != null)
                 {
-                    string directionsContent = spoilerFreeMode
-                        ? component.DirectionsSpoilerFree
-                        : component.Directions;
+                    string directionsContent;
+                    if (spoilerFreeMode)
+                    {
+                        // Only use custom spoiler-free directions if provided
+                        if (!string.IsNullOrWhiteSpace(component.DirectionsSpoilerFree))
+                        {
+                            directionsContent = component.DirectionsSpoilerFree;
+                        }
+                        else
+                        {
+                            // Fall back to generic message (directions don't have auto-generation)
+                            directionsContent = "Installation instructions available. Please review carefully before proceeding.";
+                        }
+                    }
+                    else
+                    {
+                        directionsContent = component.Directions;
+                    }
 
                     RenderMarkdownToTextBlock(directionsTextBlock, directionsContent);
                 }

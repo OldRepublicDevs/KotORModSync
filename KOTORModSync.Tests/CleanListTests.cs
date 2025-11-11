@@ -32,7 +32,7 @@ namespace KOTORModSync.Tests
             {
                 if (Directory.Exists(_testRootDir))
                 {
-                    Directory.Delete(_testRootDir, true);
+                    Directory.Delete(_testRootDir, recursive: true);
                 }
             }
             catch

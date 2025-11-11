@@ -248,7 +248,7 @@ namespace KOTORModSync.Services
 
         public void Dispose()
         {
-            Dispose(true);
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
@@ -267,32 +267,6 @@ namespace KOTORModSync.Services
                 {
                     StopWatching();
                 }
-            }
-        }
-
-        /// <summary>
-        /// Simple wildcard matching for filename patterns.
-        /// Supports * (matches any characters) and ? (matches single character).
-        /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "MA0009:Add regex evaluation timeout", Justification = "Simple pattern matching for filename wildcards, no complex or user-controllable patterns")]
-        private static bool MatchesWildcard(string fileName, string pattern)
-        {
-            if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(pattern))
-            {
-                return false;
-            }
-
-            try
-            {
-                // Convert wildcard pattern to regex
-                string regexPattern = "^" + Regex.Escape(pattern)
-                    .Replace("\\*", ".*")
-                    .Replace("\\?", ".") + "$";
-                return Regex.IsMatch(fileName, regexPattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
-            }
-            catch
-            {
-                return false;
             }
         }
     }

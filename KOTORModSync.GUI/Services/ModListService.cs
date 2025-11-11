@@ -269,7 +269,7 @@ namespace KOTORModSync.Services
 
                 if (selectAllCheckBox != null)
                 {
-                    setSuppressSelectAllEvents?.Invoke(true);
+                    setSuppressSelectAllEvents?.Invoke(obj: true);
                     try
                     {
                         int totalCount = _mainConfig.allComponents.Count;
@@ -290,7 +290,7 @@ namespace KOTORModSync.Services
                     }
                     finally
                     {
-                        setSuppressSelectAllEvents?.Invoke(false);
+                        setSuppressSelectAllEvents?.Invoke(obj: false);
                     }
                 }
             }

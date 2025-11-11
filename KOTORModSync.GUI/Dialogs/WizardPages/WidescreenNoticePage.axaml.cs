@@ -14,6 +14,11 @@ namespace KOTORModSync.Dialogs.WizardPages
     {
         private TextBlock _contentText;
 
+        public WidescreenNoticePage()
+            : this(string.Empty)
+        {
+        }
+
         public WidescreenNoticePage([NotNull] string widescreenContent)
         {
             InitializeComponent();

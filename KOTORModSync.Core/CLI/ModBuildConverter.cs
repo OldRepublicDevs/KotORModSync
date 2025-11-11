@@ -682,38 +682,34 @@ namespace KOTORModSync.Core.CLI
                     Logger.LogVerbose($"Successfully resolved dependencies for {resolutionResult.OrderedComponents.Count} components");
                     return resolutionResult.OrderedComponents;
                 }
-                else
+
+                if (ignoreErrors)
                 {
-                    if (ignoreErrors)
+                    Logger.LogWarning($"Dependency resolution failed with {resolutionResult.Errors.Count} errors, but --ignore-errors flag was specified. Attempting to load in best possible order.");
+                    return resolutionResult.OrderedComponents;
+                }
+
+                Logger.LogError($"Dependency resolution failed with {resolutionResult.Errors.Count} errors:");
+                Logger.LogError("");
+
+                foreach (DependencyError error in resolutionResult.Errors)
+                {
+                    Logger.LogError($"❌ {error.ComponentName}: {error.Message}");
+                    if (error.AffectedComponents.Count > 0)
                     {
-                        Logger.LogWarning($"Dependency resolution failed with {resolutionResult.Errors.Count} errors, but --ignore-errors flag was specified. Attempting to load in best possible order.");
-                        return resolutionResult.OrderedComponents;
-                    }
-                    else
-                    {
-                        Logger.LogError($"Dependency resolution failed with {resolutionResult.Errors.Count} errors:");
-                        Logger.LogError("");
-
-                        foreach (DependencyError error in resolutionResult.Errors)
-                        {
-                            Logger.LogError($"❌ {error.ComponentName}: {error.Message}");
-                            if (error.AffectedComponents.Count > 0)
-                            {
-                                Logger.LogError($"   Affected components: {string.Join(", ", error.AffectedComponents)}");
-                            }
-                        }
-
-                        Logger.LogError("");
-                        Logger.LogError("To resolve these issues, you can:");
-                        Logger.LogError("1. Fix the dependency relationships manually in your instruction file");
-                        Logger.LogError("2. Use the --ignore-errors flag to attempt loading in the best possible order");
-                        Logger.LogError("3. Use the GUI to auto-fix dependencies or remove all dependencies");
-                        Logger.LogError("");
-                        Logger.LogError($"Operation '{operationContext}' failed due to dependency resolution errors.");
-
-                        throw new InvalidOperationException($"Dependency resolution failed with {resolutionResult.Errors.Count} errors. Use --ignore-errors flag to attempt loading in best possible order.");
+                        Logger.LogError($"   Affected components: {string.Join(", ", error.AffectedComponents)}");
                     }
                 }
+
+                Logger.LogError("");
+                Logger.LogError("To resolve these issues, you can:");
+                Logger.LogError("1. Fix the dependency relationships manually in your instruction file");
+                Logger.LogError("2. Use the --ignore-errors flag to attempt loading in the best possible order");
+                Logger.LogError("3. Use the GUI to auto-fix dependencies or remove all dependencies");
+                Logger.LogError("");
+                Logger.LogError($"Operation '{operationContext}' failed due to dependency resolution errors.");
+
+                throw new InvalidOperationException($"Dependency resolution failed with {resolutionResult.Errors.Count} errors. Use --ignore-errors flag to attempt loading in best possible order.");
             }
             catch (Exception ex)
             {
@@ -722,11 +718,9 @@ namespace KOTORModSync.Core.CLI
                     Logger.LogWarning($"Dependency resolution failed with exception: {ex.Message}. Continuing with original order due to --ignore-errors flag.");
                     return components;
                 }
-                else
-                {
-                    Logger.LogError($"Dependency resolution failed with exception: {ex.Message}");
-                    throw;
-                }
+
+                Logger.LogError($"Dependency resolution failed with exception: {ex.Message}");
+                throw;
             }
         }
 
@@ -1189,7 +1183,7 @@ namespace KOTORModSync.Core.CLI
 
                 s_errorCollector?.RecordError(
                     ErrorCollector.ErrorCategory.Download,
-                    null,
+componentName: null,
                     "Critical error during download process",
                     errorMsg,
                     ex);
@@ -1418,7 +1412,7 @@ namespace KOTORModSync.Core.CLI
             {
                 s_errorCollector?.RecordError(
                     ErrorCollector.ErrorCategory.FileOperation,
-                    null,
+componentName: null,
                     "Failed to parse spoiler-free markdown file",
                     $"File: {spoilerFreePath}",
                     ex);
@@ -1790,7 +1784,7 @@ namespace KOTORModSync.Core.CLI
                 {
                     s_errorCollector?.RecordError(
                         ErrorCollector.ErrorCategory.FileOperation,
-                        null,
+componentName: null,
                         "Failed to load components from file",
                         $"Input file: {opts.InputPath}",
                         ex);
@@ -2312,7 +2306,7 @@ namespace KOTORModSync.Core.CLI
                 {
                     s_errorCollector?.RecordError(
                         ErrorCollector.ErrorCategory.General,
-                        null,
+componentName: null,
                         "Failed to merge instruction sets",
                         $"Existing: {opts.ExistingPath}, Incoming: {opts.IncomingPath}",
                         ex);
@@ -2536,7 +2530,7 @@ namespace KOTORModSync.Core.CLI
 
                     s_errorCollector?.RecordError(
                         ErrorCollector.ErrorCategory.FileOperation,
-                        null,
+componentName: null,
                         "Failed to load instruction file",
                         $"File: {opts.InputPath}",
                         ex);
@@ -2648,8 +2642,8 @@ namespace KOTORModSync.Core.CLI
                                 ErrorCollector.ErrorCategory.Validation,
                                 component.Name,
                                 error,
-                                null,
-                                null);
+details: null,
+exception: null);
                         }
                     }
                     else if (warnings.Count > 0)
@@ -2725,7 +2719,8 @@ namespace KOTORModSync.Core.CLI
                     }
                     return 1;
                 }
-                else if (componentsWithWarnings > 0)
+
+                if (componentsWithWarnings > 0)
                 {
                     if (!opts.ErrorsOnly)
                     {
@@ -2734,15 +2729,13 @@ namespace KOTORModSync.Core.CLI
 
                     return 0;
                 }
-                else
-                {
-                    if (!opts.ErrorsOnly)
-                    {
-                        await Logger.LogAsync("✅ All validations passed!").ConfigureAwait(false);
-                    }
 
-                    return 0;
+                if (!opts.ErrorsOnly)
+                {
+                    await Logger.LogAsync("✅ All validations passed!").ConfigureAwait(false);
                 }
+
+                return 0;
             }
             catch (Exception ex)
             {
@@ -2899,12 +2892,10 @@ namespace KOTORModSync.Core.CLI
                     await Logger.LogAsync("Installation completed successfully!").ConfigureAwait(false);
                     return 0;
                 }
-                else
-                {
-                    await Logger.LogErrorAsync($"Installation failed with exit code: {exitCode}").ConfigureAwait(false);
-                    await Logger.LogErrorAsync("Check the logs above for more details.").ConfigureAwait(false);
-                    return 1;
-                }
+
+                await Logger.LogErrorAsync($"Installation failed with exit code: {exitCode}").ConfigureAwait(false);
+                await Logger.LogErrorAsync("Check the logs above for more details.").ConfigureAwait(false);
+                return 1;
             }
             catch (Exception ex)
             {
@@ -2917,12 +2908,12 @@ namespace KOTORModSync.Core.CLI
 
                 s_errorCollector?.RecordError(
                     ErrorCollector.ErrorCategory.Installation,
-                    null,
+componentName: null,
                     "Installation failed with exception",
                     $"Input: {opts.InputPath}, Game Dir: {opts.GameDirectory}",
                     ex);
 
-                LogAllErrors(null, forceConsoleOutput: true);
+                LogAllErrors(downloadCache: null, forceConsoleOutput: true);
 
                 return 1;
             }
@@ -3248,11 +3239,9 @@ namespace KOTORModSync.Core.CLI
                     await Logger.LogAsync("✓ HoloPatcher completed successfully").ConfigureAwait(false);
                     return 0;
                 }
-                else
-                {
-                    await Logger.LogErrorAsync($"HoloPatcher exited with code {exitCode}").ConfigureAwait(false);
-                    return exitCode;
-                }
+
+                await Logger.LogErrorAsync($"HoloPatcher exited with code {exitCode}").ConfigureAwait(false);
+                return exitCode;
             }
             catch (Exception ex)
             {

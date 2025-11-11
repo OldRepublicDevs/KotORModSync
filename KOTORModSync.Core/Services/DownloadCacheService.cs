@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Utility;
+using Microsoft.Win32.SafeHandles;
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Services
@@ -88,100 +89,6 @@ namespace KOTORModSync.Core.Services
 
             await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolving URLs for component: {component.Name}").ConfigureAwait(false);
             await Logger.LogVerboseAsync($"[DownloadCacheService] Component.ResourceRegistry count: {component.ResourceRegistry?.Count ?? 0} URLs").ConfigureAwait(false);
-
-            // Pre-populate ResourceRegistry from resource-index entries before processing
-            // Log BEFORE state
-            if (component.ResourceRegistry.Count > 0)
-            {
-                await Logger.LogVerboseAsync($"[DownloadCacheService] [{component.Name}] BEFORE pre-population from resource-index:").ConfigureAwait(false);
-                foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
-                {
-                    int filenameCount = kvp.Value?.Files?.Count ?? 0;
-                    await Logger.LogVerboseAsync($"[DownloadCacheService]   URL: {kvp.Key}, ResourceRegistry: {filenameCount} file(s)").ConfigureAwait(false);
-                    if (kvp.Value?.Files != null && filenameCount > 0)
-                    {
-                        foreach (KeyValuePair<string, bool?> filenameKvp in kvp.Value.Files)
-                        {
-                            await Logger.LogVerboseAsync($"[DownloadCacheService]     File: {filenameKvp.Key} -> {filenameKvp.Value}").ConfigureAwait(false);
-                        }
-                    }
-                }
-            }
-
-            int cachePopulatedCount = 0;
-            foreach (string url in component.ResourceRegistry.Keys.Where(url => !string.IsNullOrWhiteSpace(url)))
-            {
-                ResourceMetadata cachedMeta = TryGetResourceMetadataByUrl(url);
-                if (cachedMeta != null && cachedMeta.Files != null && cachedMeta.Files.Count > 0)
-                {
-                    // Ensure ResourceRegistry has an entry for this URL
-                    if (!component.ResourceRegistry.TryGetValue(url, out ResourceMetadata existingResourceMeta))
-                    {
-                        // Create new ResourceRegistry entry from cached metadata
-                        var newMeta = new ResourceMetadata
-                        {
-                            ContentKey = cachedMeta.ContentKey,
-                            ContentId = cachedMeta.ContentId,
-                            ContentHashSHA256 = cachedMeta.ContentHashSHA256,
-                            MetadataHash = cachedMeta.MetadataHash,
-                            HandlerMetadata = new Dictionary<string, object>(cachedMeta.HandlerMetadata ?? new Dictionary<string, object>(StringComparer.Ordinal), StringComparer.Ordinal),
-                            Files = new Dictionary<string, bool?>(cachedMeta.Files, StringComparer.OrdinalIgnoreCase),
-                            FileSize = cachedMeta.FileSize,
-                            PieceLength = cachedMeta.PieceLength,
-                            PieceHashes = cachedMeta.PieceHashes,
-                            TrustLevel = cachedMeta.TrustLevel,
-                            FirstSeen = cachedMeta.FirstSeen ?? DateTime.UtcNow,
-                            LastVerified = cachedMeta.LastVerified,
-                        };
-                        // Store URL in HandlerMetadata for global index lookup compatibility
-                        if (!newMeta.HandlerMetadata.ContainsKey("PrimaryUrl"))
-                        {
-                            newMeta.HandlerMetadata["PrimaryUrl"] = url;
-                        }
-                        component.ResourceRegistry[url] = newMeta;
-                        existingResourceMeta = newMeta;
-                        await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-populated ResourceRegistry from cache for URL: {url}").ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        // Merge Files from cached metadata into existing entry
-                        if (existingResourceMeta.Files == null)
-                        {
-                            existingResourceMeta.Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
-                        }
-                        foreach (KeyValuePair<string, bool?> fileEntry in cachedMeta.Files)
-                        {
-                            if (!existingResourceMeta.Files.ContainsKey(fileEntry.Key))
-                            {
-                                existingResourceMeta.Files[fileEntry.Key] = fileEntry.Value;
-                                cachePopulatedCount++;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Log AFTER state
-            if (cachePopulatedCount > 0)
-            {
-                await Logger.LogVerboseAsync($"[DownloadCacheService] [{component.Name}] Pre-populated {cachePopulatedCount} filename(s) from resource-index").ConfigureAwait(false);
-                if (component.ResourceRegistry.Count > 0)
-                {
-                    await Logger.LogVerboseAsync($"[DownloadCacheService] [{component.Name}] AFTER pre-population from resource-index:").ConfigureAwait(false);
-                    foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
-                    {
-                        int filenameCount = kvp.Value?.Files?.Count ?? 0;
-                        await Logger.LogVerboseAsync($"[DownloadCacheService]   URL: {kvp.Key}, ResourceRegistry: {filenameCount} file(s)").ConfigureAwait(false);
-                        if (kvp.Value?.Files != null && filenameCount > 0)
-                        {
-                            foreach (KeyValuePair<string, bool?> filenameKvp in kvp.Value.Files)
-                            {
-                                await Logger.LogVerboseAsync($"[DownloadCacheService]     File: {filenameKvp.Key} -> {filenameKvp.Value}").ConfigureAwait(false);
-                            }
-                        }
-                    }
-                }
-            }
 
             if (component.ResourceRegistry.Count > 0)
             {
@@ -275,6 +182,74 @@ namespace KOTORModSync.Core.Services
                 return new Dictionary<string, List<string>>(StringComparer.Ordinal);
             }
 
+            // CRITICAL: Pre-populate ResourceRegistry from cache for ALL filteredUrls BEFORE any network calls
+            // This ensures we skip network requests for URLs that are already cached
+            await Logger.LogVerboseAsync($"[DownloadCacheService] Checking cache for all {filteredUrls.Count} URL(s) before making network requests...").ConfigureAwait(false);
+            int cacheHitsBeforeNetwork = 0;
+            foreach (string url in filteredUrls)
+            {
+                ResourceMetadata cachedMeta = TryGetResourceMetadataByUrl(url);
+                if (cachedMeta != null && cachedMeta.Files != null && cachedMeta.Files.Count > 0)
+                {
+                    // Check if ResourceRegistry already has this URL with complete data
+                    if (component.ResourceRegistry.TryGetValue(url, out ResourceMetadata existingMeta))
+                    {
+                        // Merge files if existing entry is incomplete
+                        if (existingMeta.Files == null || existingMeta.Files.Count == 0)
+                        {
+                            existingMeta.Files = new Dictionary<string, bool?>(cachedMeta.Files, StringComparer.OrdinalIgnoreCase);
+                            existingMeta.ContentKey = cachedMeta.ContentKey;
+                            existingMeta.ContentId = cachedMeta.ContentId;
+                            existingMeta.ContentHashSHA256 = cachedMeta.ContentHashSHA256;
+                            existingMeta.MetadataHash = cachedMeta.MetadataHash;
+                            existingMeta.FileSize = cachedMeta.FileSize;
+                            existingMeta.PieceLength = cachedMeta.PieceLength;
+                            existingMeta.PieceHashes = cachedMeta.PieceHashes;
+                            existingMeta.TrustLevel = cachedMeta.TrustLevel;
+                            existingMeta.FirstSeen = cachedMeta.FirstSeen;
+                            existingMeta.LastVerified = cachedMeta.LastVerified;
+                            if (cachedMeta.HandlerMetadata != null)
+                            {
+                                existingMeta.HandlerMetadata = new Dictionary<string, object>(cachedMeta.HandlerMetadata, StringComparer.Ordinal);
+                            }
+                            if (!existingMeta.HandlerMetadata.ContainsKey("PrimaryUrl"))
+                            {
+                                existingMeta.HandlerMetadata["PrimaryUrl"] = url;
+                            }
+                            cacheHitsBeforeNetwork++;
+                            await Logger.LogVerboseAsync($"[DownloadCacheService] ✓ Populated incomplete ResourceRegistry entry from cache: {url} ({cachedMeta.Files.Count} file(s))").ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        // Create new ResourceRegistry entry from cache
+                        var newMeta = new ResourceMetadata
+                        {
+                            ContentKey = cachedMeta.ContentKey,
+                            ContentId = cachedMeta.ContentId,
+                            ContentHashSHA256 = cachedMeta.ContentHashSHA256,
+                            MetadataHash = cachedMeta.MetadataHash,
+                            HandlerMetadata = new Dictionary<string, object>(cachedMeta.HandlerMetadata ?? new Dictionary<string, object>(StringComparer.Ordinal), StringComparer.Ordinal),
+                            Files = new Dictionary<string, bool?>(cachedMeta.Files, StringComparer.OrdinalIgnoreCase),
+                            FileSize = cachedMeta.FileSize,
+                            PieceLength = cachedMeta.PieceLength,
+                            PieceHashes = cachedMeta.PieceHashes,
+                            TrustLevel = cachedMeta.TrustLevel,
+                            FirstSeen = cachedMeta.FirstSeen ?? DateTime.UtcNow,
+                            LastVerified = cachedMeta.LastVerified,
+                        };
+                        if (!newMeta.HandlerMetadata.ContainsKey("PrimaryUrl"))
+                        {
+                            newMeta.HandlerMetadata["PrimaryUrl"] = url;
+                        }
+                        component.ResourceRegistry[url] = newMeta;
+                        cacheHitsBeforeNetwork++;
+                        await Logger.LogVerboseAsync($"[DownloadCacheService] ✓ Created new ResourceRegistry entry from cache: {url} ({cachedMeta.Files.Count} file(s))").ConfigureAwait(false);
+                    }
+                }
+            }
+            await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-populated {cacheHitsBeforeNetwork}/{filteredUrls.Count} URL(s) from cache BEFORE network phase").ConfigureAwait(false);
+
             // Check if ResourceRegistry already has files for all URLs before extracting metadata
             // This prevents unnecessary network calls when files are already known
             bool allUrlsHaveFiles = true;
@@ -298,7 +273,6 @@ namespace KOTORModSync.Core.Services
             List<string> urlsToResolve = new List<string>();
             Dictionary<string, List<string>> results = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             List<(string url, string filename)> missingFiles = new List<(string, string)>();
-            int cacheHits = 0;
 
             // If all URLs already have files, populate results directly from ResourceRegistry and return early
             if (allUrlsHaveFiles)
@@ -314,7 +288,7 @@ namespace KOTORModSync.Core.Services
 
                 Dictionary<string, List<string>> filteredResolvedResults = _resolutionFilter.FilterResolvedUrls(results);
                 await Logger.LogVerboseAsync($"[DownloadCacheService] Final filtered results count: {filteredResolvedResults.Count}").ConfigureAwait(false);
-                await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResolvedResults.Count} URLs (all from cache), all files exist on disk").ConfigureAwait(false);
+                await Logger.LogVerboseAsync($"[DownloadCacheService] ✓ Pre-resolved {filteredResolvedResults.Count} URL(s) ENTIRELY from cache (0 network requests), all files exist on disk").ConfigureAwait(false);
                 await Logger.LogVerboseAsync("[DownloadCacheService] ===== PreResolveUrlsAsync END =====").ConfigureAwait(false);
                 return filteredResolvedResults;
             }
@@ -691,7 +665,8 @@ namespace KOTORModSync.Core.Services
             }
             else
             {
-                await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResults.Count} URLs ({cacheHits} from cache, {urlsToResolve.Count} from network), all files exist on disk").ConfigureAwait(false);
+                int totalFromCache = cacheHitsBeforeNetwork + (filteredResults.Count - urlsToResolve.Count);
+                await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResults.Count} URLs ({totalFromCache} from cache, {urlsToResolve.Count} from network), all files exist on disk").ConfigureAwait(false);
             }
 
             await Logger.LogVerboseAsync("[DownloadCacheService] ===== PreResolveUrlsAsync END =====").ConfigureAwait(false);
@@ -747,7 +722,7 @@ namespace KOTORModSync.Core.Services
             }
             else
             {
-                RecordFailure(kvp.Key, component.Name, null, "Failed to resolve filename from URL", DownloadFailureInfo.FailureType.ResolutionFailed);
+                RecordFailure(kvp.Key, component.Name, expectedFileName: null, "Failed to resolve filename from URL", DownloadFailureInfo.FailureType.ResolutionFailed);
             }
         }
 
@@ -1142,7 +1117,7 @@ namespace KOTORModSync.Core.Services
                                 if (string.IsNullOrWhiteSpace(fileName))
                                 {
                                     await Logger.LogWarningAsync($"[DownloadCacheService] Skipping empty filename from URL: {url}").ConfigureAwait(false);
-                                    RecordFailure(url, component.Name, null, "Resolved filename is empty", DownloadFailureInfo.FailureType.ResolutionFailed);
+                                    RecordFailure(url, component.Name, expectedFileName: null, "Resolved filename is empty", DownloadFailureInfo.FailureType.ResolutionFailed);
                                     continue;
                                 }
 
@@ -1157,7 +1132,7 @@ namespace KOTORModSync.Core.Services
                         }
                         else
                         {
-                            RecordFailure(url, component.Name, null, "Failed to resolve filename", DownloadFailureInfo.FailureType.ResolutionFailed);
+                            RecordFailure(url, component.Name, expectedFileName: null, "Failed to resolve filename", DownloadFailureInfo.FailureType.ResolutionFailed);
                         }
                     }
                 }
@@ -1378,7 +1353,7 @@ namespace KOTORModSync.Core.Services
 
                         string errorMsg = result.Message
                                           ?? "Unknown error";
-                        RecordFailure(originalUrl, component.Name, null, errorMsg, DownloadFailureInfo.FailureType.DownloadFailed);
+                        RecordFailure(originalUrl, component.Name, expectedFileName: null, errorMsg, DownloadFailureInfo.FailureType.DownloadFailed);
 
                         continue;
                     }
@@ -1388,13 +1363,11 @@ namespace KOTORModSync.Core.Services
                     {
                         failCount++;
                         await Logger.LogErrorAsync($"[DownloadCacheService] Download result has empty filename for component '{component.Name}': {originalUrl}").ConfigureAwait(false);
-                        RecordFailure(originalUrl, component.Name, null, "Download returned empty filename", DownloadFailureInfo.FailureType.DownloadFailed);
+                        RecordFailure(originalUrl, component.Name, expectedFileName: null, "Download returned empty filename", DownloadFailureInfo.FailureType.DownloadFailed);
                         continue;
                     }
-                    else
-                    {
-                        await Logger.LogVerboseAsync($"[DownloadCacheService] Downloaded file: {fileName}").ConfigureAwait(false);
-                    }
+
+                    await Logger.LogVerboseAsync($"[DownloadCacheService] Downloaded file: {fileName}").ConfigureAwait(false);
 
                     bool isArchive = ArchiveHelper.IsArchive(fileName);
 
@@ -2294,20 +2267,18 @@ namespace KOTORModSync.Core.Services
                             await Logger.LogVerboseAsync("[DownloadCacheService] ✓ VFS simulation passed - changes are valid").ConfigureAwait(false);
                             return true;
                         }
-                        else
+
+                        await Logger.LogWarningAsync($"[DownloadCacheService] VFS simulation failed with {criticalIssues.Count} critical issue(s), exit code: {exitCode}").ConfigureAwait(false);
+
+                        // Log a few issues for debugging
+                        foreach (ValidationIssue issue in criticalIssues.Take(3))
                         {
-                            await Logger.LogWarningAsync($"[DownloadCacheService] VFS simulation failed with {criticalIssues.Count} critical issue(s), exit code: {exitCode}").ConfigureAwait(false);
-
-                            // Log a few issues for debugging
-                            foreach (ValidationIssue issue in criticalIssues.Take(3))
-                            {
-                                await Logger.LogVerboseAsync($"  • {issue.Category}: {issue.Message}").ConfigureAwait(false);
-                            }
-
-                            // Rollback changes
-                            await RollbackInstructionChanges(originalInstructions, cancellationToken).ConfigureAwait(false);
-                            return false;
+                            await Logger.LogVerboseAsync($"  • {issue.Category}: {issue.Message}").ConfigureAwait(false);
                         }
+
+                        // Rollback changes
+                        await RollbackInstructionChanges(originalInstructions, cancellationToken).ConfigureAwait(false);
+                        return false;
                     }
                     catch (Exception ex)
                     {
@@ -2318,12 +2289,10 @@ namespace KOTORModSync.Core.Services
                         return false;
                     }
                 }
-                else
-                {
-                    // No VFS available, accept changes optimistically
-                    await Logger.LogVerboseAsync("[DownloadCacheService] No mod directory configured, accepting changes without validation").ConfigureAwait(false);
-                    return true;
-                }
+
+                // No VFS available, accept changes optimistically
+                await Logger.LogVerboseAsync("[DownloadCacheService] No mod directory configured, accepting changes without validation").ConfigureAwait(false);
+                return true;
             }
             catch (Exception ex)
             {
@@ -3172,10 +3141,8 @@ namespace KOTORModSync.Core.Services
                     await Logger.LogWarningAsync($"  Keeping existing (Verified)").ConfigureAwait(false);
                     return false;
                 }
-                else
-                {
-                    await Logger.LogWarningAsync($"  Replacing with new mapping").ConfigureAwait(false);
-                }
+
+                await Logger.LogWarningAsync($"  Replacing with new mapping").ConfigureAwait(false);
             }
             else if (logMessage != null)
             {
@@ -3438,7 +3405,7 @@ namespace KOTORModSync.Core.Services
     /// Cross-platform file locking implementation that works on Windows, Linux, and macOS.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
-    internal sealed class CrossPlatformFileLock : IDisposable
+    internal sealed partial class CrossPlatformFileLock : IDisposable
     {
         private readonly string _lockPath;
         private FileStream _fileStream;
@@ -3531,7 +3498,7 @@ namespace KOTORModSync.Core.Services
                 }
 
 
-                int result = flock(fd, LOCK_EX | LOCK_NB);
+                int result = InvokeFlock(fd, LOCK_EX | LOCK_NB);
                 if (result != 0)
                 {
                     int error = Marshal.GetLastWin32Error();
@@ -3547,15 +3514,44 @@ namespace KOTORModSync.Core.Services
                 int fd = GetFileDescriptor(_fileStream);
                 if (fd != -1)
                 {
-                    flock(fd, LOCK_UN);
+                    InvokeFlock(fd, LOCK_UN);
                 }
             }).ConfigureAwait(false);
         }
 
         private static int GetFileDescriptor(FileStream stream)
         {
-            // Get the file descriptor from the FileStream's SafeFileHandle
-            return stream.SafeFileHandle.DangerousGetHandle().ToInt32();
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
+            {
+                Logger.LogWarning("Attempted to obtain a Unix file descriptor on Windows.");
+                return -1;
+            }
+
+            SafeFileHandle safeHandle = stream.SafeFileHandle;
+            bool addedRef = false;
+            try
+            {
+                safeHandle.DangerousAddRef(ref addedRef);
+                IntPtr handle = safeHandle.DangerousGetHandle();
+                if (handle == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("Failed to get file descriptor from FileStream.");
+                }
+
+                return handle.ToInt32();
+            }
+            finally
+            {
+                if (addedRef)
+                {
+                    safeHandle.DangerousRelease();
+                }
+            }
         }
 
         public void Dispose()
@@ -3583,7 +3579,20 @@ namespace KOTORModSync.Core.Services
         private const int LOCK_NB = 4;    // Non-blocking
         private const int LOCK_UN = 8;    // Unlock
 
-        [DllImport("libc", SetLastError = true)]
-        private static extern int flock(int fd, int operation);
+        [DllImport("libc", SetLastError = true, EntryPoint = "flock")]
+        private static extern int FlockNative(int fd, int operation);
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0051:Remove unused private members", Justification = "Used when running on Unix-based platforms for file locking.")]
+        private static int InvokeFlock(int fd, int operation)
+        {
+            OSPlatform os = UtilityHelper.GetOperatingSystem();
+            if (os == OSPlatform.Windows)
+            {
+                Logger.LogWarning("Attempted to use flock on Windows; operation not supported.");
+                return -1;
+            }
+
+            return FlockNative(fd, operation);
+        }
     }
 }

@@ -19,6 +19,7 @@ using KOTORModSync.Core.Utility;
 using KOTORModSync.Dialogs;
 
 using static KOTORModSync.Core.Services.DownloadCacheService;
+using KOTORModSync;
 
 namespace KOTORModSync.Services
 {
@@ -221,13 +222,25 @@ namespace KOTORModSync.Services
 
                         Dispatcher.UIThread.Post(() =>
                         {
+                            // Get spoiler-free mode from parent window if it's MainWindow
+                            bool spoilerFreeMode = false;
+                            if (_parentWindow is MainWindow mainWindow)
+                            {
+                                spoilerFreeMode = mainWindow.SpoilerFreeMode;
+                            }
+                            
                             foreach (ModComponent component in selectedComponents)
                             {
                                 foreach (string url in component.ResourceRegistry.Keys)
                                 {
+                                    // Use spoiler-free name if available and mode is enabled
+                                    string modName = spoilerFreeMode && !string.IsNullOrEmpty(component.NameSpoilerFree)
+                                        ? component.NameSpoilerFree
+                                        : component.Name;
+                                    
                                     var initialProgress = new DownloadProgress
                                     {
-                                        ModName = component.Name,
+                                        ModName = modName,
                                         Url = url,
                                         Status = DownloadStatus.Pending,
                                         StatusMessage = "Waiting to start...",
@@ -325,6 +338,18 @@ namespace KOTORModSync.Services
         {
             using (DownloadLogCaptureManager.BeginCapture(component.Guid))
             {
+                // Get spoiler-free mode from parent window if it's MainWindow
+                bool spoilerFreeMode = false;
+                if (_parentWindow is MainWindow mainWindow)
+                {
+                    spoilerFreeMode = mainWindow.SpoilerFreeMode;
+                }
+                
+                // Use spoiler-free name if available and mode is enabled
+                string modName = spoilerFreeMode && !string.IsNullOrEmpty(component.NameSpoilerFree)
+                    ? component.NameSpoilerFree
+                    : component.Name;
+                
                 await Logger.LogVerboseAsync($"[DownloadOrchestration] Pre-resolving URLs for: {component.Name}");
                 IReadOnlyDictionary<string, List<string>> urlToFilenames = await _cacheService.PreResolveUrlsAsync(component, downloadManager, sequential: false, progressWindow.CancellationToken);
 
@@ -340,7 +365,7 @@ namespace KOTORModSync.Services
 
                         progressWindow.UpdateDownloadProgress(new DownloadProgress
                         {
-                            ModName = component.Name,
+                            ModName = modName,
                             Url = url,
                             Status = DownloadStatus.Pending,
                             StatusMessage = $"Ready to download: {firstFilename}",
@@ -651,22 +676,20 @@ namespace KOTORModSync.Services
                     await Logger.LogVerboseAsync($"[DownloadOrchestration] Download successful: {results[0].FilePath}");
                     return results[0].FilePath;
                 }
-                else
+
+                string errorMessage = results.Count > 0 ? results[0].Message : "Unknown error";
+                await Logger.LogErrorAsync($"[DownloadOrchestration] Download failed: {errorMessage}");
+
+                try
                 {
-                    string errorMessage = results.Count > 0 ? results[0].Message : "Unknown error";
-                    await Logger.LogErrorAsync($"[DownloadOrchestration] Download failed: {errorMessage}");
-
-                    try
-                    {
-                        Directory.Delete(tempDir, recursive: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        await Logger.LogWarningAsync($"[DownloadOrchestration] Failed to clean up temp directory: {ex.Message}");
-                    }
-
-                    return null;
+                    Directory.Delete(tempDir, recursive: true);
                 }
+                catch (Exception ex)
+                {
+                    await Logger.LogWarningAsync($"[DownloadOrchestration] Failed to clean up temp directory: {ex.Message}");
+                }
+
+                return null;
             }
             catch (Exception ex)
             {

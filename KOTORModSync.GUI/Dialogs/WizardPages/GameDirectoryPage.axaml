@@ -8,24 +8,109 @@
     xmlns:controls="clr-namespace:KOTORModSync.Controls">
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="32,24,32,24" Spacing="16">
-            <TextBlock Text="Select the folder that contains swkotor.exe or swkotor2.exe. This is where mods will be installed." TextWrapping="Wrap" />
+        <Grid Margin="24,16" RowDefinitions="Auto,Auto,*,Auto">
+            <!--  Header Section  -->
+            <Border Grid.Row="0" Padding="24,20" CornerRadius="12" Margin="0,0,0,16">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock FontSize="24" Text="&#x1F3AE;" />
+                        <TextBlock
+                            FontSize="20"
+                            FontWeight="Bold"
+                            Text="KOTOR Game Directory"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock
+                        FontSize="14"
+                        Opacity="0.8"
+                        Text="Select your Knights of the Old Republic installation folder"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
 
-            <StackPanel Spacing="4">
-                <TextBlock Text="Common locations:" />
-                <TextBlock Text="• Steam: C:\Program Files (x86)\Steam\steamapps\common\swkotor" />
-                <TextBlock Text="• GOG: C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR" />
-            </StackPanel>
+            <!--  Info Cards  -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,16,*" Margin="0,0,0,16">
+                <Border Grid.Column="0" Padding="20,16" CornerRadius="10">
+                    <StackPanel Spacing="12">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="&#x1F4CD; Common Locations" />
+                        <StackPanel Spacing="6">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Opacity="0.9" Text="Steam:" />
+                            <TextBlock FontSize="12" Opacity="0.7" Text="C:\Program Files (x86)\Steam\steamapps\common\swkotor" />
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Opacity="0.9" Text="GOG:" />
+                            <TextBlock FontSize="12" Opacity="0.7" Text="C:\GOG Games\Star Wars - KotOR" />
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Opacity="0.9" Text="Origin:" />
+                            <TextBlock FontSize="12" Opacity="0.7" Text="C:\Program Files (x86)\Origin Games\Star Wars - KotOR" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
 
-            <controls:DirectoryPickerControl
-                x:Name="DestinationPathPicker"
-                Title="KOTOR Game Directory:"
-                Margin="0,12,0,0"
-                Description="Select the folder where your KOTOR game is installed."
-                PickerType="KotorDirectory"
-                Watermark="Select or enter your KOTOR installation folder" />
+                <Border Grid.Column="2" Padding="20,16" CornerRadius="10">
+                    <StackPanel Spacing="12">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="&#x26A0;&#xFE0F; Important Notes" />
+                        <StackPanel Spacing="6">
+                            <TextBlock FontSize="13" Opacity="0.8" Text="&#x2022; Must be a FRESH installation (no existing mods)" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="&#x2022; Should contain swkotor.exe or swkotor2.exe" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="&#x2022; Mods will be installed directly to this folder" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="&#x2022; Make sure the game is not running" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
 
-            <TextBlock x:Name="StatusText" TextWrapping="Wrap" />
-        </StackPanel>
+            <!--  Directory Picker  -->
+            <Border Grid.Row="2" Padding="20,16" CornerRadius="10">
+                <StackPanel Spacing="12">
+                    <controls:DirectoryPickerControl
+                        x:Name="DestinationPathPicker"
+                        Title="Select Game Installation:"
+                        Description="Choose the folder where KOTOR is installed"
+                        PickerType="KotorDirectory"
+                        Watermark="Click Browse to select your KOTOR installation directory" />
+
+                    <!--  Validation Feedback  -->
+                    <Border
+                        x:Name="ValidationFeedback"
+                        Padding="16,12"
+                        CornerRadius="8"
+                        IsVisible="False">
+                        <StackPanel Spacing="6">
+                            <TextBlock
+                                x:Name="ValidationTitle"
+                                FontSize="14"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="ValidationMessage"
+                                FontSize="13"
+                                Opacity="0.9"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="GameDetailsText"
+                                Margin="0,4,0,0"
+                                FontSize="12"
+                                Opacity="0.75"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!--  Footer Tip  -->
+            <Border Grid.Row="3" Padding="16,12" CornerRadius="8" Margin="0,16,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock FontSize="20" Text="&#x1F6C8;" />
+                    <TextBlock
+                        FontSize="13"
+                        Opacity="0.7"
+                        Text="The game executable (swkotor.exe or swkotor2.exe) will be automatically detected"
+                        VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </ScrollViewer>
 </UserControl>

@@ -63,8 +63,17 @@
                         <TextBlock
                             Grid.Row="0"
                             Grid.Column="1"
-                            IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}"
-                            Text="{Binding Name}" />
+                            IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                    <Binding Source="{x:Static helpers:PropertyNames.Name}" />
+                                    <Binding Path="." />
+                                    <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                    <Binding Source="{x:Static helpers:PropertyNames.NameSpoilerFree}" />
+                                    <Binding Path="Name" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
 
                         <!--  GUID (Editor Mode Only)  -->
                         <TextBlock
@@ -494,7 +503,17 @@
                                             IsCheckedChanged="OnCheckBoxChanged"
                                             Tag="{Binding}"
                                             ToolTip.Tip="Check to install this option">
-                                            <TextBlock Classes="summary-option-title" Text="{Binding Name}" />
+                                            <TextBlock Classes="summary-option-title">
+                                                <TextBlock.Text>
+                                                    <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                                        <Binding Source="{x:Static helpers:PropertyNames.Name}" />
+                                                        <Binding Path="." />
+                                                        <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                                        <Binding Source="{x:Static helpers:PropertyNames.NameSpoilerFree}" />
+                                                        <Binding Path="Name" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
                                         </CheckBox>
 
                                         <TextBlock
@@ -502,7 +521,13 @@
                                             IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}"
                                             TextWrapping="Wrap">
                                             <TextBlock.Text>
-                                                <Binding Path="Description" />
+                                                <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                                    <Binding Source="{x:Static helpers:PropertyNames.Description}" />
+                                                    <Binding Path="." />
+                                                    <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                                    <Binding Source="{x:Static helpers:PropertyNames.DescriptionSpoilerFree}" />
+                                                    <Binding Path="Description" />
+                                                </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>
                                     </StackPanel>

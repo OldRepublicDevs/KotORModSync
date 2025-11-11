@@ -73,22 +73,20 @@ namespace KOTORModSync.Core.Services
                     await Logger.LogVerboseAsync($"[DownloadModFromUrl] Download successful: {downloadedPath}").ConfigureAwait(false);
                     return downloadedPath;
                 }
-                else
+
+                string errorMessage = results.Count > 0 ? results[0].Message : "Unknown error";
+                await Logger.LogErrorAsync($"[DownloadModFromUrl] Download failed: {errorMessage}").ConfigureAwait(false);
+
+                try
                 {
-                    string errorMessage = results.Count > 0 ? results[0].Message : "Unknown error";
-                    await Logger.LogErrorAsync($"[DownloadModFromUrl] Download failed: {errorMessage}").ConfigureAwait(false);
-
-                    try
-                    {
-                        Directory.Delete(tempDir, recursive: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        await Logger.LogWarningAsync($"[DownloadModFromUrl] Failed to clean up temp directory: {ex.Message}").ConfigureAwait(false);
-                    }
-
-                    return null;
+                    Directory.Delete(tempDir, recursive: true);
                 }
+                catch (Exception ex)
+                {
+                    await Logger.LogWarningAsync($"[DownloadModFromUrl] Failed to clean up temp directory: {ex.Message}").ConfigureAwait(false);
+                }
+
+                return null;
             }
             catch (Exception ex)
             {

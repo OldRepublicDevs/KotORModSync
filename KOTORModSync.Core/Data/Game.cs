@@ -8,9 +8,6 @@ namespace KOTORModSync.Core.Data
 {
     public static class Game
     {
-        public static readonly List<string> TextureOverridePriorityList = new List<string>
-        {
-            ".dds", ".tpc", ".tga",
-        };
+        public static readonly IReadOnlyList<string> TextureOverridePriorityList = new List<string> { ".dds", ".tpc", ".tga" };
     }
 }

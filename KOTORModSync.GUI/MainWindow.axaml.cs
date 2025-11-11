@@ -66,6 +66,7 @@ namespace KOTORModSync
         private string _searchText;
         private CancellationTokenSource _modSuggestCts;
         private CancellationTokenSource _installSuggestCts;
+        private CancellationTokenSource _validationCts;
         private bool _suppressPathEvents;
         private bool _suppressComboEvents;
         private bool _suppressComponentCheckboxEvents;
@@ -83,6 +84,11 @@ namespace KOTORModSync
         private DispatcherTimer _dragOverlayDebounceTimer;
         private DragEventArgs _pendingDragEventArgs;
         private bool _pendingDragOverlayUpdate;
+        private bool _landingPageVisible = true;
+        private bool _mainContentVisible;
+        private bool _wizardContentVisible;
+        private bool _showWizardToggle;
+        private bool _autoLoadedInstructionFile;
 
         public static bool HasFetchedDownloads { get; private set; }
 
@@ -131,6 +137,7 @@ namespace KOTORModSync
             }
         }
         public bool IsClosingMainWindow { get; set; }
+        public string LastLoadedInstructionFileName => _lastLoadedFileName;
         public bool? RootSelectionState
         {
             get => _rootSelectionState;
@@ -189,6 +196,8 @@ namespace KOTORModSync
                 {
                     WizardMode = false;
                 }
+
+                UpdateWorkflowSurfaces();
             }
         }
 
@@ -245,6 +254,25 @@ namespace KOTORModSync
                 {
                     ExitWizardMode();
                 }
+
+                /*
+                 * When the wizard is dismissed while instructions are still loaded we reroute the user back to the Getting Started experience rather than the landing page.
+                 * This keeps the active project in focus and mirrors the normal non-wizard flow where players review steps, validation, and progress from the main tab set.
+                 */
+                if (!value && !EditorMode)
+                {
+                    bool hasComponentsLoaded = MainConfig.AllComponents != null && MainConfig.AllComponents.Count > 0;
+
+                    if (hasComponentsLoaded
+                        && TabControl != null
+                        && InitialTab != null)
+                    {
+                        InitialTab.IsVisible = true;
+                        SetTabInternal(TabControl, InitialTab);
+                    }
+                }
+
+                UpdateWorkflowSurfaces();
             }
         }
 
@@ -253,6 +281,58 @@ namespace KOTORModSync
                 nameof(WizardMode),
                 o => o._wizardMode,
                 (o, v) => o.WizardMode = v
+            );
+
+        public bool LandingPageVisible
+        {
+            get => _landingPageVisible;
+            private set => _ = SetAndRaise(LandingPageVisibleProperty, ref _landingPageVisible, value);
+        }
+
+        public static readonly DirectProperty<MainWindow, bool> LandingPageVisibleProperty =
+            AvaloniaProperty.RegisterDirect<MainWindow, bool>(
+                nameof(LandingPageVisible),
+                o => o._landingPageVisible,
+                (o, v) => o.LandingPageVisible = v
+            );
+
+        public bool MainContentVisible
+        {
+            get => _mainContentVisible;
+            private set => _ = SetAndRaise(MainContentVisibleProperty, ref _mainContentVisible, value);
+        }
+
+        public static readonly DirectProperty<MainWindow, bool> MainContentVisibleProperty =
+            AvaloniaProperty.RegisterDirect<MainWindow, bool>(
+                nameof(MainContentVisible),
+                o => o._mainContentVisible,
+                (o, v) => o.MainContentVisible = v
+            );
+
+        public bool WizardContentVisible
+        {
+            get => _wizardContentVisible;
+            private set => _ = SetAndRaise(WizardContentVisibleProperty, ref _wizardContentVisible, value);
+        }
+
+        public static readonly DirectProperty<MainWindow, bool> WizardContentVisibleProperty =
+            AvaloniaProperty.RegisterDirect<MainWindow, bool>(
+                nameof(WizardContentVisible),
+                o => o._wizardContentVisible,
+                (o, v) => o.WizardContentVisible = v
+            );
+
+        public bool ShowWizardToggle
+        {
+            get => _showWizardToggle;
+            private set => _ = SetAndRaise(ShowWizardToggleProperty, ref _showWizardToggle, value);
+        }
+
+        public static readonly DirectProperty<MainWindow, bool> ShowWizardToggleProperty =
+            AvaloniaProperty.RegisterDirect<MainWindow, bool>(
+                nameof(ShowWizardToggle),
+                o => o._showWizardToggle,
+                (o, v) => o.ShowWizardToggle = v
             );
 
         public static readonly DirectProperty<MainWindow, bool?> RootSelectionStateProperty =
@@ -340,6 +420,13 @@ namespace KOTORModSync
                 InitializeModDirectoryWatcher();
 
                 BuildGlobalActionsMenu();
+                if (LandingPage != null)
+                {
+                    LandingPage.LoadInstructionsRequested += OnLandingPageLoadInstructionsRequested;
+                    LandingPage.CreateInstructionsRequested += OnLandingPageCreateInstructionsRequested;
+                    LandingPage.OpenSponsorPageRequested += OnLandingPageOpenSponsorPageRequested;
+                }
+                UpdateWorkflowSurfaces();
 
                 Opened += async (s, e) =>
                 {
@@ -353,6 +440,18 @@ namespace KOTORModSync
                     if (MainConfig.DestinationPath?.Exists == true)
                     {
                         _componentSelectionService.DetectGameVersion();
+                    }
+
+                    if (
+                        !_autoLoadedInstructionFile
+                        && !string.IsNullOrWhiteSpace(CLIArguments.InstructionFile)
+                        && File.Exists(CLIArguments.InstructionFile)
+                    )
+                    {
+                        _autoLoadedInstructionFile = true;
+                        LandingPageVisible = false;
+                        ShowWizardToggle = false;
+                        AutoLoadInstructionFileAsync(CLIArguments.InstructionFile);
                     }
                 };
             }
@@ -719,7 +818,6 @@ namespace KOTORModSync
         }
 
         [UsedImplicitly]
-
         private bool TryApplySourcePath(string text)
         {
 
@@ -740,7 +838,6 @@ namespace KOTORModSync
         {
             GuiPathService.UpdatePathSuggestions(input, combo, ref cts);
         }
-
         [UsedImplicitly]
         private void OnPathInputKeyDown(object sender, KeyEventArgs e)
         {
@@ -779,7 +876,6 @@ namespace KOTORModSync
                 Logger.LogException(ex);
             }
         }
-
         [UsedImplicitly]
         [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
         private async void BrowseModDir_Click(object sender, RoutedEventArgs e)
@@ -1505,7 +1601,6 @@ namespace KOTORModSync
             HideDragDropOverlay();
             Logger.LogVerbose("[DragLeave] EXIT");
         }
-
         [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
         private async void Drop(object sender, DragEventArgs e)
         {
@@ -2205,6 +2300,52 @@ namespace KOTORModSync
             PointerExited += InputElement_OnPointerReleased;
             FindComboBoxesInWindow(this);
         }
+
+        private void UpdateWorkflowSurfaces()
+        {
+            void UpdateCore()
+            {
+                bool instructionsLoaded = MainConfig.AllComponents != null && MainConfig.AllComponents.Count > 0;
+                bool landingVisible = !EditorMode && !instructionsLoaded;
+                bool wizardVisible = !landingVisible && _isWizardMode && instructionsLoaded && !EditorMode;
+                bool mainVisible = !landingVisible && !wizardVisible;
+
+                LandingPageVisible = landingVisible;
+                WizardContentVisible = wizardVisible;
+                MainContentVisible = mainVisible;
+                ShowWizardToggle = (mainVisible || wizardVisible) && !EditorMode;
+
+                LandingPage?.UpdateState(
+                    instructionsLoaded,
+                    instructionsLoaded ? LastLoadedInstructionFileName : null,
+                    EditorMode);
+            }
+
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                UpdateCore();
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(UpdateCore);
+            }
+        }
+
+        private void OnLandingPageLoadInstructionsRequested(object sender, EventArgs e)
+        {
+            LoadFile_Click(sender ?? this, new RoutedEventArgs());
+        }
+
+        private void OnLandingPageCreateInstructionsRequested(object sender, EventArgs e)
+        {
+            EditorMode = true;
+        }
+
+        private void OnLandingPageOpenSponsorPageRequested(object sender, EventArgs e)
+        {
+            OpenSponsorPage_Click(sender, new RoutedEventArgs());
+        }
+
         private void SearchText_PropertyChanged([NotNull] object sender, [NotNull] PropertyChangedEventArgs e)
         {
             if (!Dispatcher.UIThread.CheckAccess())
@@ -3704,149 +3845,228 @@ namespace KOTORModSync
         {
             _telemetryService?.RecordUiInteraction("click", "ValidateButton");
 
-            _ = Task.Run(async () =>
-            {
-                ValidationProgressDialog progressDialog = null;
-                Action<string> logHandler = null;
-                Action<Exception> exceptionHandler = null;
+            CancelValidationIfRunning();
 
-                try
-                {
-                    // Show progress dialog immediately
-                    progressDialog = await ValidationProgressDialog.ShowValidationProgress(this);
-
-                    // Subscribe to Logger events to capture logs
-                    logHandler = message =>
-                    {
-                        progressDialog?.AppendLog(message);
-                    };
-
-                    exceptionHandler = exception =>
-                    {
-                        progressDialog?.AppendLog($"ERROR: {exception.Message}");
-                    };
-
-                    Logger.Logged += logHandler;
-                    Logger.ExceptionLogged += exceptionHandler;
-
-                    progressDialog?.UpdateStatus("Initializing dry-run validation...");
-                    progressDialog?.AppendLog("Starting dry-run validation process...");
-                    progressDialog?.AppendLog("This will simulate the installation to check for errors.");
-
-                    // Clear validation cache before running validation
-                    ComponentValidationService.ClearValidationCache();
-                    await Logger.LogVerboseAsync("[MainWindow] Cleared validation cache before validation");
-
-                    progressDialog?.UpdateStatus("Running dry-run validation with VirtualFileSystemProvider...");
-
-                    using (Activity activity = _telemetryService?.StartActivity("validation.dry_run"))
-                    {
-                        // Perform actual dry-run validation using ExecuteInstructionsAsync
-                        Core.Services.Validation.DryRunValidationResult dryRunResult =
-                            await Core.Services.Validation.DryRunValidator.ValidateInstallationAsync(
-                                MainConfig.AllComponents,
-                                skipDependencyCheck: false,
-                                cancellationToken: default
-                            ).ConfigureAwait(false);
-
-                        progressDialog?.UpdateStatus("Analyzing validation results...");
-                        progressDialog?.AppendLog($"Validation complete. Found {dryRunResult.Issues.Count} issue(s).");
-
-                        // Convert Core ValidationIssues to GUI ValidationIssues
-                        var modIssues = new List<ValidationIssue>();
-                        foreach (Core.Services.FileSystem.ValidationIssue coreIssue in dryRunResult.Issues)
-                        {
-                            string icon;
-                            if (coreIssue.Severity == Core.Services.FileSystem.ValidationSeverity.Error ||
-                                coreIssue.Severity == Core.Services.FileSystem.ValidationSeverity.Critical)
-                            {
-                                icon = "✗";
-                            }
-                            else if (coreIssue.Severity == Core.Services.FileSystem.ValidationSeverity.Warning)
-                            {
-                                icon = "⚠";
-                            }
-                            else
-                            {
-                                icon = "ℹ";
-                            }
-
-                            modIssues.Add(new ValidationIssue
-                            {
-                                Icon = icon,
-                                ModName = coreIssue.AffectedComponent?.Name ?? "Unknown",
-                                IssueType = coreIssue.Category ?? "Validation",
-                                Description = coreIssue.Message ?? "No description available",
-                                Solution = GetSolutionForIssue(coreIssue),
-                                VfsIssue = coreIssue,
-                                Component = coreIssue.AffectedComponent,
-                            });
-
-                            progressDialog?.AppendLog($"{icon} [{coreIssue.Category}] {coreIssue.Message}");
-                        }
-
-                        bool validationResult = dryRunResult.IsValid;
-
-                        // Complete the progress dialog
-                        if (progressDialog != null)
-                        {
-                            if (validationResult)
-                            {
-                                progressDialog.Complete(success: true, dryRunResult.GetSummaryMessage());
-                            }
-                            else
-                            {
-                                progressDialog.Complete(success: false, "Validation failed. Please check the logs for details.");
-                            }
-                        }
-
-                        await Dispatcher.UIThread.InvokeAsync(async () =>
-                        {
-                            // Small delay to let users see the completion message
-                            await Task.Delay(1500);
-
-                            _ = await ValidationDialog.ShowValidationDialog(
-                                this,
-                                validationResult,
-                                dryRunResult.GetSummaryMessage(),
-                                modIssues.Count > 0 ? modIssues : null,
-                                systemIssues: null, // No system issues from dry-run
-                                () => OpenOutputWindow_Click(sender, e)
-                            );
-
-                            if (validationResult)
-                            {
-                                CheckBox step4Check = this.FindControl<CheckBox>(name: "Step4Checkbox");
-                                if (step4Check != null)
-                                {
-                                    step4Check.IsChecked = true;
-                                }
-
-                                UpdateStepProgress();
-                            }
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await Logger.LogExceptionAsync(ex, "[ValidateButton_Click] Failed to validate installation");
-                    progressDialog?.Complete(success: false, "Validation failed with an error. Check logs for details.");
-                }
-                finally
-                {
-                    // Unsubscribe from Logger events
-                    if (logHandler != null)
-                    {
-                        Logger.Logged -= logHandler;
-                    }
-                    if (exceptionHandler != null)
-                    {
-                        Logger.ExceptionLogged -= exceptionHandler;
-                    }
-                }
-            });
+            var cts = new CancellationTokenSource();
+            _validationCts = cts;
+            _ = RunValidationAsync(sender, e, cts);
         }
 
+        private void CancelValidationIfRunning()
+        {
+            if (_validationCts == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!_validationCts.IsCancellationRequested)
+                {
+                    _validationCts.Cancel();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignored – CTS may already be disposed.
+            }
+        }
+
+        private async Task RunValidationAsync(
+            [CanBeNull] object sender,
+            [NotNull] RoutedEventArgs e,
+            [NotNull] CancellationTokenSource cts)
+        {
+            ValidationProgressDialog progressDialog = null;
+            Action<string> logHandler = null;
+            Action<Exception> exceptionHandler = null;
+            var token = cts.Token;
+            bool dialogClosed = false;
+
+            try
+            {
+                progressDialog = await ValidationProgressDialog.ShowValidationProgress(this, cts);
+
+                if (progressDialog != null)
+                {
+                    progressDialog.Closed += (closedSender, closedArgs) =>
+                    {
+                        dialogClosed = true;
+                        if (!cts.IsCancellationRequested)
+                        {
+                            cts.Cancel();
+                        }
+                    };
+                }
+
+                logHandler = message =>
+                {
+                    if (!token.IsCancellationRequested && !dialogClosed)
+                    {
+                        progressDialog?.AppendLog(message);
+                    }
+                };
+
+                exceptionHandler = exception =>
+                {
+                    if (!token.IsCancellationRequested && !dialogClosed)
+                    {
+                        progressDialog?.AppendLog($"ERROR: {exception.Message}");
+                    }
+                };
+
+                Logger.Logged += logHandler;
+                Logger.ExceptionLogged += exceptionHandler;
+
+                progressDialog?.UpdateStatus("Initializing dry-run validation...");
+                progressDialog?.AppendLog("Starting dry-run validation process...");
+                progressDialog?.AppendLog("This will simulate the installation to check for errors.");
+
+                ComponentValidationService.ClearValidationCache();
+                await Logger.LogVerboseAsync("[MainWindow] Cleared validation cache before validation");
+
+                progressDialog?.UpdateStatus("Running dry-run validation with VirtualFileSystemProvider...");
+
+                Core.Services.Validation.DryRunValidationResult dryRunResult = await Task.Run(() =>
+                    Core.Services.Validation.DryRunValidator.ValidateInstallationAsync(
+                        MainConfig.AllComponents,
+                        skipDependencyCheck: false,
+                        cancellationToken: token),
+                    token);
+
+                if (token.IsCancellationRequested || dialogClosed)
+                {
+                    return;
+                }
+
+                progressDialog?.UpdateStatus("Analyzing validation results...");
+                progressDialog?.AppendLog($"Validation complete. Found {dryRunResult.Issues.Count} issue(s).");
+
+                List<ValidationIssue> modIssues = new List<ValidationIssue>();
+                foreach (Core.Services.FileSystem.ValidationIssue coreIssue in dryRunResult.Issues)
+                {
+                    string icon;
+                    if (coreIssue.Severity == Core.Services.FileSystem.ValidationSeverity.Error ||
+                        coreIssue.Severity == Core.Services.FileSystem.ValidationSeverity.Critical)
+                    {
+                        icon = "✗";
+                    }
+                    else if (coreIssue.Severity == Core.Services.FileSystem.ValidationSeverity.Warning)
+                    {
+                        icon = "⚠";
+                    }
+                    else
+                    {
+                        icon = "ℹ";
+                    }
+
+                    modIssues.Add(new ValidationIssue
+                    {
+                        Icon = icon,
+                        ModName = coreIssue.AffectedComponent?.Name ?? "Unknown",
+                        IssueType = coreIssue.Category ?? "Validation",
+                        Description = coreIssue.Message ?? "No description available",
+                        Solution = GetSolutionForIssue(coreIssue),
+                        VfsIssue = coreIssue,
+                        Component = coreIssue.AffectedComponent,
+                    });
+
+                    if (!token.IsCancellationRequested && !dialogClosed)
+                    {
+                        progressDialog?.AppendLog($"{icon} [{coreIssue.Category}] {coreIssue.Message}");
+                    }
+                }
+
+                bool validationResult = dryRunResult.IsValid;
+
+                if (!dialogClosed)
+                {
+                    if (validationResult)
+                    {
+                        progressDialog?.Complete(true, dryRunResult.GetSummaryMessage());
+                    }
+                    else
+                    {
+                        progressDialog?.Complete(false, "Validation failed. Please check the logs for details.");
+                    }
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    if (token.IsCancellationRequested || dialogClosed)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        await Task.Delay(1500, token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+
+                    if (token.IsCancellationRequested || dialogClosed)
+                    {
+                        return;
+                    }
+
+                    _ = await ValidationDialog.ShowValidationDialog(
+                        this,
+                        validationResult,
+                        dryRunResult.GetSummaryMessage(),
+                        modIssues.Count > 0 ? modIssues : null,
+                        systemIssues: null,
+                        () => OpenOutputWindow_Click(sender, e)
+                    );
+
+                    if (validationResult)
+                    {
+                        CheckBox step4Check = this.FindControl<CheckBox>(name: "Step4Checkbox");
+                        if (step4Check != null)
+                        {
+                            step4Check.IsChecked = true;
+                        }
+
+                        await UpdateStepProgressAsync();
+                    }
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                if (!dialogClosed)
+                {
+                    progressDialog?.Complete(false, "Validation cancelled.");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "[ValidateButton_Click] Failed to validate installation");
+                if (!dialogClosed)
+                {
+                    progressDialog?.Complete(false, "Validation failed with an error. Check logs for details.");
+                }
+            }
+            finally
+            {
+                if (logHandler != null)
+                {
+                    Logger.Logged -= logHandler;
+                }
+
+                if (exceptionHandler != null)
+                {
+                    Logger.ExceptionLogged -= exceptionHandler;
+                }
+
+                if (ReferenceEquals(_validationCts, cts))
+                {
+                    _validationCts.Dispose();
+                    _validationCts = null;
+                }
+            }
+        }
         private static string GetSolutionForIssue(Core.Services.FileSystem.ValidationIssue issue)
         {
             // Provide user-friendly solutions based on issue category
@@ -3928,6 +4148,7 @@ namespace KOTORModSync
                 await Logger.LogAsync(message: "Closing TOML configuration and clearing component list...");
 
                 MainConfigInstance.allComponents = new List<ModComponent>();
+                _lastLoadedFileName = null;
 
                 SetCurrentModComponent(c: null);
 
@@ -3940,6 +4161,8 @@ namespace KOTORModSync
                 ModListBox?.Items.Clear();
                 await UpdateStepProgressAsync();
                 UpdateModCounts();
+                ExitWizardMode();
+                UpdateWorkflowSurfaces();
                 await Logger.LogAsync(message: "TOML configuration closed successfully. ModComponent list cleared.");
             }
             catch (Exception ex)
@@ -4165,11 +4388,28 @@ namespace KOTORModSync
             ComponentValidationService.ClearValidationCache();
             Logger.LogVerbose("[MainWindow] Cleared validation cache before installation");
 
+            List<ModComponent> components = MainConfig.AllComponents;
+
+            if (components is null || components.Count == 0)
+            {
+                Logger.LogWarning("[StartInstall_Click] Cannot start installation: no instruction components are loaded.");
+
+                _ = Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await InformationDialog.ShowInformationDialogAsync(
+                        this,
+                        "You need to load an instruction set before starting the install wizard."
+                    );
+                });
+
+                return;
+            }
+
             _telemetryService?.RecordUiInteraction("click", "StartInstallButton");
             _telemetryService?.RecordEvent("installation.started", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
-                ["selected_mod_count"] = MainConfig.AllComponents.Count(c => c.IsSelected),
-                ["total_mod_count"] = MainConfig.AllComponents.Count,
+                ["selected_mod_count"] = components.Count(c => c.IsSelected),
+                ["total_mod_count"] = components.Count,
             });
 
             _ = Task.Run(async () =>
@@ -4561,7 +4801,6 @@ namespace KOTORModSync
                 );
             }
         }
-
         [UsedImplicitly]
         [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
@@ -4815,7 +5054,7 @@ namespace KOTORModSync
                 await Logger.LogVerboseAsync(
                     $"[LoadComponentDetails] Setting CurrentComponent to '{selectedComponent.Name}'");
                 SetCurrentModComponent(selectedComponent);
-                await Logger.LogVerboseAsync("[LoadComponentDetails] SetCurrentComponent completed");
+                await Logger.LogVerboseAsync("[LoadComponentDetails] SetCurrentModComponent completed");
 
                 if (string.Equals(currentTabName, "raw", StringComparison.Ordinal))
                 {
@@ -4991,6 +5230,7 @@ namespace KOTORModSync
                     EnterWizardMode();
                 }
             }
+            UpdateWorkflowSurfaces();
             return result;
         }
 
@@ -5265,7 +5505,6 @@ namespace KOTORModSync
                 UpdateModCounts();
             }
         }
-
         [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
         private async void OnCheckBoxChanged(object sender, RoutedEventArgs e)
@@ -5454,6 +5693,8 @@ namespace KOTORModSync
                         SetTabInternal(TabControl, InitialTab);
                         await UpdateStepProgressAsync();
                         UpdateModCounts();
+                        ExitWizardMode();
+                        UpdateWorkflowSurfaces();
                     });
                     return;
                 }
@@ -5504,6 +5745,7 @@ namespace KOTORModSync
 
                         UpdateStepProgress();
                     }
+                    UpdateWorkflowSurfaces();
                 });
             }
             catch (Exception ex)
@@ -6041,7 +6283,6 @@ namespace KOTORModSync
                     message: $"An unexpected error occurred: {exception.Message}");
             }
         }
-
         /// <summary>
         /// Resolves component dependencies and handles any errors through the GUI dialog.
         /// This method should be called after loading components to ensure proper ordering.
@@ -6808,7 +7049,7 @@ namespace KOTORModSync
                     GettingStartedTabControl.FindControl<Border>("Step2Border"), GettingStartedTabControl.FindControl<Border>("Step2CompleteIndicator"), GettingStartedTabControl.FindControl<TextBlock>("Step2CompleteText"),
                     GettingStartedTabControl.FindControl<Border>("Step3Border"), GettingStartedTabControl.FindControl<Border>("Step3CompleteIndicator"), GettingStartedTabControl.FindControl<TextBlock>("Step3CompleteText"),
                     GettingStartedTabControl.FindControl<Border>("Step4Border"), GettingStartedTabControl.FindControl<Border>("Step4CompleteIndicator"), GettingStartedTabControl.FindControl<TextBlock>("Step4CompleteText"),
-                    null, null, null,
+                    step5Border: null, step5Indicator: null, step5Text: null,
                     GettingStartedTabControl.FindControl<ProgressBar>("OverallProgressBar"), GettingStartedTabControl.FindControl<TextBlock>("ProgressText"),
                     GettingStartedTabControl.FindControl<CheckBox>("Step4Checkbox"),
                     EditorMode,
@@ -6831,7 +7072,6 @@ namespace KOTORModSync
                 UpdateStepProgress();
             });
         }
-
         private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
         {
             try
@@ -7434,8 +7674,15 @@ namespace KOTORModSync
                 UpdateStepProgress();
             });
         }
-        private void EditorTab_ExpandAllSectionsRequested(object sender, RoutedEventArgs e) { throw new NotSupportedException(); }
-        private void EditorTab_CollapseAllSectionsRequested(object sender, RoutedEventArgs e) { throw new NotSupportedException(); }
+        private void EditorTab_ExpandAllSectionsRequested(object sender, RoutedEventArgs e)
+        {
+            Logger.LogVerbose("[EditorTab] ExpandAllSectionsRequested received by MainWindow (no additional action required).");
+        }
+
+        private void EditorTab_CollapseAllSectionsRequested(object sender, RoutedEventArgs e)
+        {
+            Logger.LogVerbose("[EditorTab] CollapseAllSectionsRequested received by MainWindow (no additional action required).");
+        }
         private void EditorTab_AutoGenerateInstructionsRequested(object sender, RoutedEventArgs e) => AutoGenerateInstructions_Click(sender, e);
         private void EditorTab_AddNewInstructionRequested(object sender, RoutedEventArgs e) => AddNewInstruction_Click(sender, e);
         private void EditorTab_DeleteInstructionRequested(object sender, RoutedEventArgs e) => DeleteInstruction_Click(sender, e);
@@ -7485,64 +7732,6 @@ namespace KOTORModSync
                 await Logger.LogExceptionAsync(ex, "[JumpToCurrentStep_Click] Exception occurred");
             }
         }
-
-        [UsedImplicitly]
-        [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
-        private async void EditorTab_JumpToBlockingInstructionRequested(
-            object sender,
-            Core.Services.Validation.PathValidationResult e)
-        {
-            try
-            {
-                if (e is null || CurrentComponent is null)
-                {
-                    return;
-                }
-
-                if (e.NeedsModLinkAdded)
-                {
-                    // Show informational dialog guiding the user to add a Mod Link
-                    await Dialogs.InformationDialog.ShowInformationDialogAsync(
-                        this,
-                        "**A required file exists but is not accounted for in instructions or ModLinks.**\n\n" +
-                        "To provide this file for users/installers:\n" +
-                        "1. **Upload the file to a hosting service** (such as mega.nz or Google Drive).\n" +
-                        "2. **Add the download link** to your ModLinks. In the editor, switch to the **'Raw' tab** and look for the `ResourceRegistry = [` or `ModLinkFilenames = [` section.\n\n" +
-                        "*If using the visual editor, use the Download Links area to add URLs for missing files.*",
-                        "Missing Mod Link Detected"
-                    );
-
-                    if (TabControl != null)
-                    {
-                        TabControl.SelectedIndex = 2; // Ensure Raw tab is visible
-                    }
-
-                    return;
-                }
-
-                if (!e.BlockingInstructionIndex.HasValue)
-                {
-                    return;
-                }
-
-                int targetIndex = e.BlockingInstructionIndex.Value;
-                if (targetIndex < 0 || targetIndex >= CurrentComponent.Instructions.Count)
-                {
-                    return;
-                }
-
-                Instruction targetInstruction = CurrentComponent.Instructions[targetIndex];
-
-                await Logger.LogAsync($"Jumping to blocking instruction #{targetIndex + 1} ({targetInstruction.Action})");
-                await Logger.LogWarningAsync($"Instruction #{targetIndex + 1} ({targetInstruction.Action}) is preventing later instructions from being validated.");
-                await Logger.LogAsync($"Please fix instruction #{targetIndex + 1} first. The issue: {e.DetailedMessage}");
-
-            }
-            catch (Exception ex)
-            {
-                await Logger.LogExceptionAsync(ex);
-            }
-        }
         #region Validation Results Display
 
         private void ShowValidationResults()
@@ -7590,7 +7779,6 @@ namespace KOTORModSync
                 ShowValidationResults();
             }
         }
-
         private void JumpToModButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -7970,6 +8158,12 @@ namespace KOTORModSync
         /// </summary>
         private void EnterWizardMode()
         {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(EnterWizardMode);
+                return;
+            }
+
             if (_isWizardMode)
             {
                 return;
@@ -7980,15 +8174,19 @@ namespace KOTORModSync
             // Initialize the wizard with current data and provide MainWindow reference
             if (this.FindControl<WizardHostControl>("WizardHost") is WizardHostControl wizardHost)
             {
-                var modListSidebar = this.FindControl<ModListSidebar>("ModListSidebar");
+                ModListSidebar modListSidebar = this.FindControl<ModListSidebar>("ModListSidebar");
                 wizardHost.Initialize(MainConfigInstance, MainConfig.AllComponents, this, modListSidebar);
 
                 // Subscribe to wizard events
                 wizardHost.WizardCompleted += OnWizardCompleted;
-                wizardHost.WizardCancelled += OnWizardCancelled;
+                wizardHost.DownloadFetchRequested += OnWizardDownloadFetchRequested;
+                wizardHost.DownloadStatusRequested += OnWizardDownloadStatusRequested;
+                wizardHost.DownloadOpenFolderRequested += OnWizardDownloadOpenFolderRequested;
+                wizardHost.DownloadStopRequested += OnWizardDownloadStopRequested;
             }
 
             _ = Logger.LogVerboseAsync("[MainWindow] Entered wizard mode");
+            UpdateWorkflowSurfaces();
         }
 
         /// <summary>
@@ -7996,6 +8194,12 @@ namespace KOTORModSync
         /// </summary>
         private void ExitWizardMode()
         {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(ExitWizardMode);
+                return;
+            }
+
             if (!_isWizardMode)
             {
                 return;
@@ -8007,13 +8211,17 @@ namespace KOTORModSync
             {
                 // Unsubscribe from wizard events
                 wizardHost.WizardCompleted -= OnWizardCompleted;
-                wizardHost.WizardCancelled -= OnWizardCancelled;
+                wizardHost.DownloadFetchRequested -= OnWizardDownloadFetchRequested;
+                wizardHost.DownloadStatusRequested -= OnWizardDownloadStatusRequested;
+                wizardHost.DownloadOpenFolderRequested -= OnWizardDownloadOpenFolderRequested;
+                wizardHost.DownloadStopRequested -= OnWizardDownloadStopRequested;
 
                 // Cleanup wizard resources
                 wizardHost.Cleanup();
             }
 
             _ = Logger.LogVerboseAsync("[MainWindow] Exited wizard mode");
+            UpdateWorkflowSurfaces();
         }
 
         /// <summary>
@@ -8032,6 +8240,38 @@ namespace KOTORModSync
         {
             _ = Logger.LogVerboseAsync("[MainWindow] Wizard cancelled by user");
             ExitWizardMode();
+        }
+
+        /// <summary>
+        /// Called when the wizard requests to fetch downloads
+        /// </summary>
+        private void OnWizardDownloadFetchRequested(object sender, EventArgs e)
+        {
+            ScrapeDownloadsButton_Click(sender, new RoutedEventArgs());
+        }
+
+        /// <summary>
+        /// Called when the wizard requests to show download status
+        /// </summary>
+        private void OnWizardDownloadStatusRequested(object sender, EventArgs e)
+        {
+            DownloadStatusButton_Click(sender, new RoutedEventArgs());
+        }
+
+        /// <summary>
+        /// Called when the wizard requests to open the mod directory
+        /// </summary>
+        private void OnWizardDownloadOpenFolderRequested(object sender, EventArgs e)
+        {
+            OpenModDirectoryButton_Click(sender, new RoutedEventArgs());
+        }
+
+        /// <summary>
+        /// Called when the wizard requests to stop downloads
+        /// </summary>
+        private void OnWizardDownloadStopRequested(object sender, EventArgs e)
+        {
+            StopDownloadsButton_Click(sender, new RoutedEventArgs());
         }
 
         #endregion

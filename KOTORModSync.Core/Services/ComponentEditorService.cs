@@ -268,7 +268,7 @@ namespace KOTORModSync.Core.Services
                     if (conflictComponent?.IsSelected == false)
                     {
                         conflictComponent.IsSelected = true;
-                        HandleComponentCheckboxChange(conflictComponent, true, allComponents, visitedComponents);
+                        HandleComponentCheckboxChange(conflictComponent, isChecked: true, allComponents, visitedComponents);
                     }
                 }
             }
@@ -280,7 +280,7 @@ namespace KOTORModSync.Core.Services
                     if (conflictComponent?.IsSelected == true)
                     {
                         conflictComponent.IsSelected = false;
-                        HandleComponentCheckboxChange(conflictComponent, false, allComponents, visitedComponents);
+                        HandleComponentCheckboxChange(conflictComponent, isChecked: false, allComponents, visitedComponents);
                     }
                 }
             }
@@ -293,7 +293,7 @@ namespace KOTORModSync.Core.Services
                 }
 
                 c.IsSelected = false;
-                HandleComponentCheckboxChange(c, false, allComponents, visitedComponents);
+                HandleComponentCheckboxChange(c, isChecked: false, allComponents, visitedComponents);
             }
         }
 
@@ -305,7 +305,7 @@ namespace KOTORModSync.Core.Services
                 if (c.IsSelected && c.Dependencies.Contains(component.Guid))
                 {
                     c.IsSelected = false;
-                    HandleComponentCheckboxChange(c, false, allComponents, visitedComponents);
+                    HandleComponentCheckboxChange(c, isChecked: false, allComponents, visitedComponents);
                 }
             }
         }

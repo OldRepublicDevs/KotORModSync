@@ -1043,6 +1043,23 @@
             <!--  Dark blue background matching theme  -->
             <SolidColorBrush x:Key="CheckpointProgress.BorderBrush" Color="#3AAAFF" />
             <!--  Theme primary blue border  -->
+
+            <!--  Landing Page Resources  -->
+            <LinearGradientBrush x:Key="LandingHeroBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#061542" Offset="0" />
+                <GradientStop Color="#000116" Offset="1" />
+            </LinearGradientBrush>
+            <BoxShadows x:Key="LandingHeroBoxShadow">0 14 32 0 #33000000</BoxShadows>
+            <BoxShadows x:Key="LandingCardBoxShadow">0 10 26 0 #22000000</BoxShadows>
+            <BoxShadows x:Key="LandingSectionBoxShadow">0 8 18 0 #1A000000</BoxShadows>
+            <SolidColorBrush x:Key="LandingHeroTitleForegroundBrush" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="LandingHeroSubtitleForegroundBrush" Color="#A8B348" />
+            <SolidColorBrush x:Key="LandingHeroDetailForegroundBrush" Color="#62C6FF" />
+            <SolidColorBrush x:Key="LandingStepCardBackgroundBrush" Color="#020228" />
+            <SolidColorBrush x:Key="LandingStepCardBorderBrush" Color="#062766" />
+            <SolidColorBrush x:Key="LandingStepTitleForegroundBrush" Color="#A8B348" />
+            <SolidColorBrush x:Key="LandingStepBodyForegroundBrush" Color="#62C6FF" />
+            <SolidColorBrush x:Key="LandingInfoPanelBackgroundBrush" Color="#000F2A" />
         </ResourceDictionary>
     </Styles.Resources>
 </Styles>

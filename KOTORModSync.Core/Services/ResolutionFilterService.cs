@@ -6,20 +6,21 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services
 {
 
-    public sealed class ResolutionFilterService
+    public sealed partial class ResolutionFilterService
     {
-        private static readonly Regex s_resolutionPattern = new Regex(@"(\d{3,4})x(\d{3,4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex s_resolutionPattern = new Regex(@"(\d{3,4})x(\d{3,4})", RegexOptions.IgnoreCase | RegexOptions.Compiled, TimeSpan.FromSeconds(5));
         private readonly Resolution _systemResolution;
         private readonly bool _filterEnabled;
 
         public ResolutionFilterService(bool enableFiltering = true)
         {
             _filterEnabled = enableFiltering;
-            _systemResolution = ResolutionFilterService.DetectSystemResolution();
+            _systemResolution = DetectSystemResolution();
 
             if (_filterEnabled && _systemResolution != null)
             {
@@ -171,11 +172,13 @@ StringComparer.Ordinal);
                 {
                     return DetectWindowsResolution();
                 }
-                else if (Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Linux)
+
+                if (Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Linux)
                 {
                     return DetectLinuxResolution();
                 }
-                else if (Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.OSX)
+
+                if (Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.OSX)
                 {
                     return DetectMacOsResolution();
                 }
@@ -302,8 +305,19 @@ StringComparer.Ordinal);
 
         // Windows-specific P/Invoke - only called when running on Windows
         // The runtime check in DetectWindowsResolution ensures this is only invoked on Windows platforms
-        [DllImport("user32.dll", SetLastError = false)]
-        private static extern int GetSystemMetrics(int nIndex);
+        [DllImport("user32.dll", SetLastError = false, EntryPoint = "GetSystemMetrics")]
+        private static extern int GetSystemMetricsNative(int nIndex);
+
+        private static int GetSystemMetrics(int nIndex)
+        {
+            if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
+            {
+                Logger.LogWarning("Attempted to query Windows system metrics on a non-Windows platform.");
+                return 0;
+            }
+
+            return GetSystemMetricsNative(nIndex);
+        }
 
         private sealed class Resolution
         {

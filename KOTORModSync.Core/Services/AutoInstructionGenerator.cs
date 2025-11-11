@@ -353,11 +353,9 @@ namespace KOTORModSync.Core.Services
                 Logger.LogVerbose("[AutoInstructionGenerator] Added DelDuplicate instruction for Remove Duplicate TGA/TPC mod");
                 return true;
             }
-            else
-            {
-                Logger.LogVerbose("[AutoInstructionGenerator] DelDuplicate instruction already exists for Remove Duplicate TGA/TPC mod");
-                return true;
-            }
+
+            Logger.LogVerbose("[AutoInstructionGenerator] DelDuplicate instruction already exists for Remove Duplicate TGA/TPC mod");
+            return true;
         }
 
         private static bool GenerateExecuteInstruction(
@@ -382,11 +380,9 @@ namespace KOTORModSync.Core.Services
                 component.InstallationMethod = "Executable Installer";
                 return true;
             }
-            else
-            {
-                Logger.LogVerbose($"[AutoInstructionGenerator] Execute instruction for '{fileName}' already exists, skipping");
-                return true;
-            }
+
+            Logger.LogVerbose($"[AutoInstructionGenerator] Execute instruction for '{fileName}' already exists, skipping");
+            return true;
         }
 
         private static bool AreInstructionsEquivalent(
@@ -1289,7 +1285,7 @@ namespace KOTORModSync.Core.Services
                 }
                 else if (analysis.HasFlatFiles)
                 {
-                    AddSimpleMoveInstruction(component, archive, archivePath, extractedPath, null);
+                    AddSimpleMoveInstruction(component, archive, archivePath, extractedPath, folderName: null);
                 }
             }
 
@@ -1346,7 +1342,7 @@ namespace KOTORModSync.Core.Services
             {
                 await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Pre-resolving URLs for component: {component.Name}").ConfigureAwait(false);
 
-                IReadOnlyDictionary<string, List<string>> resolvedUrls = await downloadCache.PreResolveUrlsAsync(component, null, sequential: true, cancellationToken).ConfigureAwait(false);
+                IReadOnlyDictionary<string, List<string>> resolvedUrls = await downloadCache.PreResolveUrlsAsync(component, downloadManager: null, sequential: true, cancellationToken).ConfigureAwait(false);
 
                 if (resolvedUrls.Count == 0)
                 {
@@ -2408,11 +2404,9 @@ namespace KOTORModSync.Core.Services
                         }
                         return false;
                     }
-                    else
-                    {
-                        Logger.LogWarning("[AutoInstructionGenerator] 7zip CLI failed to list archive. Assuming folder contains game files.");
-                        return true;
-                    }
+
+                    Logger.LogWarning("[AutoInstructionGenerator] 7zip CLI failed to list archive. Assuming folder contains game files.");
+                    return true;
                 }
                 catch (Exception fallbackEx)
                 {

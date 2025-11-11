@@ -68,7 +68,7 @@ namespace KOTORModSync.Services
                 _draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
                 if (_draggedItem != null)
                 {
-                    _draggedItem.SetDraggedState(true);
+                    _draggedItem.SetDraggedState(isDragged: true);
                     CreateDragVisual();
                 }
 
@@ -99,7 +99,7 @@ namespace KOTORModSync.Services
 
                 if (_currentDropTarget != null)
                 {
-                    _currentDropTarget.SetDropTargetState(false);
+                    _currentDropTarget.SetDropTargetState(isDropTarget: false);
                     _currentDropTarget = null;
                 }
 
@@ -111,7 +111,7 @@ namespace KOTORModSync.Services
                         ModListItem modListItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
                         if (modListItem != null)
                         {
-                            modListItem.SetDropTargetState(true);
+                            modListItem.SetDropTargetState(isDropTarget: true);
                             _currentDropTarget = modListItem;
                         }
 
@@ -188,7 +188,7 @@ namespace KOTORModSync.Services
                 _draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
                 if (_draggedItem != null)
                 {
-                    _draggedItem.SetDraggedState(true);
+                    _draggedItem.SetDraggedState(isDragged: true);
                     CreateDragVisual();
                 }
             }
@@ -297,7 +297,7 @@ namespace KOTORModSync.Services
 
                 if (_draggedItem != null)
                 {
-                    _draggedItem.SetDraggedState(false);
+                    _draggedItem.SetDraggedState(isDragged: false);
                     _draggedItem = null;
                 }
 
@@ -313,7 +313,7 @@ namespace KOTORModSync.Services
 
                 if (_currentDropTarget != null)
                 {
-                    _currentDropTarget.SetDropTargetState(false);
+                    _currentDropTarget.SetDropTargetState(isDropTarget: false);
                     _currentDropTarget = null;
                 }
 

@@ -87,7 +87,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 Assert.That(comp2.ResourceRegistry, Is.Not.Null, "ResourceRegistry should not be null after round-trip");
                 Assert.That(comp2.ResourceRegistry.Count, Is.EqualTo(comp1.ResourceRegistry.Count), "ResourceRegistry count should match");
 
-                foreach (var kvp in comp1.ResourceRegistry)
+                foreach (KeyValuePair<string, ResourceMetadata> kvp in comp1.ResourceRegistry)
                 {
                     Assert.That(comp2.ResourceRegistry.ContainsKey(kvp.Key), Is.True, $"ResourceRegistry should contain URL: '{kvp.Key}'");
                 }
@@ -106,8 +106,8 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
             {
                 for (int i = 0; i < Math.Min(comp1.Options.Count, comp2.Options.Count); i++)
                 {
-                    var originalOpt = comp1.Options[i];
-                    var finalOpt = comp2.Options[i];
+                    Option originalOpt = comp1.Options[i];
+                    Option finalOpt = comp2.Options[i];
 
                     Assert.Multiple(() =>
                     {
@@ -133,22 +133,23 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
             {
                 return ModComponentSerializationService.DeserializeModComponentFromTomlString(content).ToList();
             }
-            else if (string.Equals(formatUpper, "YAML", StringComparison.Ordinal))
+
+            if (string.Equals(formatUpper, "YAML", StringComparison.Ordinal))
             {
                 return ModComponentSerializationService.DeserializeModComponentFromYamlString(content).ToList();
             }
-            else if (string.Equals(formatUpper, "MD", StringComparison.Ordinal) || string.Equals(formatUpper, "MARKDOWN", StringComparison.Ordinal))
+
+            if (string.Equals(formatUpper, "MD", StringComparison.Ordinal) || string.Equals(formatUpper, "MARKDOWN", StringComparison.Ordinal))
             {
                 return ModComponentSerializationService.DeserializeModComponentFromMarkdownString(content).ToList();
             }
-            else if (string.Equals(formatUpper, "JSON", StringComparison.Ordinal))
+
+            if (string.Equals(formatUpper, "JSON", StringComparison.Ordinal))
             {
                 return ModComponentSerializationService.DeserializeModComponentFromJsonString(content).ToList();
             }
-            else
-            {
-                throw new NotSupportedException($"Unsupported format: {format}");
-            }
+
+            throw new NotSupportedException($"Unsupported format: {format}");
         }
 
         private static string SerializeToFormat(List<ModComponent> components, string format)
@@ -158,22 +159,23 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
             {
                 return ModComponentSerializationService.SerializeModComponentAsTomlString(components);
             }
-            else if (string.Equals(formatUpper, "YAML", StringComparison.Ordinal))
+
+            if (string.Equals(formatUpper, "YAML", StringComparison.Ordinal))
             {
                 return ModComponentSerializationService.SerializeModComponentAsYamlString(components);
             }
-            else if (string.Equals(formatUpper, "MD", StringComparison.Ordinal) || string.Equals(formatUpper, "MARKDOWN", StringComparison.Ordinal))
+
+            if (string.Equals(formatUpper, "MD", StringComparison.Ordinal) || string.Equals(formatUpper, "MARKDOWN", StringComparison.Ordinal))
             {
                 return ModComponentSerializationService.SerializeModComponentAsMarkdownString(components);
             }
-            else if (string.Equals(formatUpper, "JSON", StringComparison.Ordinal))
+
+            if (string.Equals(formatUpper, "JSON", StringComparison.Ordinal))
             {
                 return ModComponentSerializationService.SerializeModComponentAsJsonString(components);
             }
-            else
-            {
-                throw new NotSupportedException($"Unsupported format: {format}");
-            }
+
+            throw new NotSupportedException($"Unsupported format: {format}");
         }
 
         [Test]

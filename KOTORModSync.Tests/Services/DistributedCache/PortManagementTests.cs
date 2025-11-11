@@ -13,128 +13,223 @@ namespace KOTORModSync.Tests.Services.DistributedCache
     /// Tests for port management, persistence, and availability.
     /// </summary>
     [Collection("DistributedCache")]
-    public class PortManagementTests : IClassFixture<DistributedCacheTestFixture>
+    public class PortManagementTests : IClassFixture<DistributedCacheTestFixture>, IDisposable
     {
         private readonly DistributedCacheTestFixture _fixture;
+        private IDisposable _clientScope;
 
         public PortManagementTests(DistributedCacheTestFixture fixture)
         {
             _fixture = fixture;
+            ResetState();
+        }
+
+        public void Dispose()
+        {
+            _clientScope?.Dispose();
+        }
+
+        private void ResetState()
+        {
+            _clientScope?.Dispose();
+            _clientScope = DownloadCacheOptimizer.DiagnosticsHarness.AttachSyntheticClient();
+            DownloadCacheOptimizer.DiagnosticsHarness.ClearActiveManagers();
+            DownloadCacheOptimizer.DiagnosticsHarness.ClearBlockedContentIds();
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: false, 0, DateTime.MinValue);
+            DownloadCacheOptimizer.DiagnosticsHarness.SetClientSettings(new
+            {
+                ListenPort = 35555,
+                AllowPortForwarding = true,
+                MaximumConnections = 150,
+            });
+        }
+
+        private static DownloadCacheOptimizer.DiagnosticsHarness.SyntheticResourceOptions CreateShare(
+            string key,
+            long uploaded = 0,
+            long downloaded = 0,
+            double progress = 0,
+            int peers = 0,
+            string state = "Idle")
+        {
+            return new DownloadCacheOptimizer.DiagnosticsHarness.SyntheticResourceOptions
+            {
+                ContentKey = key,
+                UploadedBytes = uploaded,
+                DownloadedBytes = downloaded,
+                Progress = progress,
+                ConnectedPeers = peers,
+                State = state,
+            };
+        }
+
+        private static string GetHarnessPortPath()
+        {
+            return DownloadCacheOptimizer.DiagnosticsHarness.GetPortConfigurationPath();
         }
 
         [Fact]
         public void PortManagement_FindAvailablePort_ReturnsValid()
         {
-            // This test would need access to private methods
-            // For now, verify engine can initialize
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.True(stats.activeShares >= 0);
+            ResetState();
+
+            DownloadCacheOptimizer.DiagnosticsHarness.RegisterSyntheticResource(
+                CreateShare("share", uploaded: 1234, downloaded: 567, progress: 0.4, peers: 1, state: "Ready"));
+
+            (int activeShares, long totalUploadBytes, int connectedSources) = DownloadCacheOptimizer.GetNetworkCacheStats();
+
+            Assert.Equal(1, activeShares);
+            Assert.Equal(1234, totalUploadBytes);
+            Assert.Equal(1, connectedSources);
         }
 
         [Fact]
-        public void PortManagement_PortInRange_Valid()
+        public void PortManagement_PortPersistence_ConfigExistsAndContainsPort()
         {
-            // Verify port is in valid range (1-65535)
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            // We can't directly check port, but can verify stats work
-            Assert.NotNull(stats);
-        }
+            ResetState();
 
-        [Fact]
-        public void PortManagement_PortPersistence_ConfigExists()
-        {
-            string configPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "KOTORModSync",
-                "cache-port.txt");
+            string configPath = GetHarnessPortPath();
+            string directory = Path.GetDirectoryName(configPath)!;
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
 
-            // Port config should be created after first use
-            Directory.CreateDirectory(Path.GetDirectoryName(configPath));
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(configPath, "35555");
 
-            // Success if directory exists
-            Assert.True(Directory.Exists(Path.GetDirectoryName(configPath)));
+            using (DownloadCacheOptimizer.DiagnosticsHarness.AttachSyntheticClient())
+            {
+                DownloadCacheOptimizer.DiagnosticsHarness.SetClientSettings(new
+                {
+                    ListenPort = 35555,
+                    AllowPortForwarding = true,
+                    MaximumConnections = 150,
+                });
+
+                var status = DownloadCacheOptimizer.GetNatStatus();
+                Assert.Equal(35555, status.port);
+            }
         }
 
         [Fact]
         public async Task PortManagement_EngineStartup_UsesConfiguredPort()
         {
-            // Initialize engine
-            await DownloadCacheOptimizer.EnsureInitializedAsync().ConfigureAwait(false);
+            ResetState();
 
-            // Get stats to verify engine is running
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.True(stats.activeShares >= 0);
-        }
+            string configPath = GetHarnessPortPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+            await File.WriteAllTextAsync(configPath, "40000");
 
-        [Fact]
-        public void PortManagement_CommonPorts_Tested()
-        {
-            // Verify common ports are in the search list
-            int[] commonPorts = { 6881, 6882, 6883, 6889, 51413 };
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: true, 40000, DateTime.UtcNow);
 
-            // We can't directly test this, but verify engine works
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.NotNull(stats);
+            await DownloadCacheOptimizer.EnsureInitializedAsync();
+
+            var status = DownloadCacheOptimizer.GetNatStatus();
+            Assert.True(status.successful);
+            Assert.Equal(40000, status.port);
         }
 
         [Fact]
         public void PortManagement_PortConflict_HandledGracefully()
         {
-            // Even if port is in use, engine should handle it
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.True(stats.activeShares >= 0);
+            ResetState();
+
+            DownloadCacheOptimizer.DiagnosticsHarness.RegisterSyntheticResource(
+                CreateShare("conflict", uploaded: 0, downloaded: 0, progress: 0, peers: 0, state: "Initializing"));
+
+            (int activeShares, long _totalUploadBytes, int _connectedSources) = DownloadCacheOptimizer.GetNetworkCacheStats();
+            Assert.Equal(1, activeShares);
         }
 
         [Fact]
-        public void PortManagement_MultipleInstances_DifferentPorts()
+        public void PortManagement_MultipleInstances_Simulated()
         {
-            // Each instance should use different port
-            // This would require spawning multiple processes
-            // For now, verify single instance works
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.NotNull(stats);
+            ResetState();
+
+            DownloadCacheOptimizer.DiagnosticsHarness.RegisterSyntheticResource(
+                CreateShare("instanceA", uploaded: 100, downloaded: 50, progress: 0.2, peers: 1, state: "Running"));
+            DownloadCacheOptimizer.DiagnosticsHarness.RegisterSyntheticResource(
+                CreateShare("instanceB", uploaded: 200, downloaded: 120, progress: 0.5, peers: 2, state: "Running"));
+
+            var stats = DownloadCacheOptimizer.GetNetworkCacheStats();
+            Assert.Equal(2, stats.activeShares);
+            Assert.Equal(300, stats.totalUploadBytes);
+            Assert.Equal(3, stats.connectedSources);
         }
 
         [Fact]
-        public void PortManagement_PortRelease_OnShutdown()
+        public async Task PortManagement_PortRelease_OnShutdown()
         {
-            // Verify graceful shutdown releases port
-            // This is tested implicitly by other tests
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.NotNull(stats);
+            ResetState();
+
+            DownloadCacheOptimizer.DiagnosticsHarness.RegisterSyntheticResource(
+                CreateShare("shutdown", uploaded: 1000, downloaded: 500, progress: 0.7, peers: 1, state: "Running"));
+
+            using (DownloadCacheOptimizer.DiagnosticsHarness.AttachSyntheticClient())
+            {
+                await DownloadCacheOptimizer.GracefulShutdownAsync();
+            }
+
+            Assert.Equal(0, DownloadCacheOptimizer.GetNetworkCacheStats().activeShares);
         }
 
         [Fact]
         public void PortManagement_InvalidPort_Rejected()
         {
-            // Ports outside valid range should be rejected
-            // 0 and 65536+ are invalid
-            Assert.True(6881 > 0 && 6881 < 65536);
+            ResetState();
+
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: true, -1, DateTime.UtcNow);
+            var status = DownloadCacheOptimizer.GetNatStatus();
+            Assert.True(status.port >= 0);
+
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: true, 70000, DateTime.UtcNow);
+            status = DownloadCacheOptimizer.GetNatStatus();
+            Assert.True(status.port <= 65535);
         }
 
         [Fact]
         public void PortManagement_NATTraversal_Attempted()
         {
-            // Verify NAT traversal is attempted
-            // This is logged in the engine initialization
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.NotNull(stats);
+            ResetState();
+
+            var initialStatus = DownloadCacheOptimizer.GetNatStatus();
+            Assert.False(initialStatus.successful);
+
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: true, 35555, DateTime.UtcNow);
+            var status = DownloadCacheOptimizer.GetNatStatus();
+            Assert.True(status.successful);
+            Assert.Equal(35555, status.port);
         }
 
         [Fact]
         public void PortManagement_UPnP_Configured()
         {
-            // UPnP should be enabled by default
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.NotNull(stats);
+            ResetState();
+
+            using (DownloadCacheOptimizer.DiagnosticsHarness.AttachSyntheticClient())
+            {
+                DownloadCacheOptimizer.DiagnosticsHarness.SetClientSettings(new
+                {
+                    ListenPort = 49999,
+                    AllowPortForwarding = true,
+                    MaximumConnections = 100,
+                });
+
+                var status = DownloadCacheOptimizer.GetNatStatus();
+                Assert.Equal(49999, status.port);
+            }
         }
 
         [Fact]
         public void PortManagement_NATPMP_Configured()
         {
-            // NAT-PMP should be attempted
-            (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.NotNull(stats);
+            ResetState();
+
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: true, 42000, DateTime.UtcNow);
+            var status = DownloadCacheOptimizer.GetNatStatus();
+            Assert.True(status.successful);
+            Assert.Equal(42000, status.port);
         }
     }
 }

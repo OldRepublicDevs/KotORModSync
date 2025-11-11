@@ -7,11 +7,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
+using KOTORModSync;
 
 namespace KOTORModSync.Dialogs.WizardPages
 {
@@ -19,11 +23,15 @@ namespace KOTORModSync.Dialogs.WizardPages
     {
         private readonly List<ModComponent> _allComponents;
         private readonly List<CheckBox> _modCheckBoxes = new List<CheckBox>();
+        private readonly Dictionary<string, Expander> _categoryExpanders = new Dictionary<string, Expander>(StringComparer.Ordinal);
         private TextBlock _selectionCountText;
         private TextBlock _selectionDetailsText;
         private TextBlock _filterSummaryText;
         private Button _selectAllButton;
         private Button _deselectAllButton;
+        private Button _selectByTierButton;
+        private Button _selectByCategoryButton;
+        private Button _expandCollapseAllButton;
         private Button _clearFiltersButton;
         private TextBox _searchTextBox;
         private ComboBox _categoryFilterComboBox;
@@ -38,16 +46,52 @@ namespace KOTORModSync.Dialogs.WizardPages
         private string _currentCategoryFilter = null;
         private string _currentTierFilter = null;
         private bool _spoilerFreeMode;
+        private bool _allExpanded = false;
+        private MainWindow _parentWindow;
 
-        public ModSelectionPage([NotNull][ItemNotNull] List<ModComponent> allComponents)
+        public ModSelectionPage()
+            : this(new List<ModComponent>(), parentWindow: null)
+        {
+        }
+
+        public ModSelectionPage([NotNull][ItemNotNull] List<ModComponent> allComponents, [CanBeNull] MainWindow parentWindow = null)
         {
             _allComponents = allComponents ?? throw new ArgumentNullException(nameof(allComponents));
+            _parentWindow = parentWindow;
 
             InitializeComponent();
             InitializeControls();
+
+            // Sync spoiler-free mode with parent window if available
+            if (_parentWindow != null)
+            {
+                _spoilerFreeMode = _parentWindow.SpoilerFreeMode;
+                if (_spoilerFreeToggle != null)
+                {
+                    _spoilerFreeToggle.IsChecked = _spoilerFreeMode;
+                }
+
+                // Subscribe to changes in parent window's spoiler-free mode
+                _parentWindow.GetObservable(MainWindow.SpoilerFreeModeProperty).Subscribe(value =>
+                {
+                    _spoilerFreeMode = value;
+                    if (_spoilerFreeToggle != null)
+                    {
+                        _spoilerFreeToggle.IsChecked = _spoilerFreeMode;
+                    }
+                    RebuildModList();
+                });
+            }
+
             PopulateFilters();
             BuildModList();
             UpdateSelectionCount();
+
+            // Update expand/collapse button text
+            if (_expandCollapseAllButton != null)
+            {
+                _expandCollapseAllButton.Content = _allExpanded ? "▲ Collapse All" : "▼ Expand All";
+            }
         }
 
         public override string Title => "Mod Selection";
@@ -80,6 +124,9 @@ namespace KOTORModSync.Dialogs.WizardPages
             _filterSummaryText = this.FindControl<TextBlock>("FilterSummaryText");
             _selectAllButton = this.FindControl<Button>("SelectAllButton");
             _deselectAllButton = this.FindControl<Button>("DeselectAllButton");
+            _selectByTierButton = this.FindControl<Button>("SelectByTierButton");
+            _selectByCategoryButton = this.FindControl<Button>("SelectByCategoryButton");
+            _expandCollapseAllButton = this.FindControl<Button>("ExpandCollapseAllButton");
             _clearFiltersButton = this.FindControl<Button>("ClearFiltersButton");
             _searchTextBox = this.FindControl<TextBox>("SearchTextBox");
             _categoryFilterComboBox = this.FindControl<ComboBox>("CategoryFilterComboBox");
@@ -139,9 +186,35 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 _spoilerFreeToggle.IsCheckedChanged += (_, __) =>
                 {
-                    _spoilerFreeMode = _spoilerFreeToggle.IsChecked == true;
-                    RebuildModList();
+                    bool newValue = _spoilerFreeToggle.IsChecked == true;
+                    if (_spoilerFreeMode != newValue)
+                    {
+                        _spoilerFreeMode = newValue;
+
+                        // Update parent window's spoiler-free mode if available
+                        if (_parentWindow != null)
+                        {
+                            _parentWindow.SpoilerFreeMode = _spoilerFreeMode;
+                        }
+
+                        RebuildModList();
+                    }
                 };
+            }
+
+            if (_selectByTierButton != null)
+            {
+                _selectByTierButton.Click += async (_, __) => await ShowSelectByTierDialog();
+            }
+
+            if (_selectByCategoryButton != null)
+            {
+                _selectByCategoryButton.Click += async (_, __) => await ShowSelectByCategoryDialog();
+            }
+
+            if (_expandCollapseAllButton != null)
+            {
+                _expandCollapseAllButton.Click += (_, __) => ToggleExpandCollapseAll();
             }
         }
 
@@ -153,7 +226,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 var categories = _allComponents
                     .Where(c => !c.WidescreenOnly)
                     .SelectMany(c => c.Category ?? new List<string>())
-                    .Distinct()
+                    .Distinct(StringComparer.Ordinal)
                     .OrderBy(cat => cat, StringComparer.Ordinal)
                     .ToList();
 
@@ -172,7 +245,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 var tiers = _allComponents
                     .Where(c => !c.WidescreenOnly && !string.IsNullOrEmpty(c.Tier))
                     .Select(c => c.Tier)
-                    .Distinct()
+                    .Distinct(StringComparer.Ordinal)
                     .OrderBy(tier => tier, StringComparer.Ordinal)
                     .ToList();
 
@@ -195,6 +268,14 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             _modListPanel.Children.Clear();
             _modCheckBoxes.Clear();
+            var previousExpanderStates = new Dictionary<string, bool>(StringComparer.Ordinal);
+
+            // Preserve expander states
+            foreach (var kvp in _categoryExpanders)
+            {
+                previousExpanderStates[kvp.Key] = kvp.Value.IsExpanded;
+            }
+            _categoryExpanders.Clear();
 
             var filteredMods = GetFilteredMods();
             IOrderedEnumerable<IGrouping<string, ModComponent>> categorizedMods = filteredMods
@@ -203,38 +284,105 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             foreach (IGrouping<string, ModComponent> categoryGroup in categorizedMods)
             {
-                // Category header with count
-                var categoryHeader = new Border
+                string categoryName = categoryGroup.Key;
+                int modCount = categoryGroup.Count();
+                int selectedCount = categoryGroup.Count(c => c.IsSelected);
+
+                // Create expandable category section
+                var expander = new Expander
                 {
-                    Padding = new Avalonia.Thickness(12, 10),
-                    Margin = new Avalonia.Thickness(0, 8, 0, 4),
-                    CornerRadius = new Avalonia.CornerRadius(6),
+                    Margin = new Avalonia.Thickness(0, 4, 0, 4),
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+                    IsExpanded = previousExpanderStates.TryGetValue(categoryName, out bool wasExpanded) ? wasExpanded : _allExpanded,
                 };
 
-                var headerStack = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8 };
-                headerStack.Children.Add(new TextBlock
+                // Create header with category name, count, and selection status
+                var headerGrid = new Grid
                 {
-                    Text = categoryGroup.Key,
+                    ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"),
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+                };
+
+                var categoryNameBlock = new TextBlock
+                {
+                    Text = categoryName,
                     FontSize = 16,
                     FontWeight = FontWeight.Bold,
-                });
-                headerStack.Children.Add(new TextBlock
-                {
-                    Text = $"({categoryGroup.Count()})",
-                    FontSize = 14,
-                    Opacity = 0.6,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                });
+                };
+                Grid.SetColumn(categoryNameBlock, 0);
+                headerGrid.Children.Add(categoryNameBlock);
 
-                categoryHeader.Child = headerStack;
-                _modListPanel.Children.Add(categoryHeader);
+                var countBlock = new TextBlock
+                {
+                    Text = $"({modCount} mods)",
+                    FontSize = 13,
+                    Opacity = 0.7,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    Margin = new Avalonia.Thickness(8, 0, 0, 0),
+                };
+                Grid.SetColumn(countBlock, 1);
+                headerGrid.Children.Add(countBlock);
 
-                // Mods in this category
+                if (selectedCount > 0)
+                {
+                    var selectedBadge = new Border
+                    {
+                        Padding = new Avalonia.Thickness(6, 2),
+                        CornerRadius = new CornerRadius(4),
+                        Margin = new Avalonia.Thickness(8, 0, 0, 0),
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        Child = new TextBlock
+                        {
+                            Text = $"✓ {selectedCount} selected",
+                            FontSize = 11,
+                            FontWeight = FontWeight.SemiBold,
+                        },
+                    };
+                    Grid.SetColumn(selectedBadge, 2);
+                    headerGrid.Children.Add(selectedBadge);
+                }
+
+                // Add category-level select/deselect button
+                var categorySelectButton = new Button
+                {
+                    Padding = new Avalonia.Thickness(8, 4),
+                    Margin = new Avalonia.Thickness(8, 0, 0, 0),
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    Content = selectedCount == modCount ? "✗ Deselect All" : "✓ Select All",
+                    FontSize = 10,
+                };
+                ToolTip.SetTip(categorySelectButton, selectedCount == modCount ? "Deselect all mods in this category" : "Select all mods in this category");
+                categorySelectButton.Click += (_, __) =>
+                {
+                    bool shouldSelect = selectedCount < modCount;
+                    foreach (var component in categoryGroup)
+                    {
+                        component.IsSelected = shouldSelect;
+                    }
+                    RebuildModList();
+                };
+                Grid.SetColumn(categorySelectButton, 3);
+                headerGrid.Children.Add(categorySelectButton);
+
+                expander.Header = headerGrid;
+
+                // Create content panel with mods
+                var modsPanel = new StackPanel
+                {
+                    Spacing = 4,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+                };
                 foreach (ModComponent component in categoryGroup.OrderBy(c => c.Name, StringComparer.Ordinal))
                 {
-                    var modCard = CreateModCard(component);
-                    _modListPanel.Children.Add(modCard);
+                    Border modCard = CreateModCard(component);
+                    modsPanel.Children.Add(modCard);
                 }
+                expander.Content = modsPanel;
+
+                _categoryExpanders[categoryName] = expander;
+                _modListPanel.Children.Add(expander);
             }
 
             if (!filteredMods.Any())
@@ -262,9 +410,9 @@ namespace KOTORModSync.Dialogs.WizardPages
                                 FontSize = 13,
                                 Opacity = 0.7,
                                 TextAlignment = TextAlignment.Center,
-                            }
-                        }
-                    }
+                            },
+                        },
+                    },
                 });
             }
         }
@@ -275,14 +423,39 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Padding = new Avalonia.Thickness(14, 12),
                 Margin = new Avalonia.Thickness(8, 4),
-                CornerRadius = new Avalonia.CornerRadius(8),
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                Tag = component,
+            };
+
+            // Add hover styles
+            card.PointerEntered += (sender, e) =>
+            {
+                if (sender is Border border)
+                {
+                    border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
+                    border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush;
+                }
+            };
+
+            card.PointerExited += (sender, e) =>
+            {
+                if (sender is Border border)
+                {
+                    border.Background = ThemeResourceHelper.ModListItemDefaultBackgroundBrush;
+                    border.BorderBrush = null; // Reset to default
+                }
             };
 
             var mainGrid = new Grid
             {
                 ColumnDefinitions = new ColumnDefinitions("Auto,12,*,Auto"),
-                RowDefinitions = new RowDefinitions("Auto,4,Auto"),
             };
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Name row
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Badges row
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(4) }); // Spacing
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Description row
 
             // Checkbox
             var checkBox = new CheckBox
@@ -304,13 +477,28 @@ namespace KOTORModSync.Dialogs.WizardPages
             _modCheckBoxes.Add(checkBox);
             Grid.SetColumn(checkBox, 0);
             Grid.SetRow(checkBox, 0);
-            Grid.SetRowSpan(checkBox, 3);
+            Grid.SetRowSpan(checkBox, 5); // Span all rows including badges and options
             mainGrid.Children.Add(checkBox);
 
-            // Mod name (with spoiler-free handling)
-            string displayName = _spoilerFreeMode && !string.IsNullOrEmpty(component.SpoilerFreeName)
-                ? component.SpoilerFreeName
-                : component.Name;
+            // Make entire card clickable to toggle checkbox (after checkbox is created)
+            card.PointerPressed += (sender, e) =>
+            {
+                if (e.Source is CheckBox)
+                {
+                    return; // Let checkbox handle its own clicks
+                }
+
+                e.Handled = true;
+                if (sender is Border border && border.Tag is ModComponent comp)
+                {
+                    comp.IsSelected = !comp.IsSelected;
+                    checkBox.IsChecked = comp.IsSelected; // Update checkbox directly
+                    UpdateSelectionCount();
+                }
+            };
+
+            // Mod name (with spoiler-free handling and auto-generation)
+            string displayName = GetDisplayName(component, _spoilerFreeMode);
 
             var nameText = new TextBlock
             {
@@ -323,51 +511,256 @@ namespace KOTORModSync.Dialogs.WizardPages
             Grid.SetRow(nameText, 0);
             mainGrid.Children.Add(nameText);
 
-            // Tier badge (if exists)
+            // Tier badge (if exists) - moved to badges row
+            // Category and Tier badges row
+            var badgesGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+                Margin = new Avalonia.Thickness(0, 4, 0, 0),
+            };
+
+            // Category badges (left side)
+            if (component.Category != null && component.Category.Count > 0)
+            {
+                var categoryBadgesPanel = new StackPanel
+                {
+                    Orientation = Avalonia.Layout.Orientation.Horizontal,
+                    Spacing = 4,
+                };
+
+                foreach (string category in component.Category)
+                {
+                    var categoryBadge = new Border
+                    {
+                        Padding = new Avalonia.Thickness(6, 2),
+                        Margin = new Avalonia.Thickness(0, 0, 4, 0),
+                        CornerRadius = new CornerRadius(6),
+                    };
+                    categoryBadge.Classes.Add("mod-list-item-badge");
+                    categoryBadge.Classes.Add("category-badge");
+                    var categoryText = new TextBlock
+                    {
+                        Text = category,
+                        FontSize = 10,
+                        FontWeight = FontWeight.Medium,
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                        TextWrapping = TextWrapping.NoWrap,
+                    };
+                    ToolTip.SetTip(categoryText, Core.Utility.CategoryTierDefinitions.GetCategoryDescription(category));
+                    categoryBadge.Child = categoryText;
+                    categoryBadgesPanel.Children.Add(categoryBadge);
+                }
+                Grid.SetColumn(categoryBadgesPanel, 0);
+                badgesGrid.Children.Add(categoryBadgesPanel);
+            }
+
+            // Tier badge (right side)
             if (!string.IsNullOrEmpty(component.Tier))
             {
                 var tierBadge = new Border
                 {
-                    Padding = new Avalonia.Thickness(8, 3),
-                    CornerRadius = new Avalonia.CornerRadius(4),
-                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
-                    Child = new TextBlock
-                    {
-                        Text = component.Tier,
-                        FontSize = 11,
-                        FontWeight = FontWeight.SemiBold,
-                    }
+                    Padding = new Avalonia.Thickness(6, 2),
+                    CornerRadius = new CornerRadius(6),
                 };
-                Grid.SetColumn(tierBadge, 3);
-                Grid.SetRow(tierBadge, 0);
-                mainGrid.Children.Add(tierBadge);
+                tierBadge.Classes.Add("mod-list-item-badge");
+                tierBadge.Classes.Add("tier-badge");
+                var tierText = new TextBlock
+                {
+                    Text = component.Tier,
+                    FontSize = 10,
+                    FontWeight = FontWeight.Medium,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    TextWrapping = TextWrapping.NoWrap,
+                };
+                ToolTip.SetTip(tierText, Core.Utility.CategoryTierDefinitions.GetTierDescription(component.Tier));
+                tierBadge.Child = tierText;
+                Grid.SetColumn(tierBadge, 1);
+                badgesGrid.Children.Add(tierBadge);
             }
 
-            // Description (with spoiler-free handling)
-            if (!string.IsNullOrWhiteSpace(component.Description) || !string.IsNullOrWhiteSpace(component.SpoilerFreeDescription))
-            {
-                string displayDesc = _spoilerFreeMode && !string.IsNullOrEmpty(component.SpoilerFreeDescription)
-                    ? component.SpoilerFreeDescription
-                    : component.Description;
+            Grid.SetColumn(badgesGrid, 2);
+            Grid.SetColumnSpan(badgesGrid, 2);
+            Grid.SetRow(badgesGrid, 1);
+            mainGrid.Children.Add(badgesGrid);
 
-                if (!string.IsNullOrWhiteSpace(displayDesc))
+            // Description (simplified, with spoiler-free handling)
+            string displayDesc = GetSimplifiedDescription(component, _spoilerFreeMode);
+            if (!string.IsNullOrWhiteSpace(displayDesc))
+            {
+                var descText = new TextBlock
                 {
-                    var descText = new TextBlock
-                    {
-                        Text = displayDesc,
-                        FontSize = 13,
-                        Opacity = 0.75,
-                        TextWrapping = TextWrapping.Wrap,
-                    };
-                    Grid.SetColumn(descText, 2);
-                    Grid.SetRow(descText, 2);
-                    Grid.SetColumnSpan(descText, 2);
-                    mainGrid.Children.Add(descText);
+                    Text = displayDesc,
+                    FontSize = 13,
+                    Opacity = 0.75,
+                    TextWrapping = TextWrapping.Wrap,
+                };
+                Grid.SetColumn(descText, 2);
+                Grid.SetRow(descText, 3);
+                Grid.SetColumnSpan(descText, 2);
+                mainGrid.Children.Add(descText);
+            }
+
+            // Add options if they exist
+            if (component.Options != null && component.Options.Count > 0)
+            {
+                var optionsPanel = new StackPanel
+                {
+                    Margin = new Avalonia.Thickness(0, 8, 0, 0),
+                    Spacing = 4,
+                };
+
+                foreach (var option in component.Options)
+                {
+                    var optionBorder = CreateOptionCard(option);
+                    optionsPanel.Children.Add(optionBorder);
                 }
+
+                Grid.SetRow(optionsPanel, 4);
+                Grid.SetColumn(optionsPanel, 0);
+                Grid.SetColumnSpan(optionsPanel, 4);
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                mainGrid.Children.Add(optionsPanel);
             }
 
             card.Child = mainGrid;
+
+            // Set tooltip on the card itself for better reliability (after child is set)
+            string tooltipText = CreateModTooltip(component, _spoilerFreeMode);
+            if (!string.IsNullOrWhiteSpace(tooltipText))
+            {
+                ToolTip.SetTip(card, tooltipText);
+            }
+
             return card;
+        }
+
+        private Border CreateOptionCard(Option option)
+        {
+            var optionBorder = new Border
+            {
+                Margin = new Avalonia.Thickness(0, 2),
+                Padding = new Avalonia.Thickness(8, 4),
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                Tag = option,
+            };
+
+            var optionGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+            };
+
+            var optionCheckBox = new CheckBox
+            {
+                IsChecked = option.IsSelected,
+                Tag = option,
+                Margin = new Avalonia.Thickness(0, 0, 8, 0),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            };
+
+            optionCheckBox.IsCheckedChanged += (_, __) =>
+            {
+                if (optionCheckBox.Tag is Option opt)
+                {
+                    opt.IsSelected = optionCheckBox.IsChecked == true;
+                    // Update background
+                    optionBorder.Background = opt.IsSelected
+                        ? ThemeResourceHelper.ModListItemHoverBackgroundBrush
+                        : Brushes.Transparent;
+                }
+            };
+
+            Grid.SetColumn(optionCheckBox, 0);
+            optionGrid.Children.Add(optionCheckBox);
+
+            var optionContentPanel = new StackPanel
+            {
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            };
+
+            // Option name
+            string optionDisplayName = GetDisplayName(option, _spoilerFreeMode);
+            var optionNameText = new TextBlock
+            {
+                Text = optionDisplayName,
+                FontSize = 12,
+                FontWeight = FontWeight.Medium,
+                TextWrapping = TextWrapping.Wrap,
+            };
+            optionContentPanel.Children.Add(optionNameText);
+
+            // Option description (simplified)
+            string optionDisplayDesc = GetSimplifiedDescription(option, _spoilerFreeMode);
+            if (!string.IsNullOrWhiteSpace(optionDisplayDesc))
+            {
+                var optionDescText = new TextBlock
+                {
+                    Text = optionDisplayDesc,
+                    FontSize = 11,
+                    Opacity = 0.8,
+                    TextWrapping = TextWrapping.Wrap,
+                };
+                optionContentPanel.Children.Add(optionDescText);
+            }
+
+            Grid.SetColumn(optionContentPanel, 1);
+            optionGrid.Children.Add(optionContentPanel);
+
+            optionBorder.Child = optionGrid;
+
+            // Set tooltip on the option card itself (after child is set)
+            string optionTooltipText = CreateModTooltip(option, _spoilerFreeMode);
+            if (!string.IsNullOrWhiteSpace(optionTooltipText))
+            {
+                ToolTip.SetTip(optionBorder, optionTooltipText);
+            }
+
+            // Set initial background based on selection state
+            optionBorder.Background = option.IsSelected
+                ? ThemeResourceHelper.ModListItemHoverBackgroundBrush
+                : Brushes.Transparent;
+
+            // Add hover styles (after checkbox is created to avoid closure issues)
+            optionBorder.PointerEntered += (sender, e) =>
+            {
+                if (sender is Border border)
+                {
+                    border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
+                }
+            };
+
+            optionBorder.PointerExited += (sender, e) =>
+            {
+                if (sender is Border border && border.Tag is Option opt)
+                {
+                    border.Background = opt.IsSelected
+                        ? ThemeResourceHelper.ModListItemHoverBackgroundBrush
+                        : Brushes.Transparent;
+                }
+            };
+
+            // Make entire option card clickable to toggle checkbox (after checkbox is created)
+            optionBorder.PointerPressed += (sender, e) =>
+            {
+                if (e.Source is CheckBox)
+                {
+                    return; // Let checkbox handle its own clicks
+                }
+
+                e.Handled = true;
+                if (sender is Border border && border.Tag is Option opt)
+                {
+                    opt.IsSelected = !opt.IsSelected;
+                    optionCheckBox.IsChecked = opt.IsSelected; // Update checkbox directly
+                    // Update background immediately
+                    border.Background = opt.IsSelected
+                        ? ThemeResourceHelper.ModListItemHoverBackgroundBrush
+                        : Brushes.Transparent;
+                }
+            };
+
+            return optionBorder;
         }
 
         private List<ModComponent> GetFilteredMods()
@@ -375,13 +768,13 @@ namespace KOTORModSync.Dialogs.WizardPages
             var filtered = _allComponents.Where(c => !c.WidescreenOnly);
 
             // Apply category filter
-            if (!string.IsNullOrEmpty(_currentCategoryFilter) && _currentCategoryFilter != "All Categories")
+            if (!string.IsNullOrEmpty(_currentCategoryFilter) && !string.Equals(_currentCategoryFilter, "All Categories", StringComparison.Ordinal))
             {
                 filtered = filtered.Where(c => c.Category?.Contains(_currentCategoryFilter, StringComparer.OrdinalIgnoreCase) == true);
             }
 
             // Apply tier filter
-            if (!string.IsNullOrEmpty(_currentTierFilter) && _currentTierFilter != "All Tiers")
+            if (!string.IsNullOrEmpty(_currentTierFilter) && !string.Equals(_currentTierFilter, "All Tiers", StringComparison.Ordinal))
             {
                 filtered = filtered.Where(c => string.Equals(c.Tier, _currentTierFilter, StringComparison.OrdinalIgnoreCase));
             }
@@ -391,13 +784,8 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 filtered = filtered.Where(c =>
                 {
-                    string searchTarget = _spoilerFreeMode && !string.IsNullOrEmpty(c.SpoilerFreeName)
-                        ? c.SpoilerFreeName
-                        : c.Name;
-
-                    string descTarget = _spoilerFreeMode && !string.IsNullOrEmpty(c.SpoilerFreeDescription)
-                        ? c.SpoilerFreeDescription
-                        : c.Description;
+                    string searchTarget = GetDisplayName(c, _spoilerFreeMode);
+                    string descTarget = GetSimplifiedDescription(c, _spoilerFreeMode);
 
                     return (searchTarget?.IndexOf(_currentSearchText, StringComparison.OrdinalIgnoreCase) >= 0) ||
                            (descTarget?.IndexOf(_currentSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
@@ -517,12 +905,12 @@ namespace KOTORModSync.Dialogs.WizardPages
                 activeFilters.Add($"Search: \"{_currentSearchText}\"");
             }
 
-            if (!string.IsNullOrEmpty(_currentCategoryFilter) && _currentCategoryFilter != "All Categories")
+            if (!string.IsNullOrEmpty(_currentCategoryFilter) && !string.Equals(_currentCategoryFilter, "All Categories", StringComparison.Ordinal))
             {
                 activeFilters.Add($"Category: {_currentCategoryFilter}");
             }
 
-            if (!string.IsNullOrEmpty(_currentTierFilter) && _currentTierFilter != "All Tiers")
+            if (!string.IsNullOrEmpty(_currentTierFilter) && !string.Equals(_currentTierFilter, "All Tiers", StringComparison.Ordinal))
             {
                 activeFilters.Add($"Tier: {_currentTierFilter}");
             }
@@ -554,10 +942,448 @@ namespace KOTORModSync.Dialogs.WizardPages
             }
 
             bool hasActiveFilters = !string.IsNullOrEmpty(_currentSearchText) ||
-                                   (!string.IsNullOrEmpty(_currentCategoryFilter) && _currentCategoryFilter != "All Categories") ||
-                                   (!string.IsNullOrEmpty(_currentTierFilter) && _currentTierFilter != "All Tiers");
+                                   (!string.IsNullOrEmpty(_currentCategoryFilter) && !string.Equals(_currentCategoryFilter, "All Categories", StringComparison.Ordinal)) ||
+                                   (!string.IsNullOrEmpty(_currentTierFilter) && !string.Equals(_currentTierFilter, "All Tiers", StringComparison.Ordinal));
 
             _clearFiltersButton.IsVisible = hasActiveFilters;
+        }
+
+        /// <summary>
+        /// Gets the display name for a component based on spoiler-free mode.
+        /// Uses the converter's auto-generation logic when spoiler-free property is empty.
+        /// </summary>
+        private static string GetDisplayName(ModComponent component, bool spoilerFreeMode)
+        {
+            if (component == null)
+            {
+                return "Unknown Mod";
+            }
+
+            if (spoilerFreeMode)
+            {
+                // If spoiler-free name is provided, use it
+                if (!string.IsNullOrWhiteSpace(component.NameSpoilerFree))
+                {
+                    return component.NameSpoilerFree;
+                }
+
+                // Generate automatic spoiler-free name using the converter
+                return Converters.SpoilerFreeContentConverter.GenerateAutoName(component);
+            }
+
+            // Return regular name
+            return component.Name ?? "Unnamed Mod";
+        }
+
+        /// <summary>
+        /// Gets a simplified, user-friendly description without verbose metadata.
+        /// Verbose information is moved to tooltips.
+        /// </summary>
+        private static string GetSimplifiedDescription(ModComponent component, bool spoilerFreeMode)
+        {
+            if (component == null)
+            {
+                return string.Empty;
+            }
+
+            if (spoilerFreeMode)
+            {
+                // If spoiler-free description is provided, use it (but still simplify if needed)
+                if (!string.IsNullOrWhiteSpace(component.DescriptionSpoilerFree))
+                {
+                    return component.DescriptionSpoilerFree;
+                }
+
+                // Generate simplified spoiler-free description
+                return GenerateSimplifiedSpoilerFreeDescription(component);
+            }
+
+            // Return regular description (truncate if too long)
+            string desc = component.Description ?? string.Empty;
+            if (desc.Length > 200)
+            {
+                return desc.Substring(0, 197) + "...";
+            }
+            return desc;
+        }
+
+        /// <summary>
+        /// Generates a simplified spoiler-free description without verbose metadata.
+        /// </summary>
+        private static string GenerateSimplifiedSpoilerFreeDescription(ModComponent component)
+        {
+            if (component == null)
+            {
+                return "Mod description available.";
+            }
+
+            // Just provide a basic, non-spoiler description
+            if (component.Category != null && component.Category.Count > 0)
+            {
+                string categoryStr = string.Join(", ", component.Category);
+                return $"This {categoryStr} modification enhances your gameplay.";
+            }
+
+            return "This modification enhances your gameplay.";
+        }
+
+        /// <summary>
+        /// Creates a comprehensive tooltip with detailed mod information.
+        /// </summary>
+        private static string CreateModTooltip(ModComponent component, bool spoilerFreeMode)
+        {
+            if (component == null)
+            {
+                return "No information available.";
+            }
+
+            var tooltipParts = new List<string>();
+
+            // Name
+            string displayName = GetDisplayName(component, spoilerFreeMode);
+            tooltipParts.Add($"📦 {displayName}");
+
+            // Author
+            if (!string.IsNullOrWhiteSpace(component.Author))
+            {
+                tooltipParts.Add($"👤 Author: {component.Author}");
+            }
+
+            // Categories
+            if (component.Category != null && component.Category.Count > 0)
+            {
+                var categoryDescriptions = component.Category
+                    .Select(cat => $"• {cat}: {Core.Utility.CategoryTierDefinitions.GetCategoryDescription(cat)}")
+                    .ToList();
+                tooltipParts.Add($"🏷️ Categories:\n{string.Join("\n", categoryDescriptions)}");
+            }
+
+            // Tier
+            if (!string.IsNullOrWhiteSpace(component.Tier))
+            {
+                tooltipParts.Add($"⭐ Tier: {component.Tier} - {Core.Utility.CategoryTierDefinitions.GetTierDescription(component.Tier)}");
+            }
+
+            // Description - use spoiler-free handling
+            string description;
+            if (spoilerFreeMode)
+            {
+                // If spoiler-free description is provided, use it
+                if (!string.IsNullOrWhiteSpace(component.DescriptionSpoilerFree))
+                {
+                    description = component.DescriptionSpoilerFree;
+                }
+                else
+                {
+                    // Generate simplified spoiler-free description
+                    description = GenerateSimplifiedSpoilerFreeDescription(component);
+                }
+            }
+            else
+            {
+                // Regular mode - use actual description
+                description = component.Description;
+            }
+
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                tooltipParts.Add($"📝 Description: {description}");
+            }
+
+            // Installation details
+            var installDetails = new List<string>();
+            if (component.Instructions != null && component.Instructions.Count > 0)
+            {
+                installDetails.Add($"{component.Instructions.Count} installation step(s)");
+            }
+            if (component.Options != null && component.Options.Count > 0)
+            {
+                installDetails.Add($"{component.Options.Count} customization option(s)");
+            }
+            if (!string.IsNullOrWhiteSpace(component.InstallationMethod))
+            {
+                installDetails.Add($"uses {component.InstallationMethod}");
+            }
+            if (installDetails.Count > 0)
+            {
+                tooltipParts.Add($"⚙️ Installation: {string.Join(", ", installDetails)}");
+            }
+
+            // Language support
+            if (component.Language != null && component.Language.Count > 0)
+            {
+                string languageStr = string.Join(", ", component.Language);
+                tooltipParts.Add($"🌐 Language support: {languageStr}");
+            }
+
+            // Download sources
+            if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
+            {
+                tooltipParts.Add($"🔗 {component.ResourceRegistry.Count} download source(s) available");
+            }
+
+            return string.Join("\n\n", tooltipParts);
+        }
+
+        private void ToggleExpandCollapseAll()
+        {
+            _allExpanded = !_allExpanded;
+
+            foreach (var expander in _categoryExpanders.Values)
+            {
+                expander.IsExpanded = _allExpanded;
+            }
+
+            if (_expandCollapseAllButton != null)
+            {
+                _expandCollapseAllButton.Content = _allExpanded ? "▲ Collapse All" : "▼ Expand All";
+            }
+        }
+
+        private async Task ShowSelectByTierDialog()
+        {
+            var tiers = _allComponents
+                .Where(c => !c.WidescreenOnly && !string.IsNullOrEmpty(c.Tier))
+                .Select(c => c.Tier)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(tier => tier, StringComparer.Ordinal)
+                .ToList();
+
+            if (tiers.Count == 0)
+            {
+                return;
+            }
+
+            var dialog = new Window
+            {
+                Title = "Select Mods by Tier",
+                Width = 400,
+                Height = 300,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            };
+
+            var mainPanel = new StackPanel
+            {
+                Margin = new Avalonia.Thickness(16),
+                Spacing = 12,
+            };
+
+            mainPanel.Children.Add(new TextBlock
+            {
+                Text = "Select a tier to select all mods in that tier and higher priority tiers:",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Avalonia.Thickness(0, 0, 0, 8),
+            });
+
+            var tierComboBox = new ComboBox
+            {
+                ItemsSource = tiers,
+                SelectedIndex = 0,
+            };
+            mainPanel.Children.Add(tierComboBox);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                Spacing = 8,
+            };
+
+            var selectButton = new Button
+            {
+                Content = "Select",
+                Padding = new Avalonia.Thickness(12, 6),
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "Cancel",
+                Padding = new Avalonia.Thickness(12, 6),
+            };
+
+            selectButton.Click += (_, __) =>
+            {
+                if (tierComboBox.SelectedItem is string selectedTier)
+                {
+                    SelectByTier(selectedTier);
+                    dialog.Close();
+                }
+            };
+
+            cancelButton.Click += (_, __) => dialog.Close();
+
+            buttonPanel.Children.Add(selectButton);
+            buttonPanel.Children.Add(cancelButton);
+            mainPanel.Children.Add(buttonPanel);
+
+            dialog.Content = mainPanel;
+
+            var parentWindow = this.FindAncestorOfType<Window>();
+            if (parentWindow != null)
+            {
+                await dialog.ShowDialog(parentWindow);
+            }
+        }
+
+        private void SelectByTier(string selectedTier)
+        {
+            // Define tier priorities (lower number = higher priority)
+            var tierPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "1", 1 },
+                { "2", 2 },
+                { "3", 3 },
+                { "4", 4 },
+                { "Optional", 5 },
+            };
+
+            if (!tierPriorities.TryGetValue(selectedTier, out int selectedPriority))
+            {
+                // Unknown tier, just select that tier
+                foreach (var component in _allComponents.Where(c => !c.WidescreenOnly && string.Equals(c.Tier, selectedTier, StringComparison.OrdinalIgnoreCase)))
+                {
+                    component.IsSelected = true;
+                }
+            }
+            else
+            {
+                // Select all tiers with priority <= selected priority
+                foreach (var component in _allComponents.Where(c => !c.WidescreenOnly && !string.IsNullOrEmpty(c.Tier)))
+                {
+                    if (tierPriorities.TryGetValue(component.Tier, out int compPriority) && compPriority <= selectedPriority)
+                    {
+                        component.IsSelected = true;
+                    }
+                }
+            }
+
+            RebuildModList();
+            UpdateSelectionCount();
+        }
+
+        private async Task ShowSelectByCategoryDialog()
+        {
+            var categories = _allComponents
+                .Where(c => !c.WidescreenOnly)
+                .SelectMany(c => c.Category ?? new List<string>())
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(cat => cat, StringComparer.Ordinal)
+                .ToList();
+
+            if (categories.Count == 0)
+            {
+                return;
+            }
+
+            var dialog = new Window
+            {
+                Title = "Select Mods by Category",
+                Width = 450,
+                Height = 500,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            };
+
+            var mainPanel = new StackPanel
+            {
+                Margin = new Avalonia.Thickness(16),
+                Spacing = 12,
+            };
+
+            mainPanel.Children.Add(new TextBlock
+            {
+                Text = "Select one or more categories:",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Avalonia.Thickness(0, 0, 0, 8),
+            });
+
+            var scrollViewer = new ScrollViewer
+            {
+                MaxHeight = 300,
+            };
+            // ScrollViewer defaults to Auto for VerticalScrollBarVisibility
+
+            var categoryPanel = new StackPanel { Spacing = 4 };
+            var selectedCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string category in categories)
+            {
+                var checkBox = new CheckBox
+                {
+                    Content = category,
+                    Margin = new Avalonia.Thickness(0, 2),
+                };
+                checkBox.IsCheckedChanged += (_, __) =>
+                {
+                    if (checkBox.IsChecked == true)
+                    {
+                        selectedCategories.Add(category);
+                    }
+                    else
+                    {
+                        selectedCategories.Remove(category);
+                    }
+                };
+                categoryPanel.Children.Add(checkBox);
+            }
+
+            scrollViewer.Content = categoryPanel;
+            mainPanel.Children.Add(scrollViewer);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                Spacing = 8,
+            };
+
+            var selectButton = new Button
+            {
+                Content = "Select",
+                Padding = new Avalonia.Thickness(12, 6),
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "Cancel",
+                Padding = new Avalonia.Thickness(12, 6),
+            };
+
+            selectButton.Click += (_, __) =>
+            {
+                if (selectedCategories.Count > 0)
+                {
+                    SelectByCategories(selectedCategories.ToList());
+                    dialog.Close();
+                }
+            };
+
+            cancelButton.Click += (_, __) => dialog.Close();
+
+            buttonPanel.Children.Add(selectButton);
+            buttonPanel.Children.Add(cancelButton);
+            mainPanel.Children.Add(buttonPanel);
+
+            dialog.Content = mainPanel;
+
+            var parentWindow = this.FindAncestorOfType<Window>();
+            if (parentWindow != null)
+            {
+                await dialog.ShowDialog(parentWindow);
+            }
+        }
+
+        private void SelectByCategories(List<string> selectedCategories)
+        {
+            foreach (var component in _allComponents.Where(c => !c.WidescreenOnly))
+            {
+                if (component.Category != null && component.Category.Any(cat => selectedCategories.Contains(cat, StringComparer.OrdinalIgnoreCase)))
+                {
+                    component.IsSelected = true;
+                }
+            }
+
+            RebuildModList();
+            UpdateSelectionCount();
         }
     }
 }

@@ -433,14 +433,14 @@ namespace KOTORModSync.Converters
                                     !lines[nextNonEmpty].TrimEnd().StartsWith(":::", StringComparison.OrdinalIgnoreCase))
                                 {
                                     // Continue paragraph after empty line
-                                    paragraphBuilder.Append(" ");
+                                    paragraphBuilder.Append(' ');
                                     i = nextNonEmpty;
                                     continue;
                                 }
                                 break;
                             }
 
-                            paragraphBuilder.Append(" ");
+                            paragraphBuilder.Append(' ');
                             paragraphBuilder.Append(nextLine);
                             i++;
                         }

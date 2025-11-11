@@ -15,6 +15,11 @@ namespace KOTORModSync.Dialogs.WizardPages
     {
         private TextBlock _contentText;
 
+        public AspyrNoticePage()
+            : this(string.Empty)
+        {
+        }
+
         public AspyrNoticePage([NotNull] string aspyrContent)
         {
             InitializeComponent();

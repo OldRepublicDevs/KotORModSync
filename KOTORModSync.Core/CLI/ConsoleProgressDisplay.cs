@@ -55,7 +55,7 @@ namespace KOTORModSync.Core.CLI
             if (_isEnabled)
             {
                 Console.Write(HIDE_CURSOR);
-                _refreshTimer = new Timer(_ => Render(), null, TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16));
+                _refreshTimer = new Timer(_ => Render(), state: null, TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16));
             }
         }
 
@@ -239,7 +239,7 @@ namespace KOTORModSync.Core.CLI
                     int consoleHeight = Console.WindowHeight;
                     int statusStartLine = Math.Max(1, consoleHeight - statusLines + 1);
 
-                    _ = sb.Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "\x1b[{0};1H", statusStartLine));
+                    _ = sb.AppendFormat(System.Globalization.CultureInfo.InvariantCulture, "\x1b[{0};1H", statusStartLine);
                     _ = sb.Append("\x1b[0J");
 
                     var failedItems = _failedItems.Values
@@ -254,9 +254,9 @@ namespace KOTORModSync.Core.CLI
                         {
                             string truncatedUrl = TruncateString(failed.Url, _consoleWidth - 35);
                             string shortError = failed.Error.Length > 25 ? failed.Error.Substring(0, 22) + "..." : failed.Error;
-                            _ = sb.AppendLine($"║ ✗ {truncatedUrl} ({shortError})");
+                            _ = sb.Append("║ ✗ ").Append(truncatedUrl).Append(" (").Append(shortError).Append(')').AppendLine();
                         }
-                        _ = sb.AppendLine("╚" + new string('═', Math.Min(_consoleWidth - 2, 50)));
+                        _ = sb.Append("╚").AppendLine(new string('═', Math.Min(_consoleWidth - 2, 50)));
                     }
 
                     var activeItems = _activeItems.Values
@@ -272,13 +272,12 @@ namespace KOTORModSync.Core.CLI
                             string progressBar = RenderProgressBar(item.Progress, 30);
                             string statusIcon = GetStatusIcon(item.Status);
                             string displayText = TruncateString(item.DisplayText, _consoleWidth - 45);
-                            _ = sb.AppendLine(
-                                string.Format(
+                            _ = sb.AppendFormat(System.Globalization.CultureInfo.InvariantCulture, "{0} {1} {2} {3:F1}%", string.Format(
                                     System.Globalization.CultureInfo.InvariantCulture,
                                     "{0} {1} {2} {3:F1}%",
                                     statusIcon, displayText, progressBar, item.Progress
                                 )
-                            );
+).AppendLine();
                         }
                         _ = sb.Append('╚').AppendLine(new string('═', Math.Min(_consoleWidth - 2, 50)));
                     }

@@ -35,7 +35,7 @@ namespace KOTORModSync.Tests
 
             if (_destinationPath != null && _destinationPath.Exists)
             {
-                _destinationPath.Delete(true);
+                _destinationPath.Delete(recursive: true);
             }
         }
 

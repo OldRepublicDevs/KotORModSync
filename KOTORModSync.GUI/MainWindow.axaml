@@ -58,6 +58,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Menu
                     x:Name="TopMenu"
@@ -85,20 +86,29 @@
                     FontWeight="Bold"
                     Text="KOTORModSync" />
 
-                <!--  Wizard Mode Toggle (right of title)  -->
+                <!--  Workflow Toggles (right of title)  -->
                 <ToggleSwitch
-                    x:Name="WizardModeToggle"
+                    x:Name="EditorModeToggle"
                     Grid.Column="3"
                     Margin="10,0,10,0"
                     VerticalAlignment="Center"
+                    Content="Editor Mode"
+                    IsChecked="{Binding EditorMode, Mode=TwoWay}"
+                    IsVisible="{Binding !WizardMode}"
+                    ToolTip.Tip="Enable editor mode to author or edit instruction sets manually" />
+                <ToggleSwitch
+                    x:Name="WizardModeToggle"
+                    Grid.Column="4"
+                    Margin="0,0,10,0"
+                    VerticalAlignment="Center"
                     Content="Wizard Mode"
                     IsChecked="{Binding WizardMode, Mode=TwoWay}"
-                    IsVisible="{Binding !EditorMode}"
+                    IsVisible="{Binding ShowWizardToggle}"
                     ToolTip.Tip="Use wizard interface for guided installation" />
 
                 <!--  Theme Switcher (segmented control style)  -->
                 <Border
-                    Grid.Column="4"
+                    Grid.Column="5"
                     Margin="10,0,10,0"
                     VerticalAlignment="Center"
                     CornerRadius="4"
@@ -144,7 +154,7 @@
 
                 <!--  Window Controls  -->
                 <StackPanel
-                    Grid.Column="5"
+                    Grid.Column="6"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
@@ -193,12 +203,22 @@
 
             <!--  Content Area: Wizard Mode or Normal Mode  -->
             <!--  Wizard Mode (shown when WizardMode is true and EditorMode is false)  -->
+            <!--
+                The wizard host control mirrors the `WizardContentVisible` binding so the guided installation flow only occupies the main window while Wizard Mode is active.
+                Keeping this element collapsed outside of wizard sessions avoids mixing guided steps with editor widgets, reducing confusion for players following instructions.
+                When the wizard is enabled the layout hides every other primary surface, allowing this host to deliver a focused, linear experience until the installation completes or the user exits the mode.
+            -->
             <controls:WizardHostControl
                 x:Name="WizardHost"
                 Grid.Row="2"
                 IsVisible="{Binding WizardContentVisible}" />
 
             <!--  Normal Mode (shown when not in wizard mode)  -->
+            <!--
+                The main editor grid is bound to `MainContentVisible`, which flips to true whenever the application is in authoring mode or the user leaves the guided wizard.
+                By placing the majority of editor widgets inside this container we guarantee they all appear and disappear together, keeping transitions between workflows crisp and predictable.
+                The grid houses the mod list, tab control, and related editing instruments, so hiding it while the wizard or landing page is active prevents half-configured panels from confusing newcomers.
+            -->
             <Grid
                 x:Name="MainGrid"
                 Grid.Row="2"
@@ -237,6 +257,11 @@
                     Grid.Column="0"
                     HorizontalAlignment="Right"
                     IsVisible="{Binding MainContentVisible}" />
+                <!--
+                    The editor `TabControl` inherits `MainContentVisible` so the tabbed authoring views are only interactive when the editor surface is intended to be in focus.
+                    Binding at the control level, rather than per-tab, keeps the entire suite of editing contexts hidden during wizard sessions while still allowing individual tabs to tweak their own visibility.
+                    This approach also ensures keyboard navigation and focus handling behave correctly because the tab control simply does not participate in the visual tree when other modes are active.
+                -->
                 <TabControl
                     x:Name="TabControl"
                     Grid.Row="0"
@@ -307,7 +332,6 @@
                                 DeleteOptionRequested="EditorTab_DeleteOptionRequested"
                                 DownloadCacheService="{Binding DownloadCacheService}"
                                 ExpandAllSectionsRequested="EditorTab_ExpandAllSectionsRequested"
-                                JumpToBlockingInstructionRequested="EditorTab_JumpToBlockingInstructionRequested"
                                 ModManagementService="{Binding ModManagementService}"
                                 MoveInstructionDownRequested="EditorTab_MoveInstructionDownRequested"
                                 MoveInstructionUpRequested="EditorTab_MoveInstructionUpRequested"
@@ -334,6 +358,11 @@
         Grid.Row="4" Content="{Binding LogViewer}" />-->
             </Grid>
 
+            <!--
+                The landing page view remains visible only when `LandingPageVisible` is true, providing new users with onboarding cues whenever no instructions are loaded and neither the wizard nor the editor is in play.
+                Hiding this control once content becomes available avoids duplicating prompts about loading files, while revealing it again after closing a session gently guides the user back to the recommended setup steps.
+                Because the view refreshes its status indicators whenever the visibility flag flips, these bindings ensure the landing experience always reflects the current configuration without manual intervention.
+            -->
             <controls:LandingPageView
                 x:Name="LandingPage"
                 Grid.Row="2"
@@ -405,40 +434,42 @@
                 </Grid>
             </Border>
 
-            <!--  Loading Overlay  -->
-            <Border
-                x:Name="LoadingOverlay"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Background="#E0000000"
-                IsVisible="False"
-                Opacity="0.9">
-                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Border
-                        MinWidth="300"
-                        Padding="48,32"
-                        Background="#F0F0F0"
-                        BorderBrush="#CCCCCC"
-                        BorderThickness="2"
-                        CornerRadius="12">
-                        <StackPanel HorizontalAlignment="Center" Spacing="24">
-                            <ProgressBar
-                                x:Name="LoadingSpinner"
-                                Width="60"
-                                Height="60"
-                                HorizontalAlignment="Center"
-                                IsIndeterminate="True" />
-                            <TextBlock
-                                x:Name="LoadingText"
-                                HorizontalAlignment="Center"
-                                FontSize="18"
-                                FontWeight="SemiBold"
-                                Text="Loading file..."
-                                TextAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </Border>
         </Grid>
+
+        <!--  Loading Overlay (covers entire window)  -->
+        <Border
+            x:Name="LoadingOverlay"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#E0000000"
+            IsVisible="False"
+            IsHitTestVisible="False"
+            Opacity="0.9">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border
+                    MinWidth="300"
+                    Padding="48,32"
+                    Background="#F0F0F0"
+                    BorderBrush="#CCCCCC"
+                    BorderThickness="2"
+                    CornerRadius="12">
+                    <StackPanel HorizontalAlignment="Center" Spacing="24">
+                        <ProgressBar
+                            x:Name="LoadingSpinner"
+                            Width="60"
+                            Height="60"
+                            HorizontalAlignment="Center"
+                            IsIndeterminate="True" />
+                        <TextBlock
+                            x:Name="LoadingText"
+                            HorizontalAlignment="Center"
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Text="Loading file..."
+                            TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
     </Panel>
 </Window>

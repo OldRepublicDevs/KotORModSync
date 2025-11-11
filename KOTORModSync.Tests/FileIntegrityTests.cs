@@ -30,7 +30,7 @@ namespace KOTORModSync.Tests
         {
             if (Directory.Exists(_testDirectory))
             {
-                Directory.Delete(_testDirectory, true);
+                Directory.Delete(_testDirectory, recursive: true);
             }
         }
 
@@ -40,7 +40,7 @@ namespace KOTORModSync.Tests
             string testFile = Path.Combine(_testDirectory, "test.txt");
             await File.WriteAllTextAsync(testFile, "Hello, World!");
 
-            var (sha256, pieceLength, pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             // SHA-256 should be 64 hex characters
             Assert.That(sha256, Has.Length.EqualTo(64));
@@ -63,7 +63,7 @@ namespace KOTORModSync.Tests
             byte[] largeData = new byte[10 * 1024 * 1024]; // 10 MB
             await File.WriteAllBytesAsync(testFile, largeData);
 
-            var (sha256, pieceLength, pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             // Piece length should be larger for large files
             Assert.That(pieceLength, Is.GreaterThanOrEqualTo(65536));
@@ -79,8 +79,8 @@ namespace KOTORModSync.Tests
             string testFile = Path.Combine(_testDirectory, "deterministic.txt");
             await File.WriteAllTextAsync(testFile, "Deterministic content");
 
-            var result1 = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
-            var result2 = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string contentHashSHA256, int pieceLength, string pieceHashes) result1 = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string contentHashSHA256, int pieceLength, string pieceHashes) result2 = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             Assert.Multiple(() =>
             {
@@ -96,7 +96,7 @@ namespace KOTORModSync.Tests
             string testFile = Path.Combine(_testDirectory, "valid.txt");
             await File.WriteAllTextAsync(testFile, "Valid content for verification");
 
-            var (sha256, pieceLength, pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             var metadata = new ResourceMetadata
             {
@@ -117,7 +117,7 @@ namespace KOTORModSync.Tests
             string testFile = Path.Combine(_testDirectory, "modified.txt");
             await File.WriteAllTextAsync(testFile, "Original content");
 
-            var (sha256, pieceLength, pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             var metadata = new ResourceMetadata
             {
@@ -141,7 +141,7 @@ namespace KOTORModSync.Tests
             string testFile = Path.Combine(_testDirectory, "size_test.txt");
             await File.WriteAllTextAsync(testFile, "Size test");
 
-            var (sha256, pieceLength, pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             var metadata = new ResourceMetadata
             {
@@ -193,7 +193,7 @@ namespace KOTORModSync.Tests
             string testFile = Path.Combine(_testDirectory, "piece_test.txt");
             await File.WriteAllTextAsync(testFile, "Content for piece verification");
 
-            var (sha256, pieceLength, pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             bool isValid = await DownloadCacheOptimizer.VerifyPieceHashesFromStored(testFile, pieceLength, pieceHashes);
 
@@ -206,7 +206,7 @@ namespace KOTORModSync.Tests
             string testFile = Path.Combine(_testDirectory, "corrupt_piece.txt");
             await File.WriteAllTextAsync(testFile, "Original piece data");
 
-            var (sha256, pieceLength, pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
+            (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 
             // Corrupt the file
             await File.WriteAllTextAsync(testFile, "Corrupted piece data");

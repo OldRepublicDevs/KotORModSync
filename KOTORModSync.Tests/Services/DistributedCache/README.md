@@ -1,6 +1,6 @@
 # KOTORModSync Distributed Cache Tests
 
-This directory contains comprehensive integration tests for the distributed cache (P2P) system in KOTORModSync.
+This directory contains comprehensive integration tests for the distributed cache system in KOTORModSync.
 
 ## Test Organization
 
@@ -16,15 +16,13 @@ Tests for ContentId generation, idempotency, and collision detection:
 - Binary patterns and edge cases
 - Deterministic across multiple runs
 
-### 2. SeedingIntegrationTests (12+ tests) [Docker Required]
+### 2. SeedingIntegrationTests (3 tests) [Docker Required]
 
-Integration tests using real BitTorrent clients in Docker containers:
+Relay and Cascade smoke tests executed against real containers:
 
-- qBittorrent, Transmission, and Deluge support
-- Local Peer Discovery (LPD) validation
-- Upload tracking and verification
-- Multi-peer scenarios
-- Connection and state management
+- Container startup verification (Relay, Cascade)
+- Descriptor submission round-trip using Relay
+- Engine detection sanity check
 
 ### 3. PortManagementTests (12+ tests)
 
@@ -58,7 +56,7 @@ Integration tests using real KOTOR mod builds:
 
 Tests for metadata consistency and integrity:
 
-- Torrent file generation
+- Descriptor generation
 - Piece hash correctness
 - Deterministic metadata
 - Various content patterns
@@ -136,13 +134,13 @@ See `.github/workflows/distributed-cache-tests.yml` for workflow configuration.
 
 ## Test Infrastructure
 
-### DockerBitTorrentClient
+### DockerCacheClient
 
-Manages containerized BitTorrent clients for integration testing:
+Manages containerized cache clients for integration testing:
 
 - Auto-detects Docker or Podman
-- Supports qBittorrent, Transmission, Deluge
-- API interaction for adding torrents and checking stats
+- Supports Relay, Cascade
+- API interaction for adding descriptors and checking stats
 - Automatic cleanup
 
 ### DistributedCacheTestFixture
@@ -150,7 +148,7 @@ Manages containerized BitTorrent clients for integration testing:
 Provides test infrastructure:
 
 - Temporary directories and files
-- Torrent file creation
+- Descriptor creation
 - ContentId computation
 - Wait conditions for async operations
 
@@ -172,17 +170,9 @@ Provides test infrastructure:
 - mod-builds submodule initialized
 - KOTOR1_Full.toml and KOTOR2_Full.toml present
 
-## Total Test Count
+### Current Total
 
-**Current Total: 130+ comprehensive tests**
-
-- ContentId: 20 tests
-- Seeding Integration: 12 tests (Docker)
-- Port Management: 12 tests
-- Cache Engine: 20 tests
-- Real Mod Integration: 10 tests
-- Metadata Consistency: 16 tests
-- Error Handling & Edge Cases: 40 tests
+120+ comprehensive tests
 
 ## Continuous Seeding
 
@@ -202,7 +192,7 @@ When adding new tests:
 1. Follow the existing test organization
 2. Add appropriate `[Fact]` or `[Theory]` attributes
 3. Use `[Collection("DistributedCache")]` attribute
-4. Mark Docker-requiring tests with `[Fact(Skip = "Requires Docker")]`
+4. Mark Docker-requiring tests with `[Fact]`
 5. Add test descriptions to this README
 
 ## Notes

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 
 using JetBrains.Annotations;
+using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Core.Utility
 {
@@ -240,5 +241,359 @@ namespace KOTORModSync.Core.Utility
             double threshold = aspyrTotal * 0.7;
             return aspyrScore >= threshold ? DetectedGame.Kotor2Aspyr : DetectedGame.Kotor2Legacy;
         }
+
+        private const int EvidenceLimit = 6;
+
+        private static readonly IReadOnlyDictionary<GameInstallVariant, IReadOnlyList<string>> DetailedSignatureMap =
+            new Dictionary<GameInstallVariant, IReadOnlyList<string>>
+            {
+                {
+                    GameInstallVariant.PcKotor1,
+                    new[]
+                    {
+                        "streamwaves",
+                        "swkotor.exe",
+                        "swkotor.ini",
+                        "rims",
+                        "utils",
+                        "32370_install.vdf",
+                        "miles/mssds3d.m3d",
+                        "miles/msssoft.m3d",
+                        "data/party.bif",
+                        "data/player.bif",
+                        "modules/global.mod",
+                        "modules/legal.mod",
+                        "modules/mainmenu.mod",
+                    }
+                },
+                {
+                    GameInstallVariant.PcKotor2,
+                    new[]
+                    {
+                        "streamvoice",
+                        "swkotor2.exe",
+                        "swkotor2.ini",
+                        "LocalVault",
+                        "LocalVault/test.bic",
+                        "LocalVault/testold.bic",
+                        "miles/binkawin.asi",
+                        "miles/mssds3d.flt",
+                        "miles/mssdolby.flt",
+                        "miles/mssogg.asi",
+                        "data/Dialogs.bif",
+                    }
+                },
+                {
+                    GameInstallVariant.XboxKotor1,
+                    new[]
+                    {
+                        "01_SS_Repair01.ini",
+                        "swpatch.ini",
+                        "dataxbox/_newbif.bif",
+                        "rimsxbox",
+                        "players.erf",
+                        "downloader.xbe",
+                        "rimsxbox/manm28ad_adx.rim",
+                        "rimsxbox/miniglobal.rim",
+                        "rimsxbox/miniglobaldx.rim",
+                        "rimsxbox/STUNT_56a_a.rim",
+                        "rimsxbox/STUNT_56a_adx.rim",
+                        "rimsxbox/STUNT_57_adx.rim",
+                        "rimsxbox/subglobal.rim",
+                        "rimsxbox/subglobaldx.rim",
+                        "rimsxbox/unk_m44ac_adx.rim",
+                        "rimsxbox/M12ab_adx.rim",
+                        "rimsxbox/mainmenu.rim",
+                        "rimsxbox/mainmenudx.rim",
+                    }
+                },
+                {
+                    GameInstallVariant.XboxKotor2,
+                    new[]
+                    {
+                        "combat.erf",
+                        "effects.erf",
+                        "footsteps.erf",
+                        "footsteps.rim",
+                        "SWRC",
+                        "weapons.ERF",
+                        "SuperModels/smseta.erf",
+                        "SuperModels/smsetb.erf",
+                        "SuperModels/smsetc.erf",
+                        "SWRC/System/Subtitles_Epilogue.int",
+                        "SWRC/System/Subtitles_YYY_06.int",
+                        "SWRC/System/SWRepublicCommando.int",
+                        "SWRC/System/System.ini",
+                        "SWRC/System/UDebugMenu.u",
+                        "SWRC/System/UnrealEd.int",
+                        "SWRC/System/UnrealEd.u",
+                        "SWRC/System/User.ini",
+                        "SWRC/System/UWeb.int",
+                        "SWRC/System/Window.int",
+                        "SWRC/System/WinDrv.int",
+                        "SWRC/System/Xbox",
+                        "SWRC/System/XboxLive.int",
+                        "SWRC/System/XGame.u",
+                        "SWRC/System/XGameList.int",
+                        "SWRC/System/XGames.int",
+                        "SWRC/System/XInterface.u",
+                        "SWRC/System/XInterfaceMP.u",
+                        "SWRC/System/XMapList.int",
+                        "SWRC/System/XMaps.int",
+                        "SWRC/System/YYY_TitleCard.int",
+                        "SWRC/System/Xbox/Engine.int",
+                        "SWRC/System/Xbox/XboxLive.int",
+                        "SWRC/Textures/GUIContent.utx",
+                    }
+                },
+                {
+                    GameInstallVariant.IosKotor1,
+                    new[]
+                    {
+                        "override/ios_action_bg.tga",
+                        "override/ios_action_bg2.tga",
+                        "override/ios_action_x.tga",
+                        "override/ios_action_x2.tga",
+                        "override/ios_button_a.tga",
+                        "override/ios_button_x.tga",
+                        "override/ios_button_y.tga",
+                        "override/ios_edit_box.tga",
+                        "override/ios_enemy_plus.tga",
+                        "override/ios_gpad_bg.tga",
+                        "override/ios_gpad_gen.tga",
+                        "override/ios_gpad_gen2.tga",
+                        "override/ios_gpad_help.tga",
+                        "override/ios_gpad_help2.tga",
+                        "override/ios_gpad_map.tga",
+                        "override/ios_gpad_map2.tga",
+                        "override/ios_gpad_save.tga",
+                        "override/ios_gpad_save2.tga",
+                        "override/ios_gpad_solo.tga",
+                        "override/ios_gpad_solo2.tga",
+                        "override/ios_gpad_solox.tga",
+                        "override/ios_gpad_solox2.tga",
+                        "override/ios_gpad_ste.tga",
+                        "override/ios_gpad_ste2.tga",
+                        "override/ios_gpad_ste3.tga",
+                        "override/ios_help.tga",
+                        "override/ios_help2.tga",
+                        "override/ios_help_1.tga",
+                        "KOTOR",
+                        "KOTOR.entitlements",
+                        "kotorios-Info.plist",
+                        "AppIcon29x29.png",
+                        "AppIcon50x50@2x~ipad.png",
+                        "AppIcon50x50~ipad.png",
+                    }
+                },
+                {
+                    GameInstallVariant.IosKotor2,
+                    new[]
+                    {
+                        "override/ios_mfi_deu.tga",
+                        "override/ios_mfi_eng.tga",
+                        "override/ios_mfi_esp.tga",
+                        "override/ios_mfi_fre.tga",
+                        "override/ios_mfi_ita.tga",
+                        "override/ios_self_box_r.tga",
+                        "override/ios_self_expand2.tga",
+                        "override/ipho_forfeit.tga",
+                        "override/ipho_forfeit2.tga",
+                        "override/kotor2logon.tga",
+                        "override/lbl_miscroll_open_f.tga",
+                        "override/lbl_miscroll_open_f2.tga",
+                        "override/ydialog.gui",
+                        "KOTOR II",
+                        "KOTOR2-Icon-20-Apple.png",
+                        "KOTOR2-Icon-29-Apple.png",
+                        "KOTOR2-Icon-40-Apple.png",
+                        "KOTOR2-Icon-58-apple.png",
+                        "KOTOR2-Icon-60-apple.png",
+                        "KOTOR2-Icon-76-apple.png",
+                        "KOTOR2-Icon-80-apple.png",
+                        "KOTOR2_LaunchScreen.storyboardc",
+                        "KOTOR2_LaunchScreen.storyboardc/Info.plist",
+                        "GoogleService-Info.plist",
+                    }
+                },
+                { GameInstallVariant.AndroidKotor1, Array.Empty<string>() },
+                { GameInstallVariant.AndroidKotor2, Array.Empty<string>() },
+            };
+
+        public static DetailedGameDetectionSummary AnalyzeGameDirectoryDetailed([CanBeNull] string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            {
+                return DetailedGameDetectionSummary.Empty;
+            }
+
+            var root = new CaseAwarePath(path).Resolve();
+            var results = new List<DetailedGameDetectionResult>();
+
+            foreach (KeyValuePair<GameInstallVariant, IReadOnlyList<string>> signature in DetailedSignatureMap)
+            {
+                results.Add(ScoreSignatures(root, signature.Key, signature.Value));
+            }
+
+            if (results.Count == 0)
+            {
+                return DetailedGameDetectionSummary.Empty;
+            }
+
+            int maxMatches = results.Max(r => r.Matches);
+            if (maxMatches <= 0)
+            {
+                return new DetailedGameDetectionSummary(GameInstallVariant.Unknown, isTie: false, bestResult: null, results);
+            }
+
+            bool tie = results.Count(r => r.Matches == maxMatches) > 1;
+            DetailedGameDetectionResult best = tie ? null : results.First(r => r.Matches == maxMatches);
+
+            if (best != null && best.Variant == GameInstallVariant.PcKotor2)
+            {
+                DetectedGame k2Version = DetectKotor2Version(root.ToString());
+                GameInstallVariant resolved = k2Version == DetectedGame.Kotor2Aspyr
+                    ? GameInstallVariant.PcKotor2Aspyr
+                    : GameInstallVariant.PcKotor2Legacy;
+
+                best = new DetailedGameDetectionResult(
+                    resolved,
+                    best.Matches,
+                    best.TotalChecks,
+                    best.MatchedEvidence,
+                    best.MissingEvidence);
+            }
+
+            var normalizedResults = results
+                .Select(r =>
+                    r.Variant != GameInstallVariant.PcKotor2
+                        ? r
+                        : new DetailedGameDetectionResult(
+                            best?.Variant ?? GameInstallVariant.PcKotor2,
+                            r.Matches,
+                            r.TotalChecks,
+                            r.MatchedEvidence,
+                            r.MissingEvidence))
+                .ToList();
+
+            return new DetailedGameDetectionSummary(
+                best?.Variant ?? GameInstallVariant.Unknown,
+                tie,
+                best,
+                normalizedResults);
+        }
+
+        private static DetailedGameDetectionResult ScoreSignatures(
+            CaseAwarePath root,
+            GameInstallVariant identity,
+            IReadOnlyList<string> signatures)
+        {
+            if (signatures is null || signatures.Count == 0)
+            {
+                return new DetailedGameDetectionResult(identity, 0, 0, Array.Empty<string>(), Array.Empty<string>());
+            }
+
+            int matches = 0;
+            var matched = new List<string>(EvidenceLimit);
+            var missing = new List<string>(EvidenceLimit);
+
+            foreach (string signature in signatures)
+            {
+                bool exists = SignatureExists(root, signature);
+                if (exists)
+                {
+                    matches++;
+                    if (matched.Count < EvidenceLimit)
+                    {
+                        matched.Add(signature);
+                    }
+                }
+                else if (missing.Count < EvidenceLimit)
+                {
+                    missing.Add(signature);
+                }
+            }
+
+            return new DetailedGameDetectionResult(identity, matches, signatures.Count, matched, missing);
+        }
+
+        private static bool SignatureExists(CaseAwarePath root, string relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                return false;
+            }
+
+            string normalized = relativePath.Replace('\\', Path.DirectorySeparatorChar)
+                .Replace('/', Path.DirectorySeparatorChar);
+
+            CaseAwarePath candidate = root.JoinPath(normalized);
+            string fullPath = candidate.ToString();
+
+            return Directory.Exists(fullPath) || File.Exists(fullPath);
+        }
+
+        public enum GameInstallVariant
+        {
+            Unknown,
+            PcKotor1,
+            PcKotor2,
+            PcKotor2Legacy,
+            PcKotor2Aspyr,
+            XboxKotor1,
+            XboxKotor2,
+            IosKotor1,
+            IosKotor2,
+            AndroidKotor1,
+            AndroidKotor2,
+        }
+
+        public sealed class DetailedGameDetectionResult
+        {
+            public DetailedGameDetectionResult(
+                GameInstallVariant variant,
+                int matches,
+                int totalChecks,
+                IReadOnlyList<string> matchedEvidence,
+                IReadOnlyList<string> missingEvidence)
+            {
+                Variant = variant;
+                Matches = matches;
+                TotalChecks = totalChecks;
+                MatchedEvidence = matchedEvidence;
+                MissingEvidence = missingEvidence;
+            }
+
+            public GameInstallVariant Variant { get; }
+            public int Matches { get; }
+            public int TotalChecks { get; }
+            public IReadOnlyList<string> MatchedEvidence { get; }
+            public IReadOnlyList<string> MissingEvidence { get; }
+            public double Confidence => TotalChecks == 0 ? 0 : (double)Matches / TotalChecks;
+        }
+
+        public sealed class DetailedGameDetectionSummary
+        {
+            public static readonly DetailedGameDetectionSummary Empty =
+                new DetailedGameDetectionSummary(GameInstallVariant.Unknown, isTie: false, bestResult: null, Array.Empty<DetailedGameDetectionResult>());
+
+            public DetailedGameDetectionSummary(
+                GameInstallVariant identity,
+                bool isTie,
+                DetailedGameDetectionResult bestResult,
+                IReadOnlyList<DetailedGameDetectionResult> allResults)
+            {
+                Identity = identity;
+                IsTie = isTie;
+                BestResult = bestResult;
+                AllResults = allResults;
+            }
+
+            public GameInstallVariant Identity { get; }
+            public bool IsTie { get; }
+            public DetailedGameDetectionResult BestResult { get; }
+            public IReadOnlyList<DetailedGameDetectionResult> AllResults { get; }
+        }
     }
 }
+

@@ -90,7 +90,7 @@ namespace KOTORModSync.Tests
             int result = modLinkProcessor.ProcessComponentModLinksSync(
                 new List<ModComponent> { component },
                 _downloadDirectory,
-                null,
+progress: null,
                 CancellationToken.None);
 
             Assert.Multiple(() =>
@@ -136,7 +136,7 @@ namespace KOTORModSync.Tests
             modLinkProcessor.ProcessComponentModLinksSync(
                 new List<ModComponent> { component },
                 _downloadDirectory,
-                null,
+progress: null,
                 CancellationToken.None);
 
             Assert.That(component.Instructions, Has.Count.EqualTo(4), "Should have 2 Extract + 2 Move instructions");
@@ -191,7 +191,7 @@ namespace KOTORModSync.Tests
             modLinkProcessor.ProcessComponentModLinksSync(
                 new List<ModComponent> { component },
                 _downloadDirectory,
-                null,
+progress: null,
                 CancellationToken.None);
 
             Assert.That(component.Instructions, Has.Count.EqualTo(3), "Should have existing + Extract + Move");
@@ -227,7 +227,7 @@ namespace KOTORModSync.Tests
             modLinkProcessor.ProcessComponentModLinksSync(
                 new List<ModComponent> { component },
                 _downloadDirectory,
-                null,
+progress: null,
                 CancellationToken.None);
 
             int instructionsAfterFirst = component.Instructions.Count;
@@ -235,7 +235,7 @@ namespace KOTORModSync.Tests
             modLinkProcessor.ProcessComponentModLinksSync(
                 new List<ModComponent> { component },
                 _downloadDirectory,
-                null,
+progress: null,
                 CancellationToken.None);
 
             int instructionsAfterSecond = component.Instructions.Count;
@@ -275,7 +275,7 @@ namespace KOTORModSync.Tests
             modLinkProcessor.ProcessComponentModLinksSync(
                 new List<ModComponent> { component },
                 _downloadDirectory,
-                null,
+progress: null,
                 CancellationToken.None);
 
             Assert.That(component.Instructions, Has.Count.GreaterThanOrEqualTo(3), "Should have Extract + Patcher + Move");

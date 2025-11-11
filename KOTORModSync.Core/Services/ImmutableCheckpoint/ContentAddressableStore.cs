@@ -143,9 +143,12 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
                     {
                         fileStream = new FileStream(casPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     }
-                    catch (IOException)
+                    catch (IOException ex)
                     {
                         // File was created by another thread between check and creation
+#pragma warning disable S6966 // Awaitable method should be used
+                        Logger.LogVerbose($"[CAS] File creation race encountered for '{casPath}': {ex.Message}");
+#pragma warning restore S6966 // Awaitable method should be used
                         alreadyExists = true;
                     }
                 }
@@ -170,9 +173,10 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
                     await stream.CopyToAsync(fileStream).ConfigureAwait(false);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // If copy fails, try to delete the partial file
+                await Logger.LogExceptionAsync(ex, $"[CAS] Failed to copy stream to '{casPath}', attempting cleanup.").ConfigureAwait(false);
                 try
                 {
                     if (File.Exists(casPath))
@@ -180,9 +184,9 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
                         File.Delete(casPath);
                     }
                 }
-                catch
+                catch (Exception cleanupEx)
                 {
-                    // Ignore deletion errors
+                    await Logger.LogExceptionAsync(cleanupEx, $"[CAS] Failed to remove partial file '{casPath}' after copy failure.").ConfigureAwait(false);
                 }
                 throw;
             }

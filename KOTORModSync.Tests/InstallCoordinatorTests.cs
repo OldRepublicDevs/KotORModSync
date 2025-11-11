@@ -65,12 +65,12 @@ namespace KOTORModSync.Tests
                 Assert.That(File.Exists(sessionPath), "Checkpoint state should be written to disk");
 
                 string backupPath = Path.Combine(MainConfig.DestinationPath.FullName, ModComponent.CheckpointFolderName, "last_good_backup.zip");
-                Assert.That(File.Exists(backupPath), Is.True, "Backup manager should create backup snapshot");
+                Assert.That(File.Exists(backupPath), Is.True, "Checkpoint manager should create backup snapshot");
             }
         }
 
         [Test]
-        public async Task SessionManager_Persists_ComponentState_BetweenRuns()
+        public async Task CheckpointManager_Persists_ComponentState_BetweenRuns()
         {
             ModComponent component = TestComponentFactory.CreateComponent("ResumeComponent", _workingDirectory);
             _mainConfigInstance.allComponents = new List<ModComponent> { component };
@@ -79,8 +79,8 @@ namespace KOTORModSync.Tests
             _ = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, CancellationToken.None);
 
             component.InstallState = ModComponent.ComponentInstallState.Completed;
-            coordinator.SessionManager.UpdateComponentState(component);
-            await coordinator.SessionManager.SaveAsync();
+            coordinator.CheckpointManager.UpdateComponentState(component);
+            await coordinator.CheckpointManager.SaveAsync();
 
             var secondCoordinator = new InstallCoordinator();
             ResumeResult resume = await secondCoordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, CancellationToken.None);
@@ -97,7 +97,7 @@ namespace KOTORModSync.Tests
             ModComponent component2 = TestComponentFactory.CreateComponent("PendingComponent", _workingDirectory);
             _mainConfigInstance.allComponents = new List<ModComponent> { component1, component2 };
 
-            ModComponent.InstallExitCode exitCode = await InstallationService.InstallAllSelectedComponentsAsync(MainConfig.AllComponents, null, CancellationToken.None);
+            ModComponent.InstallExitCode exitCode = await InstallationService.InstallAllSelectedComponentsAsync(MainConfig.AllComponents, progressCallback: null, CancellationToken.None);
 
             Assert.Multiple(() =>
             {

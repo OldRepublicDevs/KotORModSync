@@ -732,10 +732,8 @@ namespace KOTORModSync.Core.Services.Download
 
                             return lastDownloadedFile;
                         }
-                        else
-                        {
-                            await Logger.LogWarningAsync("[DeadlyStream] Multi-file selection page detected but no download links found").ConfigureAwait(false);
-                        }
+
+                        await Logger.LogWarningAsync("[DeadlyStream] Multi-file selection page detected but no download links found").ConfigureAwait(false);
                     }
 
 

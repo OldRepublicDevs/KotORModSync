@@ -12,22 +12,19 @@ namespace KOTORModSync.Controls
     {
         public event EventHandler LoadInstructionsRequested;
         public event EventHandler CreateInstructionsRequested;
-        public event EventHandler ConfigureDirectoriesRequested;
-
+        public event EventHandler OpenSponsorPageRequested;
         public LandingPageView()
         {
             InitializeComponent();
             LoadInstructionButton.Click += OnLoadInstructionButtonClick;
             CreateInstructionsButton.Click += OnCreateInstructionsButtonClick;
-            ConfigureDirectoriesButton.Click += OnConfigureDirectoriesButtonClick;
+            SponsorButton.Click += OnSponsorButtonClick;
         }
 
         public void UpdateState(
             bool instructionFileLoaded,
             string instructionFileName,
-            bool editorModeEnabled,
-            string modDirectory,
-            string gameDirectory)
+            bool editorModeEnabled)
         {
             InstructionStatusText.Text = instructionFileLoaded
                 ? string.IsNullOrWhiteSpace(instructionFileName)
@@ -38,14 +35,6 @@ namespace KOTORModSync.Controls
             EditorStatusText.Text = editorModeEnabled
                 ? "Editor mode is enabled."
                 : "Editor mode is currently off.";
-
-            ModDirectoryStatusText.Text = string.IsNullOrWhiteSpace(modDirectory)
-                ? "Mod workspace: not set"
-                : $"Mod workspace: {modDirectory}";
-
-            GameDirectoryStatusText.Text = string.IsNullOrWhiteSpace(gameDirectory)
-                ? "Game directory: not set"
-                : $"Game directory: {gameDirectory}";
         }
 
         private void OnLoadInstructionButtonClick(object sender, RoutedEventArgs e)
@@ -58,9 +47,9 @@ namespace KOTORModSync.Controls
             CreateInstructionsRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        private void OnConfigureDirectoriesButtonClick(object sender, RoutedEventArgs e)
+        private void OnSponsorButtonClick(object sender, RoutedEventArgs e)
         {
-            ConfigureDirectoriesRequested?.Invoke(this, EventArgs.Empty);
+            OpenSponsorPageRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 }

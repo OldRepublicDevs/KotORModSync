@@ -3,6 +3,7 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -46,8 +47,8 @@ namespace KOTORModSync.Tests
         [TearDown]
         public void TearDown()
         {
-            _subDirectory.Delete(true);
-            _tempDirectory.Delete(true);
+            _subDirectory.Delete(recursive: true);
+            _tempDirectory.Delete(recursive: true);
         }
 
         [Test]
@@ -63,10 +64,10 @@ namespace KOTORModSync.Tests
         [Test]
         public void FindCaseInsensitiveDuplicates_ReturnsEmptyList_WhenDirectoryIsEmpty()
         {
-            var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory);
+            IEnumerable<FileSystemInfo> result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory);
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.ToList().Count}. Output: {failureMessage}");
         }
@@ -83,7 +84,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
         }
@@ -106,7 +107,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result.ToList(),
@@ -127,7 +128,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
         }
@@ -144,7 +145,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
         }
@@ -192,7 +193,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(fileInfo).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -216,7 +217,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(s_testDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -241,7 +242,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(dirInfo).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -272,7 +273,7 @@ namespace KOTORModSync.Tests
                 .ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -304,7 +305,7 @@ namespace KOTORModSync.Tests
                 .ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
+            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,

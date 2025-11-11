@@ -9,77 +9,274 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     x:Name="Root"
     mc:Ignorable="d">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="32" Spacing="24">
-            <StackPanel Spacing="4">
-                <TextBlock x:Name="HeaderText" Text="Welcome to KOTORModSync" />
-                <TextBlock x:Name="SubHeaderText" Text="Pick how you want to get started." />
-            </StackPanel>
+    <UserControl.Styles>
+        <Style Selector="Border.landing-hero">
+            <Setter Property="Padding" Value="36,32" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Background" Value="{DynamicResource LandingHeroBackgroundBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LandingHeroBoxShadow}" />
+        </Style>
 
-            <WrapPanel x:Name="CardPanel" MinWidth="200">
-                <Border
-                    Margin="0,0,16,16"
-                    Padding="20"
-                    CornerRadius="8">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Load instruction file" />
-                        <TextBlock Text="Import a curated build (.toml, .json, .yaml, .md) to preconfigure everything automatically." />
+        <Style Selector="Border.landing-card">
+            <Setter Property="Padding" Value="24" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="MinWidth" Value="280" />
+            <Setter Property="MaxWidth" Value="400" />
+            <Setter Property="Margin" Value="12" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LandingCardBoxShadow}" />
+        </Style>
+
+        <Style Selector="Border.landing-section">
+            <Setter Property="Padding" Value="24" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderMidBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LandingSectionBoxShadow}" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-hero-title">
+            <Setter Property="FontSize" Value="32" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource LandingHeroTitleForegroundBrush}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-hero-subtitle">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="Foreground" Value="{DynamicResource LandingHeroSubtitleForegroundBrush}" />
+            <Setter Property="Margin" Value="0,0,0,24" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-hero-detail">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Foreground" Value="{DynamicResource LandingHeroDetailForegroundBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-card-title">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-card-body">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="Button.landing-action-button">
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="10" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-status">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-section-title">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-section-subtitle">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+            <Setter Property="Opacity" Value="0.85" />
+            <Setter Property="Margin" Value="0,4,0,16" />
+        </Style>
+
+        <Style Selector="Border.landing-step-card">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Background" Value="{DynamicResource LandingStepCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LandingStepCardBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-step-title">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource LandingStepTitleForegroundBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.landing-step-body">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource LandingStepBodyForegroundBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="32" Spacing="28">
+            <Border Classes="landing-hero">
+                <StackPanel Spacing="10">
+                    <TextBlock
+                        x:Name="HeaderText"
+                        Classes="landing-hero-title"
+                        Text="Welcome to KOTORModSync" />
+                    <TextBlock
+                        x:Name="SubHeaderText"
+                        Classes="landing-hero-subtitle"
+                        Text="Launch into a curated mod build or craft your own galactic experience." />
+                    <TextBlock
+                        Classes="landing-hero-detail"
+                        Text="KOTORModSync guides you through smart, secure installs with sandboxed file operations, wizard-style workflows, and a powerful editor for authors." />
+                </StackPanel>
+            </Border>
+
+            <WrapPanel
+                x:Name="CardPanel"
+                HorizontalAlignment="Center"
+                Margin="0,8,0,0"
+                MinWidth="200">
+                <Border Classes="landing-card">
+                    <StackPanel Spacing="18">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0" FontSize="28" Margin="0,0,12,0" Text="📂" />
+                            <TextBlock Grid.Column="1" Classes="landing-card-title" Text="Load a curated instruction set" />
+                        </Grid>
+                        <TextBlock
+                            Classes="landing-card-body"
+                            Text="Import a ready-made configuration (.toml, .json, .yaml, .md) and let the wizard take over validation, downloads, and install order." />
                         <Button
                             x:Name="LoadInstructionButton"
-                            Padding="18,10"
-                            HorizontalAlignment="Left"
-                            Content="Load Instruction File" />
-                        <TextBlock
-                            x:Name="InstructionStatusText"
-                            Text="No instruction file loaded yet."
-                            TextWrapping="Wrap" />
+                            Classes="landing-action-button">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                                <TextBlock FontSize="18" Text="🔎" />
+                                <TextBlock Text="Browse Instruction File" />
+                            </StackPanel>
+                        </Button>
+                        <Border Background="{DynamicResource LandingInfoPanelBackgroundBrush}" CornerRadius="10" Padding="12">
+                            <TextBlock
+                                x:Name="InstructionStatusText"
+                                Classes="landing-status"
+                                Text="No instruction file loaded yet." />
+                        </Border>
                     </StackPanel>
                 </Border>
 
-                <Border
-                    Margin="0,0,16,16"
-                    Padding="20"
-                    CornerRadius="8">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Create new instructions" />
-                        <TextBlock Text="Switch to editor mode to author or edit instruction sets manually." />
+                <Border Classes="landing-card">
+                    <StackPanel Spacing="18">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0" FontSize="28" Margin="0,0,12,0" Text="🛠️" />
+                            <TextBlock Grid.Column="1" Classes="landing-card-title" Text="Build your own instruction set" />
+                        </Grid>
+                        <TextBlock
+                            Classes="landing-card-body"
+                            Text="Switch into the editor for full control over mods, instructions, tiers, and dependency rules with real-time validation." />
                         <Button
                             x:Name="CreateInstructionsButton"
-                            Padding="18,10"
-                            HorizontalAlignment="Left"
-                            Content="Start a New Instruction Set" />
-                        <TextBlock
-                            x:Name="EditorStatusText"
-                            Text="Editor mode is currently off."
-                            TextWrapping="Wrap" />
+                            Classes="landing-action-button">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                                <TextBlock FontSize="18" Text="✏️" />
+                                <TextBlock Text="Open the Editor" />
+                            </StackPanel>
+                        </Button>
+                        <Border Background="{DynamicResource LandingInfoPanelBackgroundBrush}" CornerRadius="10" Padding="12">
+                            <TextBlock
+                                x:Name="EditorStatusText"
+                                Classes="landing-status"
+                                Text="Editor mode is currently off."
+                                TextWrapping="Wrap" />
+                        </Border>
                     </StackPanel>
                 </Border>
 
-                <Border
-                    Margin="0,0,16,16"
-                    Padding="20"
-                    CornerRadius="8">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Configure directories" />
-                        <TextBlock Text="Set or review your mod workspace and KOTOR installation folders." />
+                <Border Classes="landing-card">
+                    <StackPanel Spacing="18">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0" FontSize="28" Margin="0,0,12,0" Text="📘" />
+                            <TextBlock Grid.Column="1" Classes="landing-card-title" Text="Follow the quick-start checklist" />
+                        </Grid>
+                        <TextBlock
+                            Classes="landing-card-body"
+                            Text="Need a refresher? Review the installation playbook, sandbox overview, and validation tips before diving into your next mod session." />
+                        <Border Background="{DynamicResource LandingInfoPanelBackgroundBrush}" CornerRadius="10" Padding="12">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="landing-status" Text="• Secure sandboxed file operations" />
+                                <TextBlock Classes="landing-status" Text="• Built-in wizard for guided installs" />
+                                <TextBlock Classes="landing-status" Text="• Editor with raw + visual modes" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="landing-card">
+                    <StackPanel Spacing="18">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0" FontSize="28" Margin="0,0,12,0" Text="💖" />
+                            <TextBlock Grid.Column="1" Classes="landing-card-title" Text="Support Development" />
+                        </Grid>
+                        <TextBlock
+                            Classes="landing-card-body"
+                            Text="If you enjoy using KOTORModSync, please consider supporting its development!" />
                         <Button
-                            x:Name="ConfigureDirectoriesButton"
-                            Padding="18,10"
-                            HorizontalAlignment="Left"
-                            Content="Choose Directories" />
-                        <StackPanel Spacing="4">
-                            <TextBlock
-                                x:Name="ModDirectoryStatusText"
-                                Text="Mod workspace: not set"
-                                TextWrapping="Wrap" />
-                            <TextBlock
-                                x:Name="GameDirectoryStatusText"
-                                Text="Game directory: not set"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
+                            x:Name="SponsorButton"
+                            Classes="landing-action-button"
+                            Click="OnSponsorButtonClick">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                                <TextBlock FontSize="18" Text="❤️" />
+                                <TextBlock Text="Sponsor on GitHub" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock
+                            Classes="landing-status"
+                            HorizontalAlignment="Center"
+                            Text="Your support helps maintain and improve this tool"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
             </WrapPanel>
+
+            <Border Classes="landing-section">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="landing-section-title" Text="Getting started in four quick steps" />
+                    <TextBlock
+                        Classes="landing-section-subtitle"
+                        Text="Follow this guided path to move from a fresh install to a fully modded galaxy in minutes." />
+
+                    <StackPanel Spacing="12">
+                        <Border Classes="landing-step-card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="landing-step-title" Text="1. Point to your KOTOR directories" />
+                                <TextBlock Classes="landing-step-body" Text="Use the directory selectors to set your dedicated mod workspace and the KOTOR installation you want to patch." />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="landing-step-card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="landing-step-title" Text="2. Load or author instructions" />
+                                <TextBlock Classes="landing-step-body" Text="Bring in a curated file or flip on the editor to craft instructions with dependency tracking, tiers, and validation hints." />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="landing-step-card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="landing-step-title" Text="3. Validate and download everything" />
+                                <TextBlock Classes="landing-step-body" Text="The wizard resolves downloads, checks archives in the sandbox, and highlights any issues before install time." />
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="landing-step-card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="landing-step-title" Text="4. Install with confidence" />
+                                <TextBlock Classes="landing-step-body" Text="Launch the guided installer or perform manual actions knowing every file stays inside the sandboxed mod + game directories." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

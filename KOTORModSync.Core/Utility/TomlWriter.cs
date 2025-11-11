@@ -63,18 +63,18 @@ namespace KOTORModSync.Core.Utility
             {
                 case Dictionary<string, object> table:
                     {
-                        _ = sb.AppendLine($"{indentation}{key} = {{");
+                        _ = sb.Append(indentation).Append(key).AppendLine(" = {");
                         foreach (KeyValuePair<string, object> entry in table)
                         {
                             WriteTomlKey(entry.Key, entry.Value, sb, indentLevel + 1);
                         }
 
-                        _ = sb.AppendLine($"{indentation}}}");
+                        _ = sb.Append(indentation).Append('}').AppendLine();
                         break;
                     }
                 case List<object> array:
                     {
-                        _ = sb.AppendLine($"{indentation}{key} = [");
+                        _ = sb.Append(indentation).Append(key).AppendLine(" = [");
                         foreach (object item in array)
                         {
                             if (item is Dictionary<string, object>)
@@ -83,15 +83,15 @@ namespace KOTORModSync.Core.Utility
                             }
                             else
                             {
-                                _ = sb.AppendLine($"{indentation}    {TomlValueToString(item)},");
+                                _ = sb.Append(indentation).Append("    ").Append(TomlValueToString(item)).Append(',').AppendLine();
                             }
                         }
 
-                        _ = sb.AppendLine($"{indentation}]");
+                        _ = sb.Append(indentation).Append(']').AppendLine();
                         break;
                     }
                 default:
-                    _ = sb.AppendLine($"{indentation}{key} = {TomlValueToString(value)}");
+                    _ = sb.Append(indentation).Append(key).Append(" = ").Append(TomlValueToString(value)).AppendLine();
                     break;
             }
         }

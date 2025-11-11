@@ -11,30 +11,33 @@ using System.Threading.Tasks;
 
 using JetBrains.Annotations;
 
+using KOTORModSync.Core.Services.Checkpoints;
+
 namespace KOTORModSync.Core.Installation
 {
     public sealed class InstallCoordinator
     {
         public InstallCoordinator()
         {
-            SessionManager = new InstallSessionManager();
-            BackupManager = new BackupManager();
+            CheckpointManager = new CheckpointManager();
         }
 
-        public InstallSessionManager SessionManager { get; }
-        public BackupManager BackupManager { get; }
+        public CheckpointManager CheckpointManager { get; }
+        public Services.GitCheckpointService CheckpointService { get; private set; }
 
         public async Task<ResumeResult> InitializeAsync([NotNull] IList<ModComponent> components, [NotNull] DirectoryInfo destinationPath, CancellationToken cancellationToken)
-
         {
-            await SessionManager.InitializeAsync(components, destinationPath)
+            await CheckpointManager.InitializeAsync(components, destinationPath).ConfigureAwait(false);
+            await CheckpointManager.EnsureSnapshotAsync(destinationPath, cancellationToken).ConfigureAwait(false);
 
-.ConfigureAwait(false);
-            await BackupManager.EnsureSnapshotAsync(destinationPath, cancellationToken).ConfigureAwait(false);
-            SessionManager.UpdateBackupPath(BackupManager.BackupPath);
-            await SessionManager.SaveAsync().ConfigureAwait(false);
+            // Initialize Git-based checkpoint system
+            CheckpointService = new Services.GitCheckpointService(destinationPath.FullName);
+            string baselineCommitId = await CheckpointService.InitializeAsync(cancellationToken).ConfigureAwait(false);
+            CheckpointManager.State.BaselineCheckpointId = baselineCommitId;
+
+            await CheckpointManager.SaveAsync().ConfigureAwait(false);
             List<ModComponent> ordered = GetOrderedInstallList(components);
-            return new ResumeResult(SessionManager.State.SessionId, ordered);
+            return new ResumeResult(CheckpointManager.State.SessionId, ordered);
         }
 
         public static List<ModComponent> GetOrderedInstallList([NotNull][ItemNotNull] IList<ModComponent> components)
@@ -211,7 +214,7 @@ namespace KOTORModSync.Core.Installation
                 return;
             }
 
-            string sessionFolder = Path.Combine(directoryInfo.FullName, ".kotor_modsync");
+            string sessionFolder = CheckpointPaths.GetRoot(directoryInfo.FullName);
             if (!Directory.Exists(sessionFolder))
             {
                 return;
@@ -221,13 +224,13 @@ namespace KOTORModSync.Core.Installation
             {
                 Directory.Delete(sessionFolder, recursive: true);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-
+                Logger.LogException(ex, $"Failed to delete install session folder '{sessionFolder}' due to an IO error during test cleanup.");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-
+                Logger.LogException(ex, $"Failed to delete install session folder '{sessionFolder}' due to insufficient permissions during test cleanup.");
             }
         }
 

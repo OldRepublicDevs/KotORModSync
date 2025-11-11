@@ -19,35 +19,42 @@ namespace KOTORModSync.Dialogs.WizardPages
     {
         private readonly MainConfig _mainConfig;
         private DirectoryPickerControl _sourcePathPicker;
-        private TextBlock _statusText;
+        private Border _validationFeedback;
+        private TextBlock _validationTitle;
+        private TextBlock _validationMessage;
+
+        public ModDirectoryPage()
+            : this(new MainConfig())
+        {
+        }
 
         public ModDirectoryPage([NotNull] MainConfig mainConfig)
         {
             _mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 
             InitializeComponent();
+            CacheControls();
             HookEvents();
-            UpdateStatus();
+            UpdateValidation();
         }
 
         public override string Title => "Mod Workspace Directory";
-
         public override string Subtitle => "Choose where mod archives are downloaded and processed";
 
         public override Task OnNavigatedToAsync(CancellationToken cancellationToken)
         {
             if (!string.IsNullOrEmpty(_mainConfig.sourcePathFullName))
             {
-                _sourcePathPicker.SetCurrentPath(_mainConfig.sourcePathFullName);
+                _sourcePathPicker?.SetCurrentPath(_mainConfig.sourcePathFullName);
             }
 
-            UpdateStatus();
+            UpdateValidation();
             return Task.CompletedTask;
         }
 
         public override Task OnNavigatingFromAsync(CancellationToken cancellationToken)
         {
-            string sourcePath = _sourcePathPicker.GetCurrentPath();
+            string sourcePath = _sourcePathPicker?.GetCurrentPath();
             if (!string.IsNullOrEmpty(sourcePath) && Directory.Exists(sourcePath))
             {
                 _mainConfig.sourcePath = new DirectoryInfo(sourcePath);
@@ -58,7 +65,7 @@ namespace KOTORModSync.Dialogs.WizardPages
 
         public override Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
         {
-            string sourcePath = _sourcePathPicker.GetCurrentPath();
+            string sourcePath = _sourcePathPicker?.GetCurrentPath();
             if (string.IsNullOrEmpty(sourcePath) || !Directory.Exists(sourcePath))
             {
                 return Task.FromResult((false, "Please select a valid mod workspace directory."));
@@ -67,11 +74,14 @@ namespace KOTORModSync.Dialogs.WizardPages
             return Task.FromResult((true, (string)null));
         }
 
-        private void InitializeComponent()
+        private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+        private void CacheControls()
         {
-            AvaloniaXamlLoader.Load(this);
             _sourcePathPicker = this.FindControl<DirectoryPickerControl>("SourcePathPicker");
-            _statusText = this.FindControl<TextBlock>("StatusText");
+            _validationFeedback = this.FindControl<Border>("ValidationFeedback");
+            _validationTitle = this.FindControl<TextBlock>("ValidationTitle");
+            _validationMessage = this.FindControl<TextBlock>("ValidationMessage");
         }
 
         private void HookEvents()
@@ -85,9 +95,9 @@ namespace KOTORModSync.Dialogs.WizardPages
 
         private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(e.Path) || !Directory.Exists(e.Path))
+            if (string.IsNullOrWhiteSpace(e.Path))
             {
-                UpdateStatus();
+                UpdateValidation();
                 return;
             }
 
@@ -103,28 +113,43 @@ namespace KOTORModSync.Dialogs.WizardPages
                 // DirectoryInfo can throw for invalid paths; ignore and fall back to validation.
             }
 
-            UpdateStatus();
+            UpdateValidation();
         }
 
-        private void UpdateStatus()
+        private void UpdateValidation()
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
-                Dispatcher.UIThread.Post(UpdateStatus);
+                Dispatcher.UIThread.Post(UpdateValidation);
                 return;
             }
 
-            if (_sourcePathPicker is null || _statusText is null)
+            if (_sourcePathPicker is null || _validationFeedback is null)
             {
                 return;
             }
 
             string sourcePath = _sourcePathPicker.GetCurrentPath();
-            bool sourceValid = !string.IsNullOrEmpty(sourcePath) && Directory.Exists(sourcePath);
+            bool isValid = !string.IsNullOrEmpty(sourcePath) && Directory.Exists(sourcePath);
 
-            _statusText.Text = sourceValid
-                ? $"Workspace directory selected: {sourcePath}"
-                : "Select a folder to use as your mod workspace.";
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                _validationFeedback.IsVisible = false;
+                return;
+            }
+
+            _validationFeedback.IsVisible = true;
+
+            if (isValid)
+            {
+                _validationTitle.Text = "✅ Valid Directory";
+                _validationMessage.Text = $"Workspace directory set to: {sourcePath}";
+            }
+            else
+            {
+                _validationTitle.Text = "❌ Invalid Directory";
+                _validationMessage.Text = "The specified directory does not exist. Please select an existing folder.";
+            }
         }
     }
 }

@@ -676,7 +676,7 @@ namespace KOTORModSync.Dialogs
         }
 
         [UsedImplicitly]
-        private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             try
             {
@@ -699,19 +699,20 @@ namespace KOTORModSync.Dialogs
                     // CRITICAL: Close the dropdown before applying theme to prevent UI rebuild conflicts
                     comboBox.IsDropDownOpen = false;
 
-                    ThemeService.ApplyTheme(themeType);
+                    // Yield to dispatcher so the dropdown can finish closing before we rebuild styles
+                    await Dispatcher.UIThread.InvokeAsync(
+                        () => ThemeService.ApplyTheme(themeType),
+                        DispatcherPriority.Background
+                    );
 
                     // CRITICAL: Save the theme immediately to settings file so it persists
                     SaveThemeToSettings();
-                    Logger.LogVerbose($"Theme changed to: {themeType}");
-
-                    // CRITICAL: Save the theme immediately to settings file so it persists
-                    SettingsDialog.SaveThemeToSettings();
+                    await Logger.LogVerboseAsync($"Theme changed to: {themeType}");
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex, "Failed to change theme");
+                await Logger.LogExceptionAsync(ex, "Failed to change theme");
             }
         }
 
@@ -774,7 +775,7 @@ namespace KOTORModSync.Dialogs
                 string privacySummary = telemetryConfig.GetPrivacySummary();
 
                 await InformationDialog
-                    .ShowInformationDialogAsync(null, message: privacySummary)
+                    .ShowInformationDialogAsync(parentWindow: null, message: privacySummary)
                     ;
             }
             catch (Exception ex)
@@ -976,7 +977,7 @@ namespace KOTORModSync.Dialogs
                 }
 
                 _isDownloading = true;
-                await SetDownloadUI(true, $"Downloading {selectedRelease.TagName}...")
+                await SetDownloadUI(isDownloading: true, $"Downloading {selectedRelease.TagName}...")
                     ;
 
                 await DownloadAndInstallHolopatcherAsync(selectedRelease);
@@ -989,7 +990,7 @@ namespace KOTORModSync.Dialogs
             finally
             {
                 _isDownloading = false;
-                await SetDownloadUI(false, "");
+                await SetDownloadUI(isDownloading: false, "");
             }
         }
 
@@ -1156,7 +1157,7 @@ namespace KOTORModSync.Dialogs
                     ? $"v{versionNumber}"
                     : release.TagName;
 
-                await SetDownloadUI(true, $"Downloading PyKotor {displayVersion}...")
+                await SetDownloadUI(isDownloading: true, $"Downloading PyKotor {displayVersion}...")
                     ;
                 await Logger
                     .LogAsync(
@@ -1199,7 +1200,7 @@ namespace KOTORModSync.Dialogs
                     }
                 }
 
-                await SetDownloadUI(true, "Extracting PyKotor...");
+                await SetDownloadUI(isDownloading: true, "Extracting PyKotor...");
                 await Logger.LogAsync("Download complete. Extracting...");
 
                 // Extract to temp directory
@@ -1222,7 +1223,7 @@ namespace KOTORModSync.Dialogs
                         );
                     }
 
-                    await SetDownloadUI(true, "Installing PyKotor...");
+                    await SetDownloadUI(isDownloading: true, "Installing PyKotor...");
                     string pyKotorExtracted = extractedDirs[0];
                     string pyKotorDest = Path.Combine(resourcesDir, "PyKotor");
 
@@ -1252,7 +1253,7 @@ namespace KOTORModSync.Dialogs
                     // Log directory structure for debugging
                     await LogDirectoryStructureAsync(pyKotorDest);
 
-                    await SetDownloadUI(false, "");
+                    await SetDownloadUI(isDownloading: false, "");
 
                     // Wait a moment for file system to fully update
                     await Task.Delay(500);
@@ -1312,7 +1313,7 @@ namespace KOTORModSync.Dialogs
             }
             catch (Exception ex)
             {
-                await SetDownloadUI(false, "");
+                await SetDownloadUI(isDownloading: false, "");
 
                 await Logger
                     .LogExceptionAsync(ex, "Failed to download and install PyKotor")

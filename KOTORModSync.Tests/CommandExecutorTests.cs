@@ -62,7 +62,7 @@ namespace KOTORModSync.Tests
             const string command = "echo Hello, Windows!";
             const string expectedOutput = "Hello, Windows!";
 
-            var completed = new ManualResetEvent(false);
+            var completed = new ManualResetEvent(initialState: false);
             var sharedData = new Dictionary<string, object>(StringComparer.Ordinal);
 
             var thread = new Thread(() => ExecuteCommand(command, completed, sharedData));

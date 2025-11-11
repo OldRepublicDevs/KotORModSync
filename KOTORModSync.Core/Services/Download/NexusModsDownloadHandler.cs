@@ -267,11 +267,9 @@ namespace KOTORModSync.Core.Services.Download
                     await Logger.LogVerboseAsync("[NexusMods] Using API key for download").ConfigureAwait(false);
                     return await DownloadWithApiKey(url, destinationDirectory, progress, targetFilenames, cancellationToken).ConfigureAwait(false);
                 }
-                else
-                {
-                    await Logger.LogVerboseAsync("[NexusMods] No API key provided, attempting free download").ConfigureAwait(false);
-                    return await DownloadWithoutApiKey(url, progress, cancellationToken).ConfigureAwait(false);
-                }
+
+                await Logger.LogVerboseAsync("[NexusMods] No API key provided, attempting free download").ConfigureAwait(false);
+                return await DownloadWithoutApiKey(url, progress, cancellationToken).ConfigureAwait(false);
             }
             catch (HttpRequestException httpEx)
             {

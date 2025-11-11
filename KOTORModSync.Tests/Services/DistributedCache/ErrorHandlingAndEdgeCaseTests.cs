@@ -14,13 +14,34 @@ namespace KOTORModSync.Tests.Services.DistributedCache
     /// Tests for error handling, edge cases, and resilience of the distributed cache system.
     /// </summary>
     [Collection("DistributedCache")]
-    public class ErrorHandlingAndEdgeCaseTests : IClassFixture<DistributedCacheTestFixture>
+    public class ErrorHandlingAndEdgeCaseTests : IClassFixture<DistributedCacheTestFixture>, IDisposable
     {
         private readonly DistributedCacheTestFixture _fixture;
+        private readonly IDisposable _clientScope;
 
         public ErrorHandlingAndEdgeCaseTests(DistributedCacheTestFixture fixture)
         {
             _fixture = fixture;
+            _clientScope = DownloadCacheOptimizer.DiagnosticsHarness.AttachSyntheticClient();
+            ResetState();
+        }
+
+        public void Dispose()
+        {
+            _clientScope.Dispose();
+        }
+
+        private static void ResetState()
+        {
+            DownloadCacheOptimizer.DiagnosticsHarness.ClearActiveManagers();
+            DownloadCacheOptimizer.DiagnosticsHarness.ClearBlockedContentIds();
+            DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: false, port: 0, lastCheck: DateTime.MinValue);
+            DownloadCacheOptimizer.DiagnosticsHarness.SetClientSettings(new
+            {
+                ListenPort = 0,
+                ClientName = "DiagnosticsHarness-Test",
+                ClientVersion = "0.0.1"
+            });
         }
 
         [Fact]
@@ -86,7 +107,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                _fixture.ComputeContentId(null);
+                _fixture.ComputeContentId(filePath: null);
             });
         }
 
@@ -106,7 +127,6 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             Exception exception = Record.Exception(() =>
             {
                 (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-                Assert.NotNull(stats);
             });
 
             Assert.Null(exception);
@@ -136,13 +156,18 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         [Fact]
         public async Task ErrorHandling_GracefulShutdown_MultipleCallsSafe()
         {
-            await DownloadCacheOptimizer.GracefulShutdownAsync().ConfigureAwait(false);
-            await DownloadCacheOptimizer.GracefulShutdownAsync().ConfigureAwait(false);
-            await DownloadCacheOptimizer.GracefulShutdownAsync().ConfigureAwait(false);
+            await DownloadCacheOptimizer.GracefulShutdownAsync();
+            await DownloadCacheOptimizer.GracefulShutdownAsync();
+            await DownloadCacheOptimizer.GracefulShutdownAsync();
 
             // Should not throw
             (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
-            Assert.NotNull(stats);
+
+            // S2699: Add assertions
+            // Expect stats values to be at least zero after shutdown, as all background sharing should stop.
+            Assert.True(stats.activeShares >= 0);
+            Assert.True(stats.totalUploadBytes >= 0);
+            Assert.True(stats.connectedSources >= 0);
         }
 
         [Fact]
@@ -175,7 +200,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void ErrorHandling_ConcurrentAccess_Safe()
+        public async Task ErrorHandling_ConcurrentAccess_Safe()
         {
             string file = _fixture.CreateTestFile("concurrent.bin", 10240);
 
@@ -184,10 +209,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 .Select(_ => Task.Run(() => _fixture.ComputeContentId(file)))
                 .ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
 
             var results = tasks.Select(t => t.Result).ToList();
-            Assert.True(results.All(r => r == results[0]));
+            Assert.True(results.All(r => string.Equals(r, results[0], StringComparison.Ordinal)));
         }
 
         [Fact]
@@ -197,11 +222,13 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             string id1 = _fixture.ComputeContentId(file);
 
             // Modify file
-            using (FileStream stream = File.Open(file, FileMode.Open))
-            {
-                stream.Seek(5000, SeekOrigin.Begin);
-                stream.WriteByte(0xFF);
-            }
+            DistributionTestSupport.ModifyFile(
+                file,
+                stream =>
+                {
+                    stream.Seek(5000, SeekOrigin.Begin);
+                    stream.WriteByte(0xFF);
+                });
 
             string id2 = _fixture.ComputeContentId(file);
 
@@ -225,11 +252,11 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         {
             for (int i = 0; i < 10; i++)
             {
-                (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
+                (int activeShares, long totalUploadBytes, int connectedSources) = DownloadCacheOptimizer.GetNetworkCacheStats();
 
-                Assert.True(stats.activeShares >= 0);
-                Assert.True(stats.totalUploadBytes >= 0);
-                Assert.True(stats.connectedSources >= 0);
+                Assert.True(activeShares >= 0);
+                Assert.True(totalUploadBytes >= 0);
+                Assert.True(connectedSources >= 0);
             }
         }
 
@@ -242,8 +269,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 data[i] = (byte)(i % 2 == 0 ? 0xAA : 0x55);
             }
 
-            string file = Path.Combine(_fixture.TestDataDirectory, "alternating.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "alternating.bin",
+                data);
 
             string contentId = _fixture.ComputeContentId(file);
             Assert.Equal(40, contentId.Length);
@@ -253,8 +282,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public void EdgeCase_AllZeros_ValidContentId()
         {
             byte[] data = new byte[10000];
-            string file = Path.Combine(_fixture.TestDataDirectory, "all_zeros.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "all_zeros.bin",
+                data);
 
             string contentId = _fixture.ComputeContentId(file);
             Assert.Equal(40, contentId.Length);
@@ -264,8 +295,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public void EdgeCase_AllOnes_ValidContentId()
         {
             byte[] data = Enumerable.Repeat((byte)0xFF, 10000).ToArray();
-            string file = Path.Combine(_fixture.TestDataDirectory, "all_ones.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "all_ones.bin",
+                data);
 
             string contentId = _fixture.ComputeContentId(file);
             Assert.Equal(40, contentId.Length);
@@ -276,7 +309,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         {
             Exception exception = Record.Exception(() =>
             {
-                DownloadCacheOptimizer.BlockContentId(new string('a', 40), null);
+                DownloadCacheOptimizer.BlockContentId(new string('a', 40), reason: null);
             });
 
             Assert.Null(exception);
@@ -303,7 +336,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         [Fact]
         public void ErrorHandling_GetResourceDetails_NullKey_ReturnsMessage()
         {
-            string result = DownloadCacheOptimizer.GetSharedResourceDetails(null);
+            string result = DownloadCacheOptimizer.GetSharedResourceDetails(contentKey: null);
             Assert.NotNull(result);
         }
 
@@ -314,8 +347,10 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             byte[] data = new byte[100000];
             random.NextBytes(data);
 
-            string file = Path.Combine(_fixture.TestDataDirectory, "random_seeded.bin");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "random_seeded.bin",
+                data);
 
             string id1 = _fixture.ComputeContentId(file);
             string id2 = _fixture.ComputeContentId(file);
@@ -352,21 +387,23 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             byte[] text = System.Text.Encoding.UTF8.GetBytes("Test content");
             byte[] data = bom.Concat(text).ToArray();
 
-            string file = Path.Combine(_fixture.TestDataDirectory, "with_bom.txt");
-            File.WriteAllBytes(file, data);
+            string file = DistributionTestSupport.EnsureBinaryTestFile(
+                _fixture.TestDataDirectory,
+                "with_bom.txt",
+                data);
 
             string contentId = _fixture.ComputeContentId(file);
             Assert.Equal(40, contentId.Length);
         }
 
         [Fact]
-        public void ErrorHandling_ConcurrentStatsAccess_Safe()
+        public async Task ErrorHandling_ConcurrentStatsAccess_Safe()
         {
             Task<(int activeShares, long totalUploadBytes, int connectedSources)>[] tasks = Enumerable.Range(0, 20)
                 .Select(_ => Task.Run(() => DownloadCacheOptimizer.GetNetworkCacheStats()))
                 .ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
 
             // All should succeed without exceptions
             Assert.True(tasks.All(t => t.IsCompletedSuccessfully));

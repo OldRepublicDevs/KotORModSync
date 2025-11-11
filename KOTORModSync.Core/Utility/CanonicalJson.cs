@@ -52,7 +52,7 @@ using (var sha = SHA256.Create())
 hash = sha.ComputeHash(bytes);
 }
 #else
-            byte[] hash = SHA256.HashData(bytes);
+            byte[] hash = NetFrameworkCompatibility.HashDataSHA256(bytes);
 #endif
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }

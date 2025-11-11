@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services.Download
 {
@@ -92,7 +93,7 @@ namespace KOTORModSync.Core.Services.Download
                             // CRITICAL: Cancel the losing download to prevent resource waste
                             // Each download uses its own unique temp file via GetTempFilePath(),
                             // so there's no file collision risk. The cancelled task will clean up its own temp file.
-                            await cts.CancelAsync().ConfigureAwait(false);
+                            cts.Cancel();
 
                             // Log which source won
                             if (completed == distributedTask)
@@ -813,7 +814,7 @@ namespace KOTORModSync.Core.Services.Download
 					hashBytes = sha1.ComputeHash(Encoding.UTF8.GetBytes(normalized));
 				}
 #else
-                hashBytes = SHA1.HashData(Encoding.UTF8.GetBytes(normalized));
+                hashBytes = NetFrameworkCompatibility.HashDataSHA1(Encoding.UTF8.GetBytes(normalized));
 #endif
                 string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
                 _urlHashes[url] = hash;
@@ -949,7 +950,7 @@ namespace KOTORModSync.Core.Services.Download
 				infohash = sha1.ComputeHash(bencodedInfo);
 			}
 #else
-            byte[] infohash = SHA1.HashData(bencodedInfo);
+            byte[] infohash = NetFrameworkCompatibility.HashDataSHA1(bencodedInfo);
 #endif
             string contentId = BitConverter.ToString(infohash).Replace("-", "").ToLowerInvariant();
 
@@ -1017,7 +1018,7 @@ namespace KOTORModSync.Core.Services.Download
 #if NET48
 					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength);
 #else
-                    int bytesRead = await fs.ReadAsync(buffer.AsMemory(0, pieceLength)).ConfigureAwait(false);
+                    int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
 #endif
                     if (bytesRead == 0)
                     {
@@ -1032,7 +1033,7 @@ namespace KOTORModSync.Core.Services.Download
 						pieceHashList.Add(pieceHash);
 					}
 #else
-                    byte[] pieceHash = SHA1.HashData(pieceData);
+                    byte[] pieceHash = NetFrameworkCompatibility.HashDataSHA1(pieceData);
                     pieceHashList.Add(pieceHash);
 #endif
                 }
@@ -1052,10 +1053,10 @@ namespace KOTORModSync.Core.Services.Download
 					sha256 = sha.ComputeHash(fs);
 				}
 #else
-                sha256 = await SHA256.HashDataAsync(fs, s_sharingCts?.Token ?? CancellationToken.None).ConfigureAwait(false);
+                sha256 = await NetFrameworkCompatibility.HashDataSHA256Async(fs, s_sharingCts?.Token ?? CancellationToken.None).ConfigureAwait(false);
 #endif
             }
-            string contentHashSHA256 = BitConverter.ToString(sha256).Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
+            string contentHashSHA256 = NetFrameworkCompatibility.Replace(BitConverter.ToString(sha256), "-", "", StringComparison.Ordinal).ToLowerInvariant();
 
             return (contentHashSHA256, pieceLength, pieceHashes);
         }
@@ -1077,10 +1078,10 @@ namespace KOTORModSync.Core.Services.Download
 						sha256Hash = sha.ComputeHash(fs);
 					}
 #else
-                    sha256Hash = await SHA256.HashDataAsync(fs, s_sharingCts.Token).ConfigureAwait(false);
+                    sha256Hash = await NetFrameworkCompatibility.HashDataSHA256Async(fs, s_sharingCts.Token).ConfigureAwait(false);
 #endif
                 }
-                string computedSHA256 = BitConverter.ToString(sha256Hash).Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
+                string computedSHA256 = NetFrameworkCompatibility.Replace(BitConverter.ToString(sha256Hash), "-", "", StringComparison.Ordinal).ToLowerInvariant();
 
                 if (meta.ContentHashSHA256 != null && !string.Equals(computedSHA256, meta.ContentHashSHA256, StringComparison.Ordinal))
 
@@ -1143,7 +1144,7 @@ namespace KOTORModSync.Core.Services.Download
 #if NET48
 					expectedHashes.Add(HexStringToByteArray(hexPiece));
 #else
-                    expectedHashes.Add(Convert.FromHexString(hexPiece));
+                    expectedHashes.Add(NetFrameworkCompatibility.FromHexString(hexPiece));
 #endif
                 }
 
@@ -1159,7 +1160,7 @@ namespace KOTORModSync.Core.Services.Download
 #if NET48
 						int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength);
 #else
-                        int bytesRead = await fs.ReadAsync(buffer.AsMemory(0, pieceLength)).ConfigureAwait(false);
+                        int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
 #endif
                         if (bytesRead == 0)
                         {
@@ -1174,7 +1175,7 @@ namespace KOTORModSync.Core.Services.Download
 							computedHash = sha1.ComputeHash(pieceData);
 						}
 #else
-                        byte[] computedHash = SHA1.HashData(pieceData);
+                        byte[] computedHash = NetFrameworkCompatibility.HashDataSHA1(pieceData);
 #endif
 
                         if (pieceIndex >= expectedHashes.Count || !computedHash.SequenceEqual(expectedHashes[pieceIndex]))
@@ -1337,7 +1338,7 @@ namespace KOTORModSync.Core.Services.Download
                 // Stop sharing monitor
                 if (s_sharingCts != null)
                 {
-                    await s_sharingCts.CancelAsync().ConfigureAwait(false);
+                    s_sharingCts.Cancel();
                     if (s_sharingMonitorTask != null)
                     {
                         try
@@ -1689,7 +1690,7 @@ namespace KOTORModSync.Core.Services.Download
                 lock (_lock)
                 {
                     s_natTraversalSuccessful = successful;
-                    s_configuredPort = Math.Clamp(port, 0, 65535);
+                    s_configuredPort = NetFrameworkCompatibility.Clamp(port, 0, 65535);
                     s_lastNatCheck = lastCheck;
                 }
             }
@@ -1790,7 +1791,7 @@ namespace KOTORModSync.Core.Services.Download
                 public void ApplyOptions(SyntheticResourceOptions options)
                 {
                     State = string.IsNullOrWhiteSpace(options.State) ? "Sharing" : options.State;
-                    Progress = Math.Clamp(options.Progress, 0.0, 1.0);
+                    Progress = NetFrameworkCompatibility.Clamp(options.Progress, 0.0, 1.0);
                     _monitor.DataBytesUploaded = Math.Max(0, options.UploadedBytes);
                     _monitor.DataBytesDownloaded = Math.Max(0, options.DownloadedBytes);
                     if (_peers == null)

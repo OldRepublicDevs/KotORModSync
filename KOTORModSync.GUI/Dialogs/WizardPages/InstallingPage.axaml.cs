@@ -254,7 +254,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 // Listen for checkpoint creation via log messages
                 void CheckpointLogHandler(string message)
                 {
-                    if (message != null && message.Contains("✓ Checkpoint created:", StringComparison.OrdinalIgnoreCase))
+                    if (message != null && NetFrameworkCompatibility.Contains(message, "✓ Checkpoint created:", StringComparison.OrdinalIgnoreCase))
                     {
                         _checkpointsCreated++;
                         _ = UpdateUIAsync(() =>

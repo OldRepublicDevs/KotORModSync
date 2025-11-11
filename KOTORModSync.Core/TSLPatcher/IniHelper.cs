@@ -153,13 +153,13 @@ namespace KOTORModSync.Core.TSLPatcher
             {
                 line = line.Trim();
 
-                if (line.StartsWith('[') && line.EndsWith(']'))
+                if (line.StartsWith("[", StringComparison.Ordinal) && line.EndsWith("]", StringComparison.Ordinal))
                 {
                     string sectionName = line.Substring(startIndex: 1, line.Length - 2);
                     currentSection = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     sections[sectionName] = currentSection;
                 }
-                else if (currentSection != null && line.Contains("=", StringComparison.Ordinal))
+                else if (currentSection != null && NetFrameworkCompatibility.Contains(line, "=", StringComparison.Ordinal))
                 {
                     string[] keyValue = line.Split('=');
                     if (keyValue.Length != 2)

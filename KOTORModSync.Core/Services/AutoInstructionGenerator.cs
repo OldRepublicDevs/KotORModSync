@@ -154,7 +154,7 @@ namespace KOTORModSync.Core.Services
             {
                 var uri = new Uri(firstModLink);
                 string lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/') ?? string.Empty;
-                if (!string.IsNullOrEmpty(lastSegment) && lastSegment.Contains('-', StringComparison.Ordinal))
+                if (!string.IsNullOrEmpty(lastSegment) && NetFrameworkCompatibility.Contains(lastSegment, '-', StringComparison.Ordinal))
                 {
                     Match match = Regex.Match(lastSegment, @"^\d+-(.+)$", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
                     searchTerm = match.Success ? match.Groups[1].Value : lastSegment;
@@ -215,7 +215,7 @@ namespace KOTORModSync.Core.Services
                 {
                     var uri = new Uri(firstModLink);
                     string lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/') ?? string.Empty;
-                    if (!string.IsNullOrEmpty(lastSegment) && lastSegment.Contains('-', StringComparison.Ordinal))
+                    if (!string.IsNullOrEmpty(lastSegment) && NetFrameworkCompatibility.Contains(lastSegment, '-', StringComparison.Ordinal))
                     {
                         Match match = Regex.Match(lastSegment, @"^\d+-(.+)$", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
                         searchTerm = match.Success ? match.Groups[1].Value : lastSegment;
@@ -2284,7 +2284,7 @@ namespace KOTORModSync.Core.Services
                 if (parts[i].Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase))
                 {
 
-                    return string.Join('/', parts.Take(i));
+                    return string.Join("/", parts.Take(i));
                 }
             }
             return string.Empty;

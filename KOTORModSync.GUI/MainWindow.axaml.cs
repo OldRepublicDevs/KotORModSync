@@ -2253,7 +2253,12 @@ namespace KOTORModSync
                 // Cancel any pending pre-resolve operations
                 if (!(_preResolveCts is null))
                 {
+#if NET8_0_OR_GREATER
                     await _preResolveCts.CancelAsync();
+#else
+                    _preResolveCts.Cancel();
+                    await Task.CompletedTask;
+#endif
                 }
                 _preResolveCts?.Dispose();
                 _preResolveCts = null;

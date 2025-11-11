@@ -9,6 +9,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 {
@@ -40,7 +41,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
                 using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 8192, useAsync: true))
                 {
                     byte[] hashBytes = await Task.Run(() => sha256.ComputeHash(stream), cancellationToken).ConfigureAwait(false);
-                    return BitConverter.ToString(hashBytes).Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
+                    return NetFrameworkCompatibility.Replace(BitConverter.ToString(hashBytes), "-", "", StringComparison.Ordinal).ToLowerInvariant();
                 }
             }
         }
@@ -61,7 +62,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
             {
                 byte[] hashBytes = await Task.Run(() => sha256.ComputeHash(stream), cancellationToken).ConfigureAwait(false);
                 stream.Position = originalPosition;
-                return BitConverter.ToString(hashBytes).Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
+                return NetFrameworkCompatibility.Replace(BitConverter.ToString(hashBytes), "-", "", StringComparison.Ordinal).ToLowerInvariant();
             }
         }
 

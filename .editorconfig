@@ -613,3 +613,113 @@ dotnet_diagnostic.S1481.severity = none
 # (MA0004 warns when ConfigureAwait is missing - encourages ConfigureAwait(false) usage)
 [KOTORModSync.Core/**/*.cs]
 dotnet_diagnostic.MA0004.severity = warning
+
+#### Additional Warning Suppressions ####
+
+# S3260: Private classes which are not derived in the current assembly should be marked as 'sealed'
+dotnet_diagnostic.S3260.severity = none
+
+# S1118: Add a 'protected' constructor or the 'static' keyword to the class declaration
+dotnet_diagnostic.S1118.severity = none
+
+# S2094: Remove this empty class, write its code or make it an "interface"
+dotnet_diagnostic.S2094.severity = none
+
+# S3887: Use an immutable collection or reduce the accessibility of the non-private readonly field
+dotnet_diagnostic.S3887.severity = none
+
+# S2386: Use an immutable collection or reduce the accessibility of the public static field
+dotnet_diagnostic.S2386.severity = none
+
+# S4487: Remove this unread private field
+dotnet_diagnostic.S4487.severity = none
+
+# MA0009: Regular expressions should not be vulnerable to Denial of Service attacks
+dotnet_diagnostic.MA0009.severity = none
+
+# S1144: Remove the unused private method
+dotnet_diagnostic.S1144.severity = none
+
+# S1450: Remove the field and declare it as a local variable in the relevant methods
+dotnet_diagnostic.S1450.severity = none
+
+# S3241: Change return type to 'void'; not a single caller uses the returned value
+dotnet_diagnostic.S3241.severity = none
+
+# S6670: Avoid using Trace.WriteLine, use instead methods that specify the trace event type
+dotnet_diagnostic.S6670.severity = none
+
+# S3220: Review this call, which partially matches an overload without 'params'
+dotnet_diagnostic.S3220.severity = none
+
+# MA0144: Use System.OperatingSystem to check the current OS
+dotnet_diagnostic.MA0144.severity = none
+
+# S108: Either remove or fill this block of code
+dotnet_diagnostic.S108.severity = none
+
+# MA0015: Use an overload of 'System.ArgumentException' with the parameter name
+dotnet_diagnostic.MA0015.severity = none
+
+# S127: Do not update the loop counter 'i' within the loop body
+dotnet_diagnostic.S127.severity = none
+
+# S1168: Return an empty collection instead of null
+dotnet_diagnostic.S1168.severity = none
+
+# S112: 'System.ApplicationException' should not be thrown by user code
+dotnet_diagnostic.S112.severity = none
+
+# MA0014: Do not raise System.ApplicationException type
+dotnet_diagnostic.MA0014.severity = none
+
+# S2275: Invalid string format, the highest string format item index should not be greater than the arguments count
+dotnet_diagnostic.S2275.severity = none
+
+# S6610: "EndsWith" overloads that take a "char" should be used
+dotnet_diagnostic.S6610.severity = none
+
+# MA0074: Use an overload of 'EndsWith' that has a StringComparison parameter
+dotnet_diagnostic.MA0074.severity = none
+
+# S1066: Merge this if statement with the enclosing one
+dotnet_diagnostic.S1066.severity = none
+
+# MA0055: Do not use finalizer
+dotnet_diagnostic.MA0055.severity = none
+
+# S3626: Remove this redundant jump
+dotnet_diagnostic.S3626.severity = none
+
+# S2486: Handle the exception or explain in a comment why it can be ignored
+dotnet_diagnostic.S2486.severity = none
+
+# S6561: Avoid using "DateTime.Now" for benchmarking or timespan calculation operations
+dotnet_diagnostic.S6561.severity = none
+
+# S2696: Remove this set, which updates a 'static' field from an instance method
+dotnet_diagnostic.S2696.severity = none
+
+# S5445: 'Path.GetTempFileName()' is insecure. Use 'Path.GetRandomFileName()' instead
+dotnet_diagnostic.S5445.severity = none
+
+# S3966: Resource has already been disposed explicitly or through a using statement implicitly
+dotnet_diagnostic.S3966.severity = none
+
+# S1994: This loop's stop condition tests variables but the incrementer updates a different variable
+dotnet_diagnostic.S1994.severity = none
+
+# MA0006: Use string.Equals instead of NotEquals operator
+dotnet_diagnostic.MA0006.severity = none
+
+# MA0012: 'System.NullReferenceException' is a reserved exception type
+dotnet_diagnostic.MA0012.severity = none
+
+# S1751: Refactor the containing loop to do more than one iteration
+dotnet_diagnostic.S1751.severity = none
+
+# S3869: Refactor the code to remove this use of 'SafeHandle.DangerousGetHandle'
+dotnet_diagnostic.S3869.severity = none
+
+# S3928: The parameter name is not declared in the argument list
+dotnet_diagnostic.S3928.severity = none

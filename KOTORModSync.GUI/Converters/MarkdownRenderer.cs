@@ -16,6 +16,8 @@ using Avalonia.Threading;
 
 using JetBrains.Annotations;
 
+using KOTORModSync.Core.Utility;
+
 namespace KOTORModSync.Converters
 {
     public static class MarkdownRenderer
@@ -261,12 +263,12 @@ namespace KOTORModSync.Converters
             string currentTheme = ThemeManager.GetCurrentStylePath();
             if (!string.IsNullOrEmpty(currentTheme))
             {
-                if (currentTheme.Contains("Kotor2Style", StringComparison.OrdinalIgnoreCase))
+                if (NetFrameworkCompatibility.Contains(currentTheme, "Kotor2Style", StringComparison.OrdinalIgnoreCase))
                 {
                     return new SolidColorBrush(Color.FromRgb(0x18, 0xAE, 0x88)); // #18AE88
                 }
 
-                if (currentTheme.Contains("KotorStyle", StringComparison.OrdinalIgnoreCase))
+                if (NetFrameworkCompatibility.Contains(currentTheme, "KotorStyle", StringComparison.OrdinalIgnoreCase))
                 {
                     return new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF
                 }

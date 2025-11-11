@@ -84,7 +84,7 @@ namespace KOTORModSync.Core.Services.Download
 				infoHash = sha1.ComputeHash(infoBytes);
 			}
 #else
-            byte[] infoHash = SHA1.HashData(infoBytes);
+            byte[] infoHash = NetFrameworkCompatibility.HashDataSHA1(infoBytes);
 #endif
             string contentId = BitConverter.ToString(infoHash).Replace("-", "").ToLowerInvariant();
 
@@ -122,7 +122,7 @@ namespace KOTORModSync.Core.Services.Download
 #if NET48
 					int bytesRead = await stream.ReadAsync(buffer, 0, pieceLength);
 #else
-                    int bytesRead = await stream.ReadAsync(buffer.AsMemory(0, pieceLength), cancellationToken).ConfigureAwait(false);
+                    int bytesRead = await stream.ReadAsync(buffer, 0, pieceLength, cancellationToken).ConfigureAwait(false);
 #endif
                     if (bytesRead == 0)
                     {
@@ -139,9 +139,9 @@ namespace KOTORModSync.Core.Services.Download
 						piecesWriter.Write(pieceHash, 0, pieceHash.Length);
 					}
 #else
-                    byte[] pieceHash = SHA1.HashData(slice);
+                    byte[] pieceHash = NetFrameworkCompatibility.HashDataSHA1(slice);
                     pieceHashList.Add(pieceHash);
-                    await piecesWriter.WriteAsync(pieceHash.AsMemory(0, pieceHash.Length), cancellationToken).ConfigureAwait(false);
+                    await piecesWriter.WriteAsync(pieceHash, 0, pieceHash.Length, cancellationToken).ConfigureAwait(false);
 #endif
                 }
 
@@ -245,7 +245,7 @@ namespace KOTORModSync.Core.Services.Download
 #if NET48
 			await Task.Run(() => File.WriteAllBytes(descriptorPath, DescriptorBytes), cancellationToken);
 #else
-            await File.WriteAllBytesAsync(descriptorPath, DescriptorBytes, cancellationToken).ConfigureAwait(false);
+            await NetFrameworkCompatibility.WriteAllBytesAsync(descriptorPath, DescriptorBytes, cancellationToken).ConfigureAwait(false);
 #endif
         }
     }

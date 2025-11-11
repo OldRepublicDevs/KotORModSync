@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Services.Checkpoints;
+using KOTORModSync.Core.Utility;
 
 using Newtonsoft.Json;
 
@@ -508,7 +509,7 @@ $"Installation_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (fullPath.Contains(CheckpointPaths.CheckpointFolderName, StringComparison.OrdinalIgnoreCase))
+                if (NetFrameworkCompatibility.Contains(fullPath, CheckpointPaths.CheckpointFolderName, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }

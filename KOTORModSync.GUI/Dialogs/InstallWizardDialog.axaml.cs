@@ -15,6 +15,7 @@ using Avalonia.Layout;
 using Avalonia.Threading;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Utility;
 using KOTORModSync.Dialogs.WizardPages;
 
 namespace KOTORModSync.Dialogs
@@ -423,7 +424,12 @@ namespace KOTORModSync.Dialogs
                         return;
                     }
 
+#if NET8_0_OR_GREATER
                     await _cancellationTokenSource.CancelAsync();
+#else
+                    _cancellationTokenSource.Cancel();
+                    await Task.CompletedTask;
+#endif
                     InstallationCancelled = true;
                     return;
                 }
@@ -437,7 +443,12 @@ namespace KOTORModSync.Dialogs
                 if (confirmCancel == true)
                 {
                     InstallationCancelled = true;
+#if NET8_0_OR_GREATER
                     await _cancellationTokenSource.CancelAsync();
+#else
+                    _cancellationTokenSource.Cancel();
+                    await Task.CompletedTask;
+#endif
                     Close(dialogResult: false);
                 }
             }

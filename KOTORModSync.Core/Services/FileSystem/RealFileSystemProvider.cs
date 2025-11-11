@@ -111,7 +111,7 @@ namespace KOTORModSync.Core.Services.FileSystem
                     catch (IndexOutOfRangeException ex)
                     {
                         await Logger.LogWarningAsync("Falling back to 7-Zip and restarting entire archive extraction due to the above error.").ConfigureAwait(false);
-                        await cts.CancelAsync().ConfigureAwait(false);
+                        cts.Cancel();
                         throw new OperationCanceledException("Falling back to 7-Zip extraction", innerException: ex);
                     }
                     catch (OperationCanceledException ex)

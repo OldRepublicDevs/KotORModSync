@@ -15,6 +15,7 @@ using CommandLine;
 
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 
 using Newtonsoft.Json;
 
@@ -2001,7 +2002,7 @@ componentName: null,
                         }
                     }
 
-                    await File.WriteAllTextAsync(opts.OutputPath, output).ConfigureAwait(false);
+                    await NetFrameworkCompatibility.WriteAllTextAsync(opts.OutputPath, output).ConfigureAwait(false);
 
                     string successMsg = $"✓ Conversion completed successfully, saved to: {opts.OutputPath}";
                     if (s_progressDisplay != null)
@@ -2411,7 +2412,7 @@ componentName: null,
                         }
                     }
 
-                    await File.WriteAllTextAsync(opts.OutputPath, output).ConfigureAwait(false);
+                    await NetFrameworkCompatibility.WriteAllTextAsync(opts.OutputPath, output).ConfigureAwait(false);
 
                     string successMsg = $"✓ Merge completed successfully, saved to: {opts.OutputPath}";
                     if (s_progressDisplay != null)

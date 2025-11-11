@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Installation;
+using KOTORModSync.Core.Utility;
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Services.Checkpoints
@@ -88,7 +89,7 @@ namespace KOTORModSync.Core.Services.Checkpoints
 
             if (File.Exists(_sessionPath))
             {
-                string json = await File.ReadAllTextAsync(_sessionPath, Encoding.UTF8).ConfigureAwait(false);
+                string json = await NetFrameworkCompatibility.ReadAllTextAsync(_sessionPath, Encoding.UTF8).ConfigureAwait(false);
                 InstallSessionState existingState = JsonConvert.DeserializeObject<InstallSessionState>(json, s_serializerSettings);
                 if (existingState != null && ValidateLoadedState(existingState))
                 {
@@ -116,7 +117,7 @@ namespace KOTORModSync.Core.Services.Checkpoints
             {
                 string tempPath = _sessionPath + ".tmp";
                 string json = JsonConvert.SerializeObject(_state, s_serializerSettings);
-                await File.WriteAllTextAsync(tempPath, json, Encoding.UTF8).ConfigureAwait(false);
+                await NetFrameworkCompatibility.WriteAllTextAsync(tempPath, json, Encoding.UTF8).ConfigureAwait(false);
                 File.Copy(tempPath, _sessionPath, overwrite: true);
                 File.Delete(tempPath);
             }

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.Services.Checkpoints;
+using KOTORModSync.Core.Utility;
 using LibGit2Sharp;
 
 namespace KOTORModSync.Core.Services
@@ -363,7 +364,7 @@ namespace KOTORModSync.Core.Services
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    string relativePath = Path.GetRelativePath(_gameDirectory, gameFile);
+                    string relativePath = NetFrameworkCompatibility.GetRelativePath(_gameDirectory, gameFile);
                     string gitPath = Path.Combine(_gitDirectory, relativePath);
 
                     Directory.CreateDirectory(Path.GetDirectoryName(gitPath));
@@ -389,7 +390,7 @@ namespace KOTORModSync.Core.Services
 
                 foreach (string gameFile in gameFiles)
                 {
-                    string relativePath = Path.GetRelativePath(_gameDirectory, gameFile);
+                    string relativePath = NetFrameworkCompatibility.GetRelativePath(_gameDirectory, gameFile);
                     string gitPath = Path.Combine(_gitDirectory, relativePath);
 
                     if (!File.Exists(gitPath))
@@ -403,7 +404,7 @@ namespace KOTORModSync.Core.Services
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    string relativePath = Path.GetRelativePath(_gitDirectory, gitFile);
+                    string relativePath = NetFrameworkCompatibility.GetRelativePath(_gitDirectory, gitFile);
                     string gamePath = Path.Combine(_gameDirectory, relativePath);
 
                     Directory.CreateDirectory(Path.GetDirectoryName(gamePath));
@@ -419,7 +420,7 @@ namespace KOTORModSync.Core.Services
 
         private static CheckpointInfo ParseCheckpointFromCommit(Commit commit)
         {
-            string[] lines = commit.Message.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            string[] lines = commit.Message.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             string firstLine = lines[0];
 
             // Parse [index/total] Name format

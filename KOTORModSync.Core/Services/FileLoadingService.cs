@@ -37,7 +37,7 @@ namespace KOTORModSync.Core.Services
 
             string content = ReadFileWithEncodingFallback(filePath);
 
-            string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant();
+            string extension = Path.GetExtension(filePath)?.TrimStart(new[] { '.' }).ToLowerInvariant();
             string format = null;
 
             if (!string.IsNullOrEmpty(extension))
@@ -98,7 +98,7 @@ namespace KOTORModSync.Core.Services
 
             string content = await Task.Run(() => ReadFileWithEncodingFallback(filePath)).ConfigureAwait(false);
 
-            string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant();
+            string extension = Path.GetExtension(filePath)?.TrimStart(new[] { '.' }).ToLowerInvariant();
             string format = null;
 
             if (!string.IsNullOrEmpty(extension))

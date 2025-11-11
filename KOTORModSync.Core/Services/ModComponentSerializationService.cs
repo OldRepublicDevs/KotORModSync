@@ -1391,7 +1391,7 @@ namespace KOTORModSync.Core.Services
             {
                 string singleCategory = component.Category[0];
                 if (!string.IsNullOrEmpty(singleCategory) &&
-                     (singleCategory.Contains(',', StringComparison.Ordinal) || singleCategory.Contains(';', StringComparison.Ordinal)))
+                     (NetFrameworkCompatibility.Contains(singleCategory, ',', StringComparison.Ordinal) || NetFrameworkCompatibility.Contains(singleCategory, ';', StringComparison.Ordinal)))
                 {
                     component.Category = singleCategory.Split(
                         new[] { ",", ";" },
@@ -1462,7 +1462,7 @@ namespace KOTORModSync.Core.Services
                                 urlHashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
                             }
 #else
-                            urlHashBytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
+                            urlHashBytes = NetFrameworkCompatibility.HashDataSHA1(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
 #endif
                             string tempKey = System.BitConverter.ToString(urlHashBytes).Replace("-", string.Empty).ToLowerInvariant();
 
@@ -1648,7 +1648,7 @@ namespace KOTORModSync.Core.Services
                             urlHashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
                         }
 #else
-                        urlHashBytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
+                        urlHashBytes = NetFrameworkCompatibility.HashDataSHA1(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
 #endif
                         string tempKey = BitConverter.ToString(urlHashBytes).Replace("-", string.Empty).ToLowerInvariant();
 
@@ -4679,7 +4679,13 @@ namespace KOTORModSync.Core.Services
                     if (masterNames.Count > 0)
                     {
                         _ = sb.AppendLine();
-                        _ = sb.Append("**Masters:** ").AppendJoin(", ", masterNames).AppendLine();
+                        _ = sb.Append("**Masters:** ");
+                        for (int masterIndex = 0; masterIndex < masterNames.Count; masterIndex++)
+                        {
+                            if (masterIndex > 0) sb.Append(", ");
+                            sb.Append(masterNames[masterIndex]);
+                        }
+                        sb.AppendLine();
                     }
                 }
 
@@ -5164,7 +5170,12 @@ namespace KOTORModSync.Core.Services
             if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
             {
                 IReadOnlyDictionary<string, object> serializedRegistry = SerializeResourceRegistry(component.ResourceRegistry);
-                componentDict["ResourceRegistry"] = new Dictionary<string, object>(serializedRegistry, StringComparer.OrdinalIgnoreCase);
+                var registryDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in serializedRegistry)
+                {
+                    registryDict[kvp.Key] = kvp.Value;
+                }
+                componentDict["ResourceRegistry"] = registryDict;
                 Logger.LogVerbose($"[SerializeComponent] Added ResourceRegistry to componentDict: {serializedRegistry.Count} entries");
             }
             else

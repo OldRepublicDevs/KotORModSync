@@ -1729,7 +1729,7 @@ namespace KOTORModSync.Core.Services
             }
 
 
-            return Path.Combine(resolved.TrimStart('\\'), archiveName);
+            return Path.Combine(resolved.TrimStart(new[] { '\\' }), archiveName);
         }
 
         /// <summary>
@@ -2549,7 +2549,7 @@ namespace KOTORModSync.Core.Services
 					urlHashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
 				}
 #else
-                urlHashBytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
+                urlHashBytes = NetFrameworkCompatibility.HashDataSHA1(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
 #endif
                 metadataHash = BitConverter.ToString(urlHashBytes).Replace("-", string.Empty).ToLowerInvariant();
 

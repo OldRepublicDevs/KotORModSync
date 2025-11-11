@@ -18,6 +18,7 @@ using Avalonia.VisualTree;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.Validation;
+using KOTORModSync.Core.Utility;
 using KOTORModSync.Services;
 
 namespace KOTORModSync.Controls
@@ -718,7 +719,13 @@ namespace KOTORModSync.Controls
 
                 if (component.Category.Count > 0)
                 {
-                    _ = sb.Append("🏷️ Category: ").AppendJoin(", ", component.Category).AppendLine();
+                    _ = sb.Append("🏷️ Category: ");
+                    for (int i = 0; i < component.Category.Count; i++)
+                    {
+                        if (i > 0) sb.Append(", ");
+                        sb.Append(component.Category[i]);
+                    }
+                    sb.AppendLine();
                 }
 
                 if (!string.IsNullOrWhiteSpace(component.Tier))
@@ -742,7 +749,13 @@ namespace KOTORModSync.Controls
 
             if (component.Category.Count > 0)
             {
-                _ = sb.Append("🏷️ Category: ").AppendJoin(", ", component.Category).AppendLine();
+                _ = sb.Append("🏷️ Category: ");
+                for (int i = 0; i < component.Category.Count; i++)
+                {
+                    if (i > 0) sb.Append(", ");
+                    sb.Append(component.Category[i]);
+                }
+                sb.AppendLine();
             }
 
             if (!string.IsNullOrWhiteSpace(component.Tier))
@@ -797,7 +810,15 @@ namespace KOTORModSync.Controls
                     _ = sb.AppendLine("  2. Or manually download from the mod links");
                     if (component.ResourceRegistry.Count > 0)
                     {
-                        _ = sb.Append("  3. Download Links: ").AppendJoin(", ", component.ResourceRegistry.Keys).AppendLine();
+                        _ = sb.Append("  3. Download Links: ");
+                        int keyIndex = 0;
+                        foreach (string key in component.ResourceRegistry.Keys)
+                        {
+                            if (keyIndex > 0) sb.Append(", ");
+                            sb.Append(key);
+                            keyIndex++;
+                        }
+                        sb.AppendLine();
                     }
 
                     _ = sb.AppendLine();

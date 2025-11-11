@@ -140,8 +140,8 @@ namespace KOTORModSync.Services
             string primaryError = errorReasons[0];
             string description = string.Join(", ", errorReasons);
 
-            bool canAutoFix = primaryError.Contains("missing required dependencies", StringComparison.OrdinalIgnoreCase) ||
-                              primaryError.Contains("conflicting mods selected", StringComparison.OrdinalIgnoreCase);
+            bool canAutoFix = NetFrameworkCompatibility.Contains(primaryError, "missing required dependencies", StringComparison.OrdinalIgnoreCase) ||
+                              NetFrameworkCompatibility.Contains(primaryError, "conflicting mods selected", StringComparison.OrdinalIgnoreCase);
 
             return (primaryError, description, canAutoFix);
         }

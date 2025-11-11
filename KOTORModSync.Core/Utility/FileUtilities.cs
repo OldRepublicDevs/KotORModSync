@@ -35,7 +35,7 @@ namespace KOTORModSync.Core.Utility
                     {
                         await writer.WriteAsync(documentation).ConfigureAwait(false);
                         await writer.FlushAsync().ConfigureAwait(false);
-                        await writer.DisposeAsync().ConfigureAwait(false);
+                        writer.Dispose();
                     }
                 }
             }

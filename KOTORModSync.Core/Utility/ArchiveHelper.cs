@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Utility;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -330,7 +331,7 @@ namespace KOTORModSync.Core.Utility
                             exePath = reader.Entry.Key;
                         }
 
-                        if (!(directory is null) && directory.Contains("tslpatchdata", StringComparison.OrdinalIgnoreCase))
+                        if (!(directory is null) && NetFrameworkCompatibility.Contains(directory, "tslpatchdata", StringComparison.OrdinalIgnoreCase))
                         {
                             tslPatchDataFolderExists = true;
                         }
@@ -347,7 +348,7 @@ namespace KOTORModSync.Core.Utility
             if (
                 exePath != null
                 && tslPatchDataFolderExists
-                && Path.GetDirectoryName(exePath).Contains("tslpatchdata", StringComparison.OrdinalIgnoreCase)
+                && NetFrameworkCompatibility.Contains(Path.GetDirectoryName(exePath), "tslpatchdata", StringComparison.OrdinalIgnoreCase)
             )
             {
                 return exePath;
@@ -1380,18 +1381,18 @@ namespace KOTORModSync.Core.Utility
             }
 
             string message = ex.Message?.ToLowerInvariant() ?? string.Empty;
-            return message.Contains("nextheaderoffset", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("header offset", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("unknown archive format", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("failed to locate", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("zip header", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("corrupt", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("invalid archive", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("unexpected end", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("invalid header", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("bad archive", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("crc mismatch", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("data error", StringComparison.OrdinalIgnoreCase);
+            return NetFrameworkCompatibility.Contains(message, "nextheaderoffset", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "header offset", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "unknown archive format", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "failed to locate", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "zip header", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "corrupt", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "invalid archive", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "unexpected end", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "invalid header", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "bad archive", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "crc mismatch", StringComparison.OrdinalIgnoreCase)
+                || NetFrameworkCompatibility.Contains(message, "data error", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

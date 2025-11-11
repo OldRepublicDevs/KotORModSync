@@ -233,7 +233,7 @@ namespace KOTORModSync.Core.Services.Download
             string expectedContentKey,
             CancellationToken cancellationToken)
         {
-            byte[] descriptorBytes = await File.ReadAllBytesAsync(descriptorPath, cancellationToken).ConfigureAwait(false);
+            byte[] descriptorBytes = await NetFrameworkCompatibility.ReadAllBytesAsync(descriptorPath, cancellationToken).ConfigureAwait(false);
             string metaData = Convert.ToBase64String(descriptorBytes);
 
             var requestObject = new JObject
@@ -309,7 +309,7 @@ namespace KOTORModSync.Core.Services.Download
                         new JObject
                         {
                             ["type"] = "file",
-                            ["contents"] = Convert.ToBase64String(await File.ReadAllBytesAsync(descriptorPath, cancellationToken).ConfigureAwait(false)),
+                            ["contents"] = Convert.ToBase64String(await NetFrameworkCompatibility.ReadAllBytesAsync(descriptorPath, cancellationToken).ConfigureAwait(false)),
                             ["options"] = new JObject
                             {
                                 ["download_location"] = targetDirectory,
@@ -467,12 +467,12 @@ namespace KOTORModSync.Core.Services.Download
 
         private static Uri Combine(Uri baseUri, string relativePath)
         {
-            if (!baseUri.AbsoluteUri.EndsWith('/'))
+            if (!baseUri.AbsoluteUri.EndsWith("/"))
             {
                 return new Uri(baseUri, relativePath);
             }
 
-            return new Uri(baseUri, relativePath.TrimStart('/'));
+            return new Uri(baseUri, relativePath.TrimStart(new[] { '/' }));
         }
 
         private static string Decode64(string value)

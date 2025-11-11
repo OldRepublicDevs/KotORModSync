@@ -469,7 +469,7 @@ namespace KOTORModSync.Core.FileSystemUtils
                 parts = new[] { currentPath }.Concat(parts).ToArray();
             }
 
-            if (parts[0].EndsWith(':'))
+            if (parts[0].EndsWith(":", StringComparison.Ordinal))
             {
                 parts[0] += Path.DirectorySeparatorChar;
             }
@@ -817,7 +817,7 @@ namespace KOTORModSync.Core.FileSystemUtils
                 return path;
             }
 
-            string formattedPath = path.TrimStart('\\')
+            string formattedPath = path.TrimStart(new[] { '\\' })
                 .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
                 .Replace(oldChar: '\\', Path.DirectorySeparatorChar).Replace(oldChar: '/', Path.DirectorySeparatorChar);
 

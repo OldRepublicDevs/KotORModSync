@@ -43,9 +43,9 @@ namespace KOTORModSync.Core.Services
                 return string.Empty;
             }
 
-            string trimmed = fileName
-                .Replace("<<modDirectory>>\\", "", StringComparison.OrdinalIgnoreCase)
-                .Replace("<<modDirectory>>/", "", StringComparison.OrdinalIgnoreCase)
+            string trimmed = NetFrameworkCompatibility.Replace(
+                NetFrameworkCompatibility.Replace(fileName, "<<modDirectory>>\\", "", StringComparison.OrdinalIgnoreCase),
+                "<<modDirectory>>/", "", StringComparison.OrdinalIgnoreCase)
                 .Replace('/', Path.DirectorySeparatorChar)
                 .Trim(Path.DirectorySeparatorChar);
 
@@ -55,8 +55,9 @@ namespace KOTORModSync.Core.Services
             }
 
             // Remove wildcards and quotes that may be present in patterns
-            trimmed = trimmed.Replace("*", string.Empty, StringComparison.Ordinal)
-                             .Replace("?", string.Empty, StringComparison.Ordinal)
+            trimmed = NetFrameworkCompatibility.Replace(
+                NetFrameworkCompatibility.Replace(trimmed, "*", string.Empty, StringComparison.Ordinal),
+                "?", string.Empty, StringComparison.Ordinal)
                              .Trim('"');
 
             string nameOnly = Path.GetFileNameWithoutExtension(trimmed);
@@ -270,7 +271,7 @@ namespace KOTORModSync.Core.Services
                             string archiveName = kvp.Key;
                             HashSet<string> insideArchive = kvp.Value;
                             // For patterns like <<modDirectory>>\ArchiveName*\Subfolder\*
-                            if (pattern.Contains(archiveName, StringComparison.OrdinalIgnoreCase))
+                            if (NetFrameworkCompatibility.Contains(pattern, archiveName, StringComparison.OrdinalIgnoreCase))
                             {
                                 // Remove path/prefix to get just the *relative pattern* inside the archive
                                 string afterArchive = patternFileName;
@@ -312,13 +313,13 @@ namespace KOTORModSync.Core.Services
                             {
                                 // Allow lenient comparison where available file name contains the pattern token entirely
                                 satisfiedBySimilarFile = normalizedAvailableNames.Any(tuple =>
-                                    tuple.Normalized.Contains(normalizedPatternName, StringComparison.Ordinal));
+                                    NetFrameworkCompatibility.Contains(tuple.Normalized, normalizedPatternName, StringComparison.Ordinal));
 
                                 if (!satisfiedBySimilarFile)
                                 {
                                     satisfiedBySimilarFile = normalizedPatternName.Length > 3 &&
                                         normalizedAvailableNames.Any(tuple =>
-                                            normalizedPatternName.Contains(tuple.Normalized, StringComparison.Ordinal));
+                                        NetFrameworkCompatibility.Contains(normalizedPatternName, tuple.Normalized, StringComparison.Ordinal));
                                 }
                             }
                         }

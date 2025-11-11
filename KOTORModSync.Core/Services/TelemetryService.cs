@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Security.Cryptography;
 using System.Text;
+using KOTORModSync.Core.Utility;
 
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
@@ -775,6 +776,9 @@ namespace KOTORModSync.Core.Services
 #if NET8_0_OR_GREATER
                 byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
                 return Convert.ToHexString(hashBytes).Substring(0, 16);
+#elif NETSTANDARD2_0 || NET48
+                byte[] hashBytes = NetFrameworkCompatibility.HashDataSHA256(Encoding.UTF8.GetBytes(input));
+                return BitConverter.ToString(hashBytes).Replace("-", "").Substring(0, 16);
 #else
 				using ( var sha256 = SHA256.Create() )
 				{

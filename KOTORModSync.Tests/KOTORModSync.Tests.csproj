@@ -6,7 +6,7 @@
     <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Platforms>AnyCPU</Platforms>
+    <Platforms>AnyCPU;x86;x64;arm64</Platforms>
     <OutputType>Exe</OutputType>
     <GenerateProgramFile>false</GenerateProgramFile>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>

@@ -34,7 +34,7 @@
 
   <!-- Target Platforms/Frameworks -->
   <PropertyGroup>
-    <Platforms>x86;x64</Platforms>
+    <Platforms>x86;x64;arm64</Platforms>
     <UseAppHost>true</UseAppHost>
   </PropertyGroup>
 

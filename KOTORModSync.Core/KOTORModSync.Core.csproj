@@ -3,7 +3,7 @@
   <PropertyGroup>
     <LangVersion>7.3</LangVersion>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <Platforms>AnyCPU</Platforms>
+    <Platforms>AnyCPU;x86;x64;arm64</Platforms>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
     <_NC1>rent</_NC1>
     <_NC2>Mon</_NC2>

@@ -543,7 +543,7 @@ jobs:
 
           # Ensure we're on master branch
           git checkout master || git checkout -b master
-          
+
           git add appcast.xml
 
           if git diff --staged --quiet; then

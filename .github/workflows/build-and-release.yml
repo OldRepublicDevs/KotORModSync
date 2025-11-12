@@ -97,19 +97,34 @@ jobs:
     if: needs.determine-version.outputs.should_build == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false  # CRITICAL: Don't cancel other builds if one fails
       matrix:
         include:
-          # Windows builds
-          - rid: win-x64
+          # Windows .NET Framework 4.8 builds (legacy RIDs)
+          - rid: win7-x86
             os: windows-latest
             framework: net48
+            platform: x86
+          - rid: win7-x64
+            os: windows-latest
+            framework: net48
+            platform: x64
+
+          # Windows .NET 8 builds (modern RIDs)
+          - rid: win-x86
+            os: windows-latest
+            framework: net8.0
+            platform: x86
+          - rid: win-x64
+            os: windows-latest
+            framework: net8.0
             platform: x64
           - rid: win-arm64
             os: windows-latest
             framework: net8.0
             platform: arm64
 
-          # Linux builds
+          # Linux .NET 8 builds
           - rid: linux-x64
             os: ubuntu-latest
             framework: net8.0
@@ -119,7 +134,7 @@ jobs:
             framework: net8.0
             platform: arm64
 
-          # macOS builds
+          # macOS .NET 8 builds
           - rid: osx-x64
             os: macos-latest
             framework: net8.0
@@ -335,7 +350,8 @@ jobs:
   generate-appcast:
     name: Generate AppCast
     needs: [determine-version, publish-multi-platform]
-    if: needs.determine-version.outputs.should_build == 'true'
+    # Run even if some builds failed (but not if all were cancelled/skipped)
+    if: needs.determine-version.outputs.should_build == 'true' && !cancelled()
     runs-on: ubuntu-latest
 
     steps:

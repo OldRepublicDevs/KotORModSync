@@ -204,10 +204,10 @@
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher"
       DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)"
       SkipUnchangedFiles="true" />
-    <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' "
+    <Move Condition=" ('$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64') AND Exists('$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher') "
       SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher"
       DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
-    <Move Condition=" ('$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64') AND '$(PublishDir)' != '' "
+    <Move Condition=" ('$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64') AND '$(PublishDir)' != '' AND Exists('$(PublishDir)Resources$(DirectorySeparatorChar)HoloPatcher') "
       SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)HoloPatcher"
       DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher" />
 

@@ -1,0 +1,128 @@
+# Sample KOTORModSync Configuration File
+# This file demonstrates the structure for defining mod components
+
+[[component]]
+name = "KOTOR 1 Community Patch"
+description = "A comprehensive bugfix patch for KOTOR 1 that addresses numerous issues found in the game."
+author = "Multiple Contributors"
+category = "Bug Fix"
+tier = "Essential"
+guid = "550e8400-e29b-41d4-a716-446655440001"
+is_selected = true
+mod_link = [
+    "https://deadlystream.com/files/file/1258-kotor-1-community-patch/",
+    "https://www.nexusmods.com/kotor/mods/1258"
+]
+directions = """
+This patch should be installed first before any other mods.
+It fixes critical bugs and provides a stable base for other modifications.
+"""
+
+[[component.instructions]]
+action = "Extract"
+source = ["K1CP_v1.10.0.zip"]
+destination = "<<kotorDirectory>>"
+overwrite = true
+
+[[component.instructions]]
+action = "Copy"
+source = ["K1CP Files/*"]
+destination = "<<kotorDirectory>>"
+overwrite = true
+
+[[component]]
+name = "Improved AI"
+description = "Enhances the artificial intelligence of NPCs and companions in combat situations."
+author = "stoffe"
+category = "Gameplay"
+tier = "Recommended"
+guid = "550e8400-e29b-41d4-a716-446655440002"
+is_selected = false
+mod_link = ["https://deadlystream.com/files/file/1001-improved-ai/"]
+dependencies = ["550e8400-e29b-41d4-a716-446655440001"]  # Depends on Community Patch
+
+[[component.instructions]]
+action = "TSLPatcher"
+source = ["tslpatchdata"]
+destination = "<<kotorDirectory>>"
+arguments = "0"  # Use first option in namespaces.ini
+
+[[component]]
+name = "HD UI Elements"
+description = "High-definition user interface elements for modern displays."
+author = "ndix UR"
+category = "Graphics"
+tier = "Optional"
+guid = "550e8400-e29b-41d4-a716-446655440003"
+is_selected = false
+mod_link = ["https://deadlystream.com/files/file/1159-hd-ui-elements/"]
+
+[[component.instructions]]
+action = "Copy"
+source = ["HD_UI_Elements/*"]
+destination = "<<kotorDirectory>>"
+overwrite = true
+
+[[component.options]]
+name = "High Resolution Option"
+description = "Use 2K textures instead of 1K for better quality on high-resolution displays"
+is_selected = false
+
+[[component.options.instructions]]
+action = "Copy"
+source = ["HD_UI_Elements/2K/*"]
+destination = "<<kotorDirectory>>"
+overwrite = true
+
+[[component.options]]
+name = "Standard Resolution Option"
+description = "Use standard 1K textures for better compatibility"
+is_selected = true
+
+[[component.options.instructions]]
+action = "Copy"
+source = ["HD_UI_Elements/1K/*"]
+destination = "<<kotorDirectory>>"
+overwrite = true
+
+[[component]]
+name = "Bastila Romance Enhancement"
+description = "Expands and improves the romance storyline with Bastila Shan."
+author = "jc2"
+category = "Story"
+tier = "Optional"
+guid = "550e8400-e29b-41d4-a716-446655440004"
+is_selected = false
+restrictions = ["550e8400-e29b-41d4-a716-446655440005"]  # Conflicts with Alternative Romance mod
+mod_link = ["https://deadlystream.com/files/file/1999-bastila-romance-enhancement/"]
+
+[[component.instructions]]
+action = "TSLPatcher"
+source = ["Bastila_Romance_TSLPatchdata"]
+destination = "<<kotorDirectory>>"
+
+[[component]]
+name = "Alternative Romance Mod"
+description = "An alternative approach to romance in KOTOR with different characters."
+author = "Revan's Exile"
+category = "Story"
+tier = "Optional"
+guid = "550e8400-e29b-41d4-a716-446655440005"
+is_selected = false
+restrictions = ["550e8400-e29b-41d4-a716-446655440004"]  # Conflicts with Bastila Romance Enhancement
+mod_link = ["https://deadlystream.com/files/file/2001-alternative-romance-mod/"]
+
+[[component.instructions]]
+action = "Copy"
+source = ["Alternative_Romance/*"]
+destination = "<<kotorDirectory>>"
+overwrite = false  # Don't overwrite existing files
+
+[[component.instructions]]
+action = "Execute"
+source = ["setup.exe"]
+arguments = "--silent --install-path=\"<<kotorDirectory>>\""
+
+
+
+

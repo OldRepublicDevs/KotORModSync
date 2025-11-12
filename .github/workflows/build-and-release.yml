@@ -204,7 +204,7 @@ jobs:
 
       - name: Restore Dependencies (Linux/macOS - dotnet)
         if: runner.os != 'Windows'
-        run: dotnet restore --framework ${{ matrix.framework }}
+        run: dotnet restore KOTORModSync.sln /p:TargetFramework=${{ matrix.framework }} /p:Configuration=Release
 
       - name: Publish ${{ matrix.rid }} (Windows - MSBuild)
         if: runner.os == 'Windows'

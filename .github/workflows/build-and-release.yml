@@ -151,6 +151,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Update Info.plist Version
+        if: startsWith(matrix.rid, 'osx-')
         shell: pwsh
         run: |
           $version = "${{ needs.determine-version.outputs.version }}"
@@ -265,11 +266,13 @@ jobs:
         run: |
           $publishDir = "./publish/${{ matrix.rid }}"
           $version = "${{ needs.determine-version.outputs.version }}"
-          $packageDir = "./package/KOTORModSync $version"
+          $packageRoot = "./package/${{ matrix.rid }}"
+          $packageDir = "$packageRoot/KOTORModSync $version"
 
           Write-Host "📦 Preparing release package for ${{ matrix.rid }} version $version..."
 
           # Create package directory structure
+          New-Item -ItemType Directory -Path "$packageRoot" -Force | Out-Null
           New-Item -ItemType Directory -Path "$packageDir" -Force | Out-Null
           New-Item -ItemType Directory -Path "$packageDir/docs" -Force | Out-Null
 
@@ -304,13 +307,13 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $packageDir = "./package"
+          $packageDir = "./package/${{ matrix.rid }}/KOTORModSync ${{ needs.determine-version.outputs.version }}"
           $version = "${{ needs.determine-version.outputs.version }}"
           $archiveName = "KOTORModSync-$version-${{ matrix.rid }}.zip"
 
           Write-Host "🗜️ Creating archive: $archiveName"
 
-          Compress-Archive -Path "$packageDir/*" -DestinationPath $archiveName -Force
+          Compress-Archive -Path "$packageDir" -DestinationPath $archiveName -Force
 
           Write-Host "✅ Archive created: $archiveName"
           Write-Host "📊 Archive size: $((Get-Item $archiveName).Length / 1MB) MB"
@@ -324,9 +327,9 @@ jobs:
 
           echo "🗜️ Creating archive: $archive_name"
 
-          cd package
-          zip -r "../$archive_name" "KOTORModSync $version"
-          cd ..
+          cd "package/${{ matrix.rid }}"
+          zip -r "../../$archive_name" "KOTORModSync $version"
+          cd ../..
 
           echo "✅ Archive created: $archive_name"
           echo "📊 Archive size: $(du -h $archive_name | cut -f1)"
@@ -454,7 +457,7 @@ jobs:
 
                   # Determine OS from RID
                   case "$rid" in
-                    win-*)
+                    win*)
                       os="windows"
                       ;;
                     linux-*)

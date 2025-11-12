@@ -10,12 +10,12 @@
         <item>
             <title>Version 2.0.0a1 (linux-arm64)</title>
             <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0a1</sparkle:releaseNotesLink>
-            <pubDate>Wed, 12 Nov 2025 11:35:28 +0000</pubDate>
+            <pubDate>Wed, 12 Nov 2025 11:37:49 +0000</pubDate>
             <enclosure
                 url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0a1/KOTORModSync-v2.0.0a1-linux-arm64.zip"
                 sparkle:version="2.0.0a1"
                 sparkle:os="linux"
-                length="72472234"
+                length="72472246"
                 type="application/octet-stream"
                 sparkle:edSignature="File does not exist: /home/runner/.local/share/netsparkle/NetSparkle_Ed25519.pub
 Keys do not exist
@@ -26,12 +26,12 @@ Signature: " />
         <item>
             <title>Version 2.0.0a1 (linux-x64)</title>
             <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0a1</sparkle:releaseNotesLink>
-            <pubDate>Wed, 12 Nov 2025 11:35:28 +0000</pubDate>
+            <pubDate>Wed, 12 Nov 2025 11:37:49 +0000</pubDate>
             <enclosure
                 url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0a1/KOTORModSync-v2.0.0a1-linux-x64.zip"
                 sparkle:version="2.0.0a1"
                 sparkle:os="linux"
-                length="75713709"
+                length="75713702"
                 type="application/octet-stream"
                 sparkle:edSignature="File does not exist: /home/runner/.local/share/netsparkle/NetSparkle_Ed25519.pub
 Keys do not exist
@@ -42,12 +42,12 @@ Signature: " />
         <item>
             <title>Version 2.0.0a1 (win-arm64)</title>
             <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0a1</sparkle:releaseNotesLink>
-            <pubDate>Wed, 12 Nov 2025 11:35:28 +0000</pubDate>
+            <pubDate>Wed, 12 Nov 2025 11:37:49 +0000</pubDate>
             <enclosure
                 url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0a1/KOTORModSync-v2.0.0a1-win-arm64.zip"
                 sparkle:version="2.0.0a1"
                 sparkle:os="windows"
-                length="74878397"
+                length="74878390"
                 type="application/octet-stream"
                 sparkle:edSignature="File does not exist: /home/runner/.local/share/netsparkle/NetSparkle_Ed25519.pub
 Keys do not exist
@@ -58,12 +58,12 @@ Signature: " />
         <item>
             <title>Version 2.0.0a1 (win-x64)</title>
             <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0a1</sparkle:releaseNotesLink>
-            <pubDate>Wed, 12 Nov 2025 11:35:28 +0000</pubDate>
+            <pubDate>Wed, 12 Nov 2025 11:37:49 +0000</pubDate>
             <enclosure
                 url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0a1/KOTORModSync-v2.0.0a1-win-x64.zip"
                 sparkle:version="2.0.0a1"
                 sparkle:os="windows"
-                length="78013396"
+                length="78013400"
                 type="application/octet-stream"
                 sparkle:edSignature="File does not exist: /home/runner/.local/share/netsparkle/NetSparkle_Ed25519.pub
 Keys do not exist
@@ -74,12 +74,12 @@ Signature: " />
         <item>
             <title>Version 2.0.0a1 (win-x86)</title>
             <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0a1</sparkle:releaseNotesLink>
-            <pubDate>Wed, 12 Nov 2025 11:35:28 +0000</pubDate>
+            <pubDate>Wed, 12 Nov 2025 11:37:49 +0000</pubDate>
             <enclosure
                 url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0a1/KOTORModSync-v2.0.0a1-win-x86.zip"
                 sparkle:version="2.0.0a1"
                 sparkle:os="windows"
-                length="72060334"
+                length="72060332"
                 type="application/octet-stream"
                 sparkle:edSignature="File does not exist: /home/runner/.local/share/netsparkle/NetSparkle_Ed25519.pub
 Keys do not exist

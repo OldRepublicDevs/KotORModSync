@@ -74,9 +74,18 @@ jobs:
       - name: Check if Should Build
         id: check
         run: |
-          if [ "${{ github.event_name }}" = "release" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          EVENT_NAME="${{ github.event_name }}"
+          if [ "$EVENT_NAME" = "release" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "should_build=true" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+          elif [ "$EVENT_NAME" = "workflow_run" ]; then
+            if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+              echo "Triggered by successful workflow_run (e.g., Release Please)."
+              echo "should_build=true" >> $GITHUB_OUTPUT
+            else
+              echo "Workflow run conclusion is not success (got ${{ github.event.workflow_run.conclusion }})."
+              echo "should_build=false" >> $GITHUB_OUTPUT
+            fi
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
             echo "should_build=false" >> $GITHUB_OUTPUT
           else
             echo "should_build=false" >> $GITHUB_OUTPUT

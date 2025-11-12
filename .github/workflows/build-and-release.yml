@@ -17,6 +17,8 @@ on:
 env:
   DOTNET_VERSION: "8.0.x"
   PROJECT_FILE: "KOTORModSync.GUI/KOTORModSync.csproj"
+  DOTNET_VERSION_SHORT: "net8.0"  # Specify net8.0 once here, so it's incredibly easy to change to another version globally.
+  DOTNET_FRAMEWORK_VERSION_SHORT: "net48"  # Specify net48 once here, so it's incredibly easy to change to another version globally.
 
 jobs:
   determine-version:
@@ -103,45 +105,45 @@ jobs:
           # Windows .NET Framework 4.8 builds (legacy RIDs)
           - rid: win7-x86
             os: windows-latest
-            framework: net48
+            framework: DOTNET_FRAMEWORK_VERSION_SHORT
             platform: x86
           - rid: win7-x64
             os: windows-latest
-            framework: net48
+            framework: DOTNET_FRAMEWORK_VERSION_SHORT
             platform: x64
 
-          # Windows .NET 8 builds (modern RIDs)
+          # Windows .NET builds (modern RIDs)
           - rid: win-x86
             os: windows-latest
-            framework: net8.0
+            framework: DOTNET_VERSION_SHORT
             platform: x86
           - rid: win-x64
             os: windows-latest
-            framework: net8.0
+            framework: DOTNET_VERSION_SHORT
             platform: x64
           - rid: win-arm64
             os: windows-latest
-            framework: net8.0
+            framework: DOTNET_VERSION_SHORT
             platform: arm64
 
-          # Linux .NET 8 builds
+          # Linux .NET builds
           - rid: linux-x64
             os: ubuntu-latest
-            framework: net8.0
+            framework: DOTNET_VERSION_SHORT
             platform: x64
           - rid: linux-arm64
             os: ubuntu-latest
-            framework: net8.0
+            framework: DOTNET_VERSION_SHORT
             platform: arm64
 
-          # macOS .NET 8 builds
+          # macOS .NET builds
           - rid: osx-x64
             os: macos-latest
-            framework: net8.0
+            framework: DOTNET_VERSION_SHORT
             platform: x64
           - rid: osx-arm64
             os: macos-latest
-            framework: net8.0
+            framework: DOTNET_VERSION_SHORT
             platform: arm64
 
     steps:
@@ -171,11 +173,11 @@ jobs:
           Write-Host "✅ Info.plist updated for ${{ matrix.rid }}"
 
       - name: Setup MSBuild (Windows/.NET Framework 4.8)
-        if: runner.os == 'Windows' && matrix.framework == 'net48'
+        if: runner.os == 'Windows' && matrix.framework == 'DOTNET_FRAMEWORK_VERSION_SHORT'
         uses: microsoft/setup-msbuild@v2
 
       - name: Setup .NET 8 SDK
-        if: matrix.framework == 'net8.0'
+        if: matrix.framework == 'DOTNET_VERSION_SHORT'
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -214,22 +216,22 @@ jobs:
           Write-Host "✅ Secret injected for ${{ matrix.rid }}"
 
       - name: Restore Dependencies (Windows - MSBuild for .NET Framework 4.8)
-        if: runner.os == 'Windows' && matrix.framework == 'net48'
+        if: runner.os == 'Windows' && matrix.framework == 'DOTNET_FRAMEWORK_VERSION_SHORT'
         run: msbuild KOTORModSync.sln /t:Restore /p:TargetFramework=${{ matrix.framework }} /p:Configuration=Release
 
       - name: Restore Dependencies (dotnet CLI for .NET 8.0)
-        if: matrix.framework == 'net8.0'
-        run: dotnet restore KOTORModSync.sln /p:TargetFramework=${{ matrix.framework }} /p:Configuration=Release
+        if: matrix.framework == 'DOTNET_VERSION_SHORT'
+        run: dotnet restore KOTORModSync.sln /p:TargetFramework=${{ matrix.framework == 'DOTNET_VERSION_SHORT' && env.DOTNET_VERSION_SHORT || matrix.framework }} /p:Configuration=Release
 
       - name: Publish ${{ matrix.rid }} (Windows - MSBuild for .NET Framework 4.8)
-        if: runner.os == 'Windows' && matrix.framework == 'net48'
+        if: runner.os == 'Windows' && matrix.framework == 'DOTNET_FRAMEWORK_VERSION_SHORT'
         shell: pwsh
         run: |
           Write-Host "🔨 Publishing ${{ matrix.rid }} using MSBuild (.NET Framework 4.8)..."
           msbuild ${{ env.PROJECT_FILE }} `
             /t:Publish `
             /p:Configuration=Release `
-            /p:TargetFramework=${{ matrix.framework }} `
+            /p:TargetFramework=${{ matrix.framework == 'DOTNET_FRAMEWORK_VERSION_SHORT' && env.DOTNET_FRAMEWORK_VERSION_SHORT || matrix.framework }} `
             /p:RuntimeIdentifier=${{ matrix.rid }} `
             /p:SelfContained=true `
             /p:Platform=${{ matrix.platform }} `
@@ -241,13 +243,13 @@ jobs:
           Write-Host "✅ Published ${{ matrix.rid }}"
 
       - name: Publish ${{ matrix.rid }} (dotnet CLI for .NET 8.0)
-        if: matrix.framework == 'net8.0'
+        if: matrix.framework == 'DOTNET_VERSION_SHORT'
         shell: pwsh
         run: |
           Write-Host "🔨 Publishing ${{ matrix.rid }} using dotnet CLI (.NET 8)..."
           dotnet publish ${{ env.PROJECT_FILE }} `
             -c Release `
-            --framework ${{ matrix.framework }} `
+            --framework ${{ matrix.framework == 'DOTNET_VERSION_SHORT' && env.DOTNET_VERSION_SHORT || matrix.framework }} `
             --runtime ${{ matrix.rid }} `
             --self-contained true `
             -p:Platform=${{ matrix.platform }} `

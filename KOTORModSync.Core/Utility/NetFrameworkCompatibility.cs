@@ -210,19 +210,6 @@ namespace KOTORModSync.Core.Utility
         /// <summary>
         /// Polyfill for File.WriteAllTextAsync (available in .NET Standard 2.1+ but not .NET Framework 4.8).
         /// </summary>
-        public static async Task WriteAllTextAsync([NotNull] string path, [NotNull] string contents, CancellationToken cancellationToken = default)
-        {
-            if (path is null)
-                throw new ArgumentNullException(nameof(path));
-            if (contents is null)
-                throw new ArgumentNullException(nameof(contents));
-
-            await WriteAllTextAsync(path, contents, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Polyfill for File.WriteAllTextAsync (available in .NET Standard 2.1+ but not .NET Framework 4.8).
-        /// </summary>
         public static async Task WriteAllTextAsync([NotNull] string path, [NotNull] string contents, Encoding encoding = null, CancellationToken cancellationToken = default)
         {
             if (path is null)

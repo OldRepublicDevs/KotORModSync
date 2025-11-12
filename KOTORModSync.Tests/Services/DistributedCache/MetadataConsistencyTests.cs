@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 using Xunit;
 
 namespace KOTORModSync.Tests.Services.DistributedCache

@@ -67,7 +67,7 @@ namespace KOTORModSync.Tests
             IEnumerable<FileSystemInfo> result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory);
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.ToList().Count}. Output: {failureMessage}");
         }
@@ -84,7 +84,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
         }
@@ -107,7 +107,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result.ToList(),
@@ -128,7 +128,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
         }
@@ -145,7 +145,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
         }
@@ -193,7 +193,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(fileInfo).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -217,7 +217,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(s_testDirectory).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -242,7 +242,7 @@ namespace KOTORModSync.Tests
             var result = PathHelper.FindCaseInsensitiveDuplicates(dirInfo).ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -273,7 +273,7 @@ namespace KOTORModSync.Tests
                 .ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,
@@ -305,7 +305,7 @@ namespace KOTORModSync.Tests
                 .ToList();
 
             var failureMessage = new StringBuilder();
-            _ = failureMessage.AppendJoin(Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
+            _ = StringBuilderExtensions.AppendJoin(failureMessage, Environment.NewLine, result.Select(item => item.FullName)).AppendLine();
 
             Assert.That(
                 result,

@@ -63,7 +63,7 @@ namespace KOTORModSync.Tests
         {
             string testFile = Path.Combine(_testDirectory, "large.bin");
             byte[] largeData = new byte[10 * 1024 * 1024]; // 10 MB
-            await File.WriteAllBytesAsync(testFile, largeData);
+            await NetFrameworkCompatibility.WriteAllBytesAsync(testFile, largeData);
 
             (string sha256, int pieceLength, string pieceHashes) = await DownloadCacheOptimizer.ComputeFileIntegrityData(testFile);
 

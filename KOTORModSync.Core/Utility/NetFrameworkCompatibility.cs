@@ -210,6 +210,19 @@ namespace KOTORModSync.Core.Utility
         /// <summary>
         /// Polyfill for File.WriteAllTextAsync (available in .NET Standard 2.1+ but not .NET Framework 4.8).
         /// </summary>
+        public static async Task WriteAllTextAsync([NotNull] string path, [NotNull] string contents, CancellationToken cancellationToken = default)
+        {
+            if (path is null)
+                throw new ArgumentNullException(nameof(path));
+            if (contents is null)
+                throw new ArgumentNullException(nameof(contents));
+
+            await WriteAllTextAsync(path, contents, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Polyfill for File.WriteAllTextAsync (available in .NET Standard 2.1+ but not .NET Framework 4.8).
+        /// </summary>
         public static async Task WriteAllTextAsync([NotNull] string path, [NotNull] string contents, Encoding encoding = null, CancellationToken cancellationToken = default)
         {
             if (path is null)
@@ -336,6 +349,83 @@ namespace KOTORModSync.Core.Utility
                 throw new ArgumentNullException(nameof(dictionary));
 
             return dictionary.TryGetValue(key, out TValue value) ? value : defaultValue;
+        }
+
+        /// <summary>
+        /// Polyfill for File.AppendAllTextAsync (available in .NET Standard 2.1+ but not .NET Framework 4.8).
+        /// </summary>
+        public static async Task AppendAllTextAsync([NotNull] string path, [NotNull] string contents, Encoding encoding = null, CancellationToken cancellationToken = default)
+        {
+            if (path is null)
+                throw new ArgumentNullException(nameof(path));
+            if (contents is null)
+                throw new ArgumentNullException(nameof(contents));
+
+            encoding = encoding ?? Encoding.UTF8;
+            await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                File.AppendAllText(path, contents, encoding);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Polyfill for File.WriteAllLinesAsync (available in .NET Standard 2.1+ but not .NET Framework 4.8).
+        /// </summary>
+        public static async Task WriteAllLinesAsync([NotNull] string path, [NotNull] System.Collections.Generic.IEnumerable<string> contents, Encoding encoding = null, CancellationToken cancellationToken = default)
+        {
+            if (path is null)
+                throw new ArgumentNullException(nameof(path));
+            if (contents is null)
+                throw new ArgumentNullException(nameof(contents));
+
+            encoding = encoding ?? Encoding.UTF8;
+            await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                File.WriteAllLines(path, contents, encoding);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Polyfill for Stream.DisposeAsync (available in .NET Core 2.1+ but not .NET Framework 4.8).
+        /// </summary>
+        public static async ValueTask DisposeAsync(IDisposable disposable)
+        {
+            if (disposable is null)
+                throw new ArgumentNullException(nameof(disposable));
+
+            await Task.Run(() => disposable.Dispose()).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Extension methods for StringBuilder compatibility.
+    /// </summary>
+    public static class StringBuilderExtensions
+    {
+        /// <summary>
+        /// Polyfill for StringBuilder.AppendJoin (available in .NET Core 2.1+ but not .NET Framework 4.8).
+        /// </summary>
+        [NotNull]
+        public static StringBuilder AppendJoin([NotNull] this StringBuilder sb, [NotNull] string separator, [NotNull] System.Collections.Generic.IEnumerable<string> values)
+        {
+            if (sb is null)
+                throw new ArgumentNullException(nameof(sb));
+            if (separator is null)
+                throw new ArgumentNullException(nameof(separator));
+            if (values is null)
+                throw new ArgumentNullException(nameof(values));
+
+            bool first = true;
+            foreach (string value in values)
+            {
+                if (!first)
+                    sb.Append(separator);
+                sb.Append(value);
+                first = false;
+            }
+            return sb;
         }
     }
 }

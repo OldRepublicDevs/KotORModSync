@@ -11,6 +11,7 @@ using KOTORModSync.Core;
 using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 

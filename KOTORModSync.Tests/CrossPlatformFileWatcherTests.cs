@@ -851,7 +851,7 @@ namespace KOTORModSync.Tests
             _createdFiles.Add(filePath);
             byte[] data = new byte[5 * 1024 * 1024];
             new Random().NextBytes(data);
-            await File.WriteAllBytesAsync(filePath, data);
+            await NetFrameworkCompatibility.WriteAllBytesAsync(filePath, data);
 
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(5));
             Assert.True(signaled, "Created event must be raised for large file");
@@ -889,7 +889,7 @@ namespace KOTORModSync.Tests
 
             string filePath = Path.Combine(_testDirectory, "empty.txt");
             _createdFiles.Add(filePath);
-            await File.Create(filePath).DisposeAsync();
+            await NetFrameworkCompatibility.DisposeAsync(File.Create(filePath));
 
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised for empty file");

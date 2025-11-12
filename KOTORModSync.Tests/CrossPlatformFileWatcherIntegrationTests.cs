@@ -126,7 +126,7 @@ namespace KOTORModSync.Tests
             for (int i = 0; i < logEntries; i++)
             {
                 await Task.Delay(200);
-                await File.AppendAllTextAsync(logFile, $"[INFO] Log entry {i} at {DateTime.Now:HH:mm:ss.fff}\n");
+                await NetFrameworkCompatibility.AppendAllTextAsync(logFile, $"[INFO] Log entry {i} at {DateTime.Now:HH:mm:ss.fff}\n");
             }
 
             await Task.Delay(800);
@@ -151,7 +151,7 @@ namespace KOTORModSync.Tests
                 "Theme=Dark",
                 "Language=English",
             };
-            await File.WriteAllLinesAsync(configFile, initialConfig);
+            await NetFrameworkCompatibility.WriteAllLinesAsync(configFile, initialConfig);
             _createdFiles.Add(configFile);
             await Task.Delay(100);
 
@@ -180,7 +180,7 @@ namespace KOTORModSync.Tests
                 "Language=French",
                 "Version=2.0",
             };
-            await File.WriteAllLinesAsync(configFile, newConfig);
+            await NetFrameworkCompatibility.WriteAllLinesAsync(configFile, newConfig);
 
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Change event must be raised when config file is rewritten");
@@ -218,7 +218,7 @@ namespace KOTORModSync.Tests
 
             byte[] backupData = new byte[1024 * 1024];
             new Random().NextBytes(backupData);
-            await File.WriteAllBytesAsync(backupFile, backupData);
+            await NetFrameworkCompatibility.WriteAllBytesAsync(backupFile, backupData);
 
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised for backup file");
@@ -347,7 +347,7 @@ namespace KOTORModSync.Tests
 
                         if (counter % 5 == 0 && File.Exists(file))
                         {
-                            await File.AppendAllTextAsync(file, " appended", cts.Token);
+                            await NetFrameworkCompatibility.AppendAllTextAsync(file, " appended", encoding: null, cts.Token);
                             await Task.Delay(100, cts.Token);
                         }
 

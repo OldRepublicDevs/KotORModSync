@@ -389,6 +389,7 @@ jobs:
       - name: Generate AppCast Signatures
         env:
           NETSPARKLE_PRIVATE_KEY: ${{ secrets.NETSPARKLE_PRIVATE_KEY }}
+          NETSPARKLE_PUBLIC_KEY: ${{ secrets.NETSPARKLE_PUBLIC_KEY }}
         shell: bash
         run: |
           echo "🔐 Generating signatures for release files..."
@@ -396,7 +397,9 @@ jobs:
           # Create directory for key (using NetSparkle's default location)
           mkdir -p ~/.local/share/netsparkle
           echo "$NETSPARKLE_PRIVATE_KEY" > ~/.local/share/netsparkle/NetSparkle_Ed25519.priv
+          echo "$NETSPARKLE_PUBLIC_KEY" > ~/.local/share/netsparkle/NetSparkle_Ed25519.pub
           chmod 600 ~/.local/share/netsparkle/NetSparkle_Ed25519.priv
+          chmod 644 ~/.local/share/netsparkle/NetSparkle_Ed25519.pub
 
           # Create signatures directory
           mkdir -p signatures

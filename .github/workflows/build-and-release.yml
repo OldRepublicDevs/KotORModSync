@@ -393,10 +393,10 @@ jobs:
         run: |
           echo "🔐 Generating signatures for release files..."
 
-          # Create temp directory for key
-          mkdir -p ~/.netsparkle
-          echo "$NETSPARKLE_PRIVATE_KEY" > ~/.netsparkle/NetSparkle_Ed25519.priv
-          chmod 600 ~/.netsparkle/NetSparkle_Ed25519.priv
+          # Create directory for key (using NetSparkle's default location)
+          mkdir -p ~/.local/share/netsparkle
+          echo "$NETSPARKLE_PRIVATE_KEY" > ~/.local/share/netsparkle/NetSparkle_Ed25519.priv
+          chmod 600 ~/.local/share/netsparkle/NetSparkle_Ed25519.priv
 
           # Create signatures directory
           mkdir -p signatures

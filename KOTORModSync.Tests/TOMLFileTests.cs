@@ -449,9 +449,9 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string extractToml = extractComponent.SerializeComponent();
             Assert.Multiple(() =>
             {
-                Assert.That(extractToml.Contains("Overwrite", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Overwrite");
-                Assert.That(extractToml.Contains("Destination", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Destination");
-                Assert.That(extractToml.Contains("Arguments", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Arguments");
+                Assert.That(NetFrameworkCompatibility.Contains(extractToml, "Overwrite", StringComparison.Ordinal), Is.False, "Extract should not serialize Overwrite");
+                Assert.That(NetFrameworkCompatibility.Contains(extractToml, "Destination", StringComparison.Ordinal), Is.False, "Extract should not serialize Destination");
+                Assert.That(NetFrameworkCompatibility.Contains(extractToml, "Arguments", StringComparison.Ordinal), Is.False, "Extract should not serialize Arguments");
             });
 
             var moveComponent = new ModComponent

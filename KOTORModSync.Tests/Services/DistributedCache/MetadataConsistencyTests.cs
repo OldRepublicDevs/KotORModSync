@@ -37,7 +37,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             Assert.NotNull(payload);
             Assert.True(payload.DescriptorBytes.Length > 0);
 
-            byte[] persistedBytes = await File.ReadAllBytesAsync(descriptorPath);
+            byte[] persistedBytes = await NetFrameworkCompatibility.ReadAllBytesAsync(descriptorPath);
             Assert.True(persistedBytes.Length > 0);
             Assert.True(payload.DescriptorBytes.AsSpan().SequenceEqual(persistedBytes), "Descriptor bytes on disk differ from payload snapshot.");
         }

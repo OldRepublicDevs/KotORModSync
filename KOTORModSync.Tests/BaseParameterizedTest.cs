@@ -8,7 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-
+using KOTORModSync.Core.Utility;
 using NUnit.Framework;
 
 namespace KOTORModSync.Tests
@@ -185,13 +185,13 @@ namespace KOTORModSync.Tests
                 if (TestFileDirectory != null && Directory.Exists(TestFileDirectory))
                 {
                     var testDirFiles = Directory.GetFiles(TestFileDirectory, "*", SearchOption.TopDirectoryOnly)
-                        .Where(f => Path.GetFileName(f).Contains(GetType().Name, StringComparison.Ordinal) ||
-                                    Path.GetFileName(f).Contains("diff_", StringComparison.Ordinal) ||
-                                    Path.GetFileName(f).Contains("debug_", StringComparison.Ordinal) ||
-                                    Path.GetFileName(f).Contains("generated_", StringComparison.Ordinal) ||
-                                    Path.GetFileName(f).Contains("regenerated_", StringComparison.Ordinal) ||
-                                    Path.GetFileName(f).Contains("from_markdown_", StringComparison.Ordinal) ||
-                                    Path.GetFileName(f).Contains("from_toml_", StringComparison.Ordinal) ||
+                        .Where(f => NetFrameworkCompatibility.Contains(Path.GetFileName(f), GetType().Name, StringComparison.Ordinal) ||
+                                    NetFrameworkCompatibility.Contains(Path.GetFileName(f), "diff_", StringComparison.Ordinal) ||
+                                    NetFrameworkCompatibility.Contains(Path.GetFileName(f), "debug_", StringComparison.Ordinal) ||
+                                    NetFrameworkCompatibility.Contains(Path.GetFileName(f), "generated_", StringComparison.Ordinal) ||
+                                    NetFrameworkCompatibility.Contains(Path.GetFileName(f), "regenerated_", StringComparison.Ordinal) ||
+                                    NetFrameworkCompatibility.Contains(Path.GetFileName(f), "from_markdown_", StringComparison.Ordinal) ||
+                                    NetFrameworkCompatibility.Contains(Path.GetFileName(f), "from_toml_", StringComparison.Ordinal) ||
                                     string.Equals(Path.GetExtension(f), ".log", StringComparison.OrdinalIgnoreCase) ||
                                     string.Equals(Path.GetExtension(f), ".toml", StringComparison.OrdinalIgnoreCase) ||
                                     string.Equals(Path.GetExtension(f), ".md", StringComparison.OrdinalIgnoreCase))
@@ -216,7 +216,7 @@ namespace KOTORModSync.Tests
                         WriteLog($"Preserving {tempFiles.Length} debug files in temp directory: {TestTempDirectory}");
                         foreach (string file in tempFiles)
                         {
-                            string relativePath = Path.GetRelativePath(TestTempDirectory, file);
+                            string relativePath = NetFrameworkCompatibility.GetRelativePath(TestTempDirectory, file);
                             WriteLog($"  - {relativePath}");
                         }
                     }
@@ -402,47 +402,47 @@ namespace KOTORModSync.Tests
         private static string ExtractModCategory(string testName)
         {
             // Check for compound categories first (more specific patterns)
-            if (testName.Contains("_spoiler-free_mobile_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_spoiler-free_mobile_", StringComparison.OrdinalIgnoreCase))
             {
                 return "spoiler-free_mobile";
             }
 
-            if (testName.Contains("_spoiler-free_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_spoiler-free_", StringComparison.OrdinalIgnoreCase))
             {
                 return "spoiler-free";
             }
 
-            if (testName.Contains("_full_mobile_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_full_mobile_", StringComparison.OrdinalIgnoreCase))
             {
                 return "full_mobile";
             }
 
-            if (testName.Contains("_full_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_full_", StringComparison.OrdinalIgnoreCase))
             {
                 return "full";
             }
 
-            if (testName.Contains("_mobile_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_mobile_", StringComparison.OrdinalIgnoreCase))
             {
                 return "mobile";
             }
 
-            if (testName.Contains("_delete_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_delete_", StringComparison.OrdinalIgnoreCase))
             {
                 return "delete";
             }
 
-            if (testName.Contains("_android_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_android_", StringComparison.OrdinalIgnoreCase))
             {
                 return "android";
             }
 
-            if (testName.Contains("_ios_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_ios_", StringComparison.OrdinalIgnoreCase))
             {
                 return "ios";
             }
 
-            if (testName.Contains("_widescreen_", StringComparison.OrdinalIgnoreCase))
+            if (NetFrameworkCompatibility.Contains(testName, "_widescreen_", StringComparison.OrdinalIgnoreCase))
             {
                 return "widescreen";
             }
@@ -462,7 +462,7 @@ namespace KOTORModSync.Tests
 
             // Replace the category pattern with underscore
             string pattern = $"_{modCategory}_";
-            return testName.Replace(pattern, "_", StringComparison.OrdinalIgnoreCase);
+            return NetFrameworkCompatibility.Replace(testName, pattern, "_", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

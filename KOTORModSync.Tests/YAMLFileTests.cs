@@ -479,9 +479,9 @@ Instructions:
             string extractYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { extractComponent });
             Assert.Multiple(() =>
             {
-                Assert.That(extractYaml.Contains("Overwrite", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Overwrite");
-                Assert.That(extractYaml.Contains("Destination", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Destination");
-                Assert.That(extractYaml.Contains("Arguments", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Arguments");
+                Assert.That(NetFrameworkCompatibility.Contains(extractYaml, "Overwrite", StringComparison.Ordinal), Is.False, "Extract should not serialize Overwrite");
+                Assert.That(NetFrameworkCompatibility.Contains(extractYaml, "Destination", StringComparison.Ordinal), Is.False, "Extract should not serialize Destination");
+                Assert.That(NetFrameworkCompatibility.Contains(extractYaml, "Arguments", StringComparison.Ordinal), Is.False, "Extract should not serialize Arguments");
             });
 
             var moveComponent = new ModComponent

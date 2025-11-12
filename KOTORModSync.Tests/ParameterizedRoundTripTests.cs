@@ -7,12 +7,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
 using KOTORModSync.Core;
 using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
-
+using KOTORModSync.Core.Utility;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -53,7 +52,7 @@ namespace KOTORModSync.Tests
             {
                 foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.TopDirectoryOnly))
                 {
-                    if (mdFile.Contains("validated", StringComparison.Ordinal))
+                    if (NetFrameworkCompatibility.Contains(mdFile, "validated", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -71,7 +70,7 @@ namespace KOTORModSync.Tests
             {
                 foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.TopDirectoryOnly))
                 {
-                    if (mdFile.Contains("validated", StringComparison.Ordinal))
+                    if (NetFrameworkCompatibility.Contains(mdFile, "validated", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -107,7 +106,7 @@ namespace KOTORModSync.Tests
                 foreach (string tomlFile in Directory.GetFiles(searchPath, "*.toml", SearchOption.TopDirectoryOnly))
                 {
                     string fileName = Path.GetFileNameWithoutExtension(tomlFile);
-                    string gameType = fileName.Contains("KOTOR1", StringComparison.Ordinal) || fileName.Contains("K1", StringComparison.Ordinal) ? "K1" : "K2";
+                    string gameType = NetFrameworkCompatibility.Contains(fileName, "KOTOR1", StringComparison.Ordinal) || NetFrameworkCompatibility.Contains(fileName, "K1", StringComparison.Ordinal) ? "K1" : "K2";
 
                     yield return new TestCaseData(tomlFile)
                         .SetName($"{gameType}_{fileName}")

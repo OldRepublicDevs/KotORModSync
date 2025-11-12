@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 
@@ -60,7 +61,7 @@ namespace KOTORModSync.Tests
 			};
             foreach (string f in filesToSeed)
             {
-                await File.WriteAllTextAsync(Path.Combine(overrideDir, f), "dummy");
+                await NetFrameworkCompatibility.WriteAllTextAsync(Path.Combine(overrideDir, f), "dummy");
             }
 
             // Cleanlist CSV content
@@ -74,7 +75,7 @@ namespace KOTORModSync.Tests
                 "HD Twi'lek Females by Dark Hope,Twilek_F01.tpc,Twilek_F02.tpc,Twilek_F03.tpc,Twilek_F04.tpc",
             });
             string cleanlistPath = Path.Combine(_workDir, "cleanlist_k1.txt");
-            await File.WriteAllTextAsync(cleanlistPath, csv);
+            await NetFrameworkCompatibility.WriteAllTextAsync(cleanlistPath, csv);
 
             // Configure MainConfig to point to work directories
             DirectoryInfo originalSourcePath = MainConfig.SourcePath;

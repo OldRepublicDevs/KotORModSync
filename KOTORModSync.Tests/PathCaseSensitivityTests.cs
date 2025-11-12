@@ -382,7 +382,7 @@ namespace KOTORModSync.Tests
 
             string testFilePath = Path.Combine(s_testDirectory, path2: "test.txt");
             File.Create(testFilePath).Close();
-            string relativePath = Path.GetRelativePath(Directory.GetCurrentDirectory(), testFilePath);
+            string relativePath = NetFrameworkCompatibility.GetRelativePath(Directory.GetCurrentDirectory(), testFilePath);
             string upperCasePath = relativePath.ToUpperInvariant();
 
             string result = PathHelper.GetCaseSensitivePath(upperCasePath).Item1;

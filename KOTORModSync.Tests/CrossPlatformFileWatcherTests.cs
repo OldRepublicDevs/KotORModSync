@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Utility;
 using NUnit.Framework;
 using Xunit;
 using Assert = Xunit.Assert;
@@ -387,14 +388,14 @@ namespace KOTORModSync.Tests
             await Task.Delay(100);
 
             string modifiedContent = "modified content";
-            await File.WriteAllTextAsync(filePath, modifiedContent);
+            await NetFrameworkCompatibility.WriteAllTextAsync(filePath, modifiedContent);
 
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Changed event must be raised within 5 seconds of file modification");
             Assert.NotNull(capturedEvent);
             Assert.Equal(WatcherChangeTypes.Changed, capturedEvent.ChangeType);
             Assert.Equal(fileName, capturedEvent.Name);
-            Assert.Equal(modifiedContent, await File.ReadAllTextAsync(filePath));
+            Assert.Equal(modifiedContent, await NetFrameworkCompatibility.ReadAllTextAsync(filePath));
         }
 
         [Fact]
@@ -429,7 +430,7 @@ namespace KOTORModSync.Tests
             for (int i = 0; i < modifications; i++)
             {
                 await Task.Delay(200);
-                await File.WriteAllTextAsync(filePath, $"content version {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"content version {i}");
             }
 
             await Task.Delay(800);
@@ -448,7 +449,7 @@ namespace KOTORModSync.Tests
 
             string fileName = "moved_in.txt";
             string sourceFilePath = Path.Combine(_externalDirectory, fileName);
-            await File.WriteAllTextAsync(sourceFilePath, "content to move");
+            await NetFrameworkCompatibility.WriteAllTextAsync(sourceFilePath, "content to move");
             _createdFiles.Add(sourceFilePath);
             await Task.Delay(500);
 
@@ -590,7 +591,7 @@ namespace KOTORModSync.Tests
 
             string fileName = "copy_source.txt";
             string sourceFilePath = Path.Combine(_externalDirectory, fileName);
-            await File.WriteAllTextAsync(sourceFilePath, "content to copy");
+            await NetFrameworkCompatibility.WriteAllTextAsync(sourceFilePath, "content to copy");
             _createdFiles.Add(sourceFilePath);
             await Task.Delay(500);
 
@@ -602,7 +603,7 @@ namespace KOTORModSync.Tests
 
             watcher.Created += (sender, e) =>
             {
-                if (e.Name.Contains("copy_dest", System.StringComparison.Ordinal))
+                if (NetFrameworkCompatibility.Contains(e.Name, "copy_dest", StringComparison.Ordinal))
                 {
                     capturedEvent = e;
                     eventReceived.Set();
@@ -623,7 +624,7 @@ namespace KOTORModSync.Tests
             Assert.Equal(destinationFileName, capturedEvent.Name);
             Assert.True(File.Exists(destinationFilePath), "Destination file must exist after copy");
             Assert.True(File.Exists(sourceFilePath), "Source file must still exist after copy");
-            Assert.Equal(await File.ReadAllTextAsync(sourceFilePath), await File.ReadAllTextAsync(destinationFilePath));
+            Assert.Equal(await NetFrameworkCompatibility.ReadAllTextAsync(sourceFilePath), await NetFrameworkCompatibility.ReadAllTextAsync(destinationFilePath));
         }
 
         #endregion
@@ -647,7 +648,7 @@ namespace KOTORModSync.Tests
 
             watcher.Created += (sender, e) =>
             {
-                if (e.Name.Contains("subdir", System.StringComparison.Ordinal))
+                if (NetFrameworkCompatibility.Contains(e.Name, "subdir", System.StringComparison.Ordinal))
                 {
                     capturedEvent = e;
                     eventReceived.Set();
@@ -683,7 +684,7 @@ namespace KOTORModSync.Tests
 
             watcher.Created += (_, e) =>
             {
-                if (e.Name.Contains(subDirName, System.StringComparison.Ordinal))
+                if (NetFrameworkCompatibility.Contains(e.Name, subDirName, System.StringComparison.Ordinal))
                 {
                     eventRaisedForSubdir = true;
                 }

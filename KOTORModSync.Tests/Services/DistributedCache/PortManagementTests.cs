@@ -119,7 +119,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
             string configPath = GetHarnessPortPath();
             Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-            await File.WriteAllTextAsync(configPath, "40000");
+            await NetFrameworkCompatibility.WriteAllTextAsync(configPath, "40000");
 
             DownloadCacheOptimizer.DiagnosticsHarness.SetNatStatus(successful: true, 40000, DateTime.UtcNow);
 

@@ -36,13 +36,13 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
-                        mdFile.Contains("/validated/", StringComparison.Ordinal))
+                    if (NetFrameworkCompatibility.Contains(mdFile, "../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        NetFrameworkCompatibility.Contains(mdFile, "/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    string relativePath = Path.GetRelativePath(contentRoot, mdFile);
+                    string relativePath = NetFrameworkCompatibility.GetRelativePath(contentRoot, mdFile);
                     yield return new TestCaseData(mdFile)
                         .SetName($"K1_{Path.GetFileNameWithoutExtension(mdFile)}")
                         .SetCategory("K1")
@@ -56,13 +56,13 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
-                        mdFile.Contains("/validated/", StringComparison.Ordinal))
+                    if (NetFrameworkCompatibility.Contains(mdFile, "../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        NetFrameworkCompatibility.Contains(mdFile, "/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    string relativePath = Path.GetRelativePath(contentRoot, mdFile);
+                    string relativePath = NetFrameworkCompatibility.GetRelativePath(contentRoot, mdFile);
                     yield return new TestCaseData(mdFile)
                         .SetName($"K2_{Path.GetFileNameWithoutExtension(mdFile)}")
                         .SetCategory("K2")

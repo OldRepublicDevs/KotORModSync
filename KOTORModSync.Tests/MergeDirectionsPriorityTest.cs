@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 
@@ -108,8 +109,8 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 string incomingPath = Path.Combine(tempDir, "incoming.md");
                 string existingPath = Path.Combine(tempDir, "existing.toml");
 
-                await File.WriteAllTextAsync(incomingPath, incomingMarkdown);
-                await File.WriteAllTextAsync(existingPath, existingToml);
+                await NetFrameworkCompatibility.WriteAllTextAsync(incomingPath, incomingMarkdown);
+                await NetFrameworkCompatibility.WriteAllTextAsync(existingPath, existingToml);
 
                 // Act - Perform merge using ComponentMergeService
                 var mergeOptions = new MergeOptions
@@ -235,8 +236,8 @@ IsSelected = true
                 string incomingPath = Path.Combine(tempDir, "incoming.md");
                 string existingPath = Path.Combine(tempDir, "existing.toml");
 
-                await File.WriteAllTextAsync(incomingPath, incomingMarkdown);
-                await File.WriteAllTextAsync(existingPath, existingToml);
+                await NetFrameworkCompatibility.WriteAllTextAsync(incomingPath, incomingMarkdown);
+                await NetFrameworkCompatibility.WriteAllTextAsync(existingPath, existingToml);
 
                 // Act - Merge with default options (UseExistingOrder = false means use incoming order)
                 var mergeOptions = new MergeOptions

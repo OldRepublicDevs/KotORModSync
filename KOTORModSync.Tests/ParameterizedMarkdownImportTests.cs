@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 
@@ -35,13 +36,13 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/", System.StringComparison.Ordinal))
+                    if (NetFrameworkCompatibility.Contains(mdFile, "../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        NetFrameworkCompatibility.Contains(mdFile, "/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    string relativePath = Path.GetRelativePath(contentRoot, mdFile);
+                    string relativePath = NetFrameworkCompatibility.GetRelativePath(contentRoot, mdFile);
                     yield return new TestCaseData(mdFile)
                         .SetName($"K1_{Path.GetFileNameWithoutExtension(mdFile)}")
                         .SetCategory("K1")
@@ -55,13 +56,13 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/", System.StringComparison.Ordinal))
+                    if (NetFrameworkCompatibility.Contains(mdFile, "../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        NetFrameworkCompatibility.Contains(mdFile, "/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    string relativePath = Path.GetRelativePath(contentRoot, mdFile);
+                    string relativePath = NetFrameworkCompatibility.GetRelativePath(contentRoot, mdFile);
                     yield return new TestCaseData(mdFile)
                         .SetName($"K2_{Path.GetFileNameWithoutExtension(mdFile)}")
                         .SetCategory("K2")
@@ -134,7 +135,7 @@ namespace KOTORModSync.Tests
             var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
-            var authors = matches
+            var authors = matches.Cast<Match>()
                 .Select(m => m.Groups["author"].Value.Trim())
                 .Where(a => !string.IsNullOrWhiteSpace(a))
                 .ToList();
@@ -166,7 +167,7 @@ namespace KOTORModSync.Tests
             var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
-            var descriptions = matches
+            var descriptions = matches.Cast<Match>()
                 .Select(m => m.Groups["description"].Value.Trim())
                 .Where(d => !string.IsNullOrWhiteSpace(d))
                 .ToList();
@@ -238,7 +239,7 @@ namespace KOTORModSync.Tests
             var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
-            var methods = matches
+            var methods = matches.Cast<Match>()
                 .Select(m => m.Groups["installation_method"].Value.Trim())
                 .Where(m => !string.IsNullOrWhiteSpace(m))
                 .ToList();
@@ -270,7 +271,7 @@ namespace KOTORModSync.Tests
             var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
-            var instructions = matches
+            var instructions = matches.Cast<Match>()
                 .Select(m => m.Groups["installation_instructions"].Value.Trim())
                 .Where(i => !string.IsNullOrWhiteSpace(i))
                 .ToList();
@@ -297,7 +298,7 @@ namespace KOTORModSync.Tests
             var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
-            var nonEnglishValues = matches
+            var nonEnglishValues = matches.Cast<Match>()
                 .Select(m => m.Groups["non_english"].Value.Trim())
                 .Where(v => !string.IsNullOrWhiteSpace(v))
                 .ToList();

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 using Xunit;
 
 namespace KOTORModSync.Tests.Services.DistributedCache
@@ -406,7 +407,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             await Task.WhenAll(tasks);
 
             // All should succeed without exceptions
-            Assert.True(tasks.All(t => t.IsCompletedSuccessfully));
+            Assert.True(tasks.All(t => NetFrameworkCompatibility.IsCompletedSuccessfully(t)));
         }
 
         [Fact]

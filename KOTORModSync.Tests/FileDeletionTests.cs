@@ -175,8 +175,8 @@ namespace KOTORModSync.Tests
 
             string file1 = Path.Combine(_sourceDir, "file1.txt");
             string file2 = Path.Combine(_sourceDir, "file2.png");
-            await File.WriteAllTextAsync(file1, "Content 1");
-            await File.WriteAllTextAsync(file2, "Content 2");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file1, "Content 1");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file2, "Content 2");
 
             var instructions = new List<Instruction>
             {
@@ -205,9 +205,9 @@ namespace KOTORModSync.Tests
             string file1 = Path.Combine(_sourceDir, "file.txt");
             string file2 = Path.Combine(_sourceDir, "file.png");
             string file3 = Path.Combine(_sourceDir, "file.jpg");
-            await File.WriteAllTextAsync(file1, "Content 1");
-            await File.WriteAllTextAsync(file2, "Content 2");
-            await File.WriteAllTextAsync(file3, "Content 3");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file1, "Content 1");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file2, "Content 2");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file3, "Content 3");
 
             var instructions = new List<Instruction>
             {
@@ -236,8 +236,8 @@ namespace KOTORModSync.Tests
 
             string file1 = Path.Combine(_sourceDir, "FILE.tga");
             string file2 = Path.Combine(_sourceDir, "fIle.tpc");
-            await File.WriteAllTextAsync(file1, "Content 1");
-            await File.WriteAllTextAsync(file2, "Content 2");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file1, "Content 1");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file2, "Content 2");
 
             var instructions = new List<Instruction>
             {
@@ -265,8 +265,8 @@ namespace KOTORModSync.Tests
 
             string file1 = Path.Combine(_sourceDir, "file1.txt");
             string file2 = Path.Combine(_sourceDir, "file2.png");
-            await File.WriteAllTextAsync(file1, "Content 1");
-            await File.WriteAllTextAsync(file2, "Content 2");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file1, "Content 1");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file2, "Content 2");
 
             var instructions = new List<Instruction>
             {
@@ -319,8 +319,8 @@ namespace KOTORModSync.Tests
             Directory.CreateDirectory(subdirectory);
             string file1 = Path.Combine(_sourceDir, "file.txt");
             string file2 = Path.Combine(subdirectory, "file.png");
-            await File.WriteAllTextAsync(file1, "Content 1");
-            await File.WriteAllTextAsync(file2, "Content 2");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file1, "Content 1");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file2, "Content 2");
 
             var instructions = new List<Instruction>
             {
@@ -356,9 +356,9 @@ namespace KOTORModSync.Tests
             string file1 = Path.Combine(directory, "file.tpc");
             string file2 = Path.Combine(directory, "file.TPC");
             string file3 = Path.Combine(directory, "file.tga");
-            await File.WriteAllTextAsync(file1, "Content 1");
-            await File.WriteAllTextAsync(file2, "Content 2");
-            await File.WriteAllTextAsync(file3, "Content 3");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file1, "Content 1");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file2, "Content 2");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file3, "Content 3");
 
             var instructions = new List<Instruction>
             {

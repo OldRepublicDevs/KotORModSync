@@ -291,6 +291,52 @@ namespace KOTORModSync.Core.Utility
 
             return str.IndexOf(value, comparisonType) >= 0;
         }
+
+        /// <summary>
+        /// Polyfill for Process.WaitForExitAsync (available in .NET Core 2.0+ but not .NET Framework 4.8).
+        /// </summary>
+        public static async Task WaitForExitAsync(System.Diagnostics.Process process, CancellationToken cancellationToken = default)
+        {
+            if (process is null)
+                throw new ArgumentNullException(nameof(process));
+
+            if (process.HasExited)
+                return;
+
+            var tcs = new TaskCompletionSource<bool>();
+            process.Exited += (sender, e) => tcs.TrySetResult(true);
+            process.EnableRaisingEvents = true;
+
+            if (process.HasExited)
+                return;
+
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Polyfill for Task.IsCompletedSuccessfully (available in .NET Core 2.0+ but not .NET Framework 4.8).
+        /// </summary>
+        public static bool IsCompletedSuccessfully(Task task)
+        {
+            if (task is null)
+                throw new ArgumentNullException(nameof(task));
+
+            return task.Status == TaskStatus.RanToCompletion;
+        }
+
+        /// <summary>
+        /// Polyfill for Dictionary.GetValueOrDefault (available in .NET Standard 2.1+ but not .NET Framework 4.8).
+        /// </summary>
+        public static TValue GetValueOrDefault<TKey, TValue>(System.Collections.Generic.Dictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue = default(TValue))
+        {
+            if (dictionary is null)
+                throw new ArgumentNullException(nameof(dictionary));
+
+            return dictionary.TryGetValue(key, out TValue value) ? value : defaultValue;
+        }
     }
 }
 

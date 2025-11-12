@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 
@@ -144,7 +145,7 @@ namespace KOTORModSync.Tests
             for (int i = 0; i < 5; i++)
             {
                 string file = Path.Combine(_testDirectory, $"test_{i}.txt");
-                await File.WriteAllTextAsync(file, $"Content {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(file, $"Content {i}");
                 files.Add(file);
             }
 

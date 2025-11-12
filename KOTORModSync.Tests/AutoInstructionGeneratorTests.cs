@@ -10,6 +10,7 @@ using System.Linq;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 
@@ -261,9 +262,9 @@ namespace KOTORModSync.Tests
             });
 
             var archive1Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("archive1", StringComparison.Ordinal))).ToList();
+                i.Source != null && i.Source.Any(s => NetFrameworkCompatibility.Contains(s, "archive1", StringComparison.Ordinal))).ToList();
             var archive2Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("archive2", StringComparison.Ordinal))).ToList();
+                i.Source != null && i.Source.Any(s => NetFrameworkCompatibility.Contains(s, "archive2", StringComparison.Ordinal))).ToList();
 
             Assert.Multiple(() =>
             {

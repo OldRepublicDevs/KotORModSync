@@ -11,6 +11,7 @@ using System.Threading;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 
@@ -73,7 +74,7 @@ namespace KOTORModSync.Tests
                 Guid = Guid.NewGuid(),
                 ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "file:///" + archivePath.Replace("\\", "/", StringComparison.Ordinal), new ResourceMetadata { } },
+                    { "file:///" + NetFrameworkCompatibility.Replace(archivePath, "\\", "/", StringComparison.Ordinal), new ResourceMetadata { } },
                 },
             };
 
@@ -142,9 +143,9 @@ progress: null,
             Assert.That(component.Instructions, Has.Count.EqualTo(4), "Should have 2 Extract + 2 Move instructions");
 
             var mod1Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("mod1", StringComparison.Ordinal))).ToList();
+                i.Source != null && i.Source.Any(s => NetFrameworkCompatibility.Contains(s, "mod1", StringComparison.Ordinal))).ToList();
             var mod2Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("mod2", StringComparison.Ordinal))).ToList();
+                i.Source != null && i.Source.Any(s => NetFrameworkCompatibility.Contains(s, "mod2", StringComparison.Ordinal))).ToList();
 
             Assert.Multiple(() =>
             {

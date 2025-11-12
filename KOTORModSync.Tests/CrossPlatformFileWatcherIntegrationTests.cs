@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Utility;
 using NUnit.Framework;
 using Xunit;
 using Assert = Xunit.Assert;
@@ -97,7 +98,7 @@ namespace KOTORModSync.Tests
         {
 
             string logFile = Path.Combine(_testDirectory, "application.log");
-            await File.WriteAllTextAsync(logFile, "[STARTUP] Application started\n");
+            await NetFrameworkCompatibility.WriteAllTextAsync(logFile, "[STARTUP] Application started\n");
             _createdFiles.Add(logFile);
             await Task.Delay(100);
 
@@ -133,7 +134,7 @@ namespace KOTORModSync.Tests
             Assert.True(changeCount >= 1,
                 $"Expected at least 1 change event for {logEntries} log appends, received {changeCount}");
 
-            string logContent = await File.ReadAllTextAsync(logFile);
+            string logContent = await NetFrameworkCompatibility.ReadAllTextAsync(logFile);
             Assert.Contains("[STARTUP]", logContent, StringComparison.Ordinal);
             Assert.Contains("Log entry", logContent, StringComparison.Ordinal);
         }
@@ -185,7 +186,7 @@ namespace KOTORModSync.Tests
             Assert.True(signaled, "Change event must be raised when config file is rewritten");
             Assert.NotNull(changeEvent);
 
-            string actualContent = await File.ReadAllTextAsync(configFile);
+            string actualContent = await NetFrameworkCompatibility.ReadAllTextAsync(configFile);
             Assert.Contains("Theme=Light", actualContent, StringComparison.Ordinal);
             Assert.Contains("Version=2.0", actualContent, StringComparison.Ordinal);
         }
@@ -235,7 +236,7 @@ namespace KOTORModSync.Tests
             for (int i = 0; i < 5; i++)
             {
                 string tempFile = Path.Combine(_testDirectory, $"temp_{i}.tmp");
-                await File.WriteAllTextAsync(tempFile, $"temp data {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(tempFile, $"temp data {i}");
                 tempFiles.Add(tempFile);
                 _createdFiles.Add(tempFile);
             }
@@ -294,7 +295,7 @@ namespace KOTORModSync.Tests
                 string fileName = $"extracted_{i:D3}.dat";
                 string filePath = Path.Combine(_testDirectory, fileName);
                 _createdFiles.Add(filePath);
-                await File.WriteAllTextAsync(filePath, $"extracted content {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"extracted content {i}");
                 await Task.Delay(50);
             });
 
@@ -341,7 +342,7 @@ namespace KOTORModSync.Tests
                     {
                         string file = Path.Combine(_testDirectory, $"stress_{counter++}.txt");
                         _createdFiles.Add(file);
-                        await File.WriteAllTextAsync(file, $"stress content {counter}", cts.Token);
+                        await NetFrameworkCompatibility.WriteAllTextAsync(file, $"stress content {counter}", cts.Token);
                         await Task.Delay(100, cts.Token);
 
                         if (counter % 5 == 0 && File.Exists(file))
@@ -403,7 +404,7 @@ namespace KOTORModSync.Tests
                 string fileName = $"volume_{i:D4}.txt";
                 string filePath = Path.Combine(_testDirectory, fileName);
                 _createdFiles.Add(filePath);
-                await File.WriteAllTextAsync(filePath, $"volume test {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"volume test {i}");
             });
 
             await Task.WhenAll(tasks);
@@ -447,10 +448,10 @@ namespace KOTORModSync.Tests
                 string fileName = $"cycle_{i}.txt";
                 string filePath = Path.Combine(_testDirectory, fileName);
 
-                await File.WriteAllTextAsync(filePath, $"initial {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"initial {i}");
                 await Task.Delay(200);
 
-                await File.WriteAllTextAsync(filePath, $"modified {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"modified {i}");
                 await Task.Delay(200);
 
                 File.Delete(filePath);
@@ -501,7 +502,7 @@ namespace KOTORModSync.Tests
             {
                 string filePath = Path.Combine(_testDirectory, $"multi_{i}.txt");
                 _createdFiles.Add(filePath);
-                await File.WriteAllTextAsync(filePath, $"content {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"content {i}");
                 await Task.Delay(150);
             }
 
@@ -543,9 +544,9 @@ namespace KOTORModSync.Tests
             string file2 = Path.Combine(dir2, "file_in_dir2.txt");
             _createdFiles.AddRange(new[] { file1, file2 });
 
-            await File.WriteAllTextAsync(file1, "content 1");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file1, "content 1");
             await Task.Delay(100);
-            await File.WriteAllTextAsync(file2, "content 2");
+            await NetFrameworkCompatibility.WriteAllTextAsync(file2, "content 2");
             await Task.Delay(500);
 
             Assert.Contains("file_in_dir1.txt", watcher1Files);
@@ -580,7 +581,7 @@ namespace KOTORModSync.Tests
 
                 string filePath = Path.Combine(_testDirectory, $"cycle_{cycle}.txt");
                 _createdFiles.Add(filePath);
-                await File.WriteAllTextAsync(filePath, $"cycle {cycle}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"cycle {cycle}");
                 await Task.Delay(100);
 
                 watcher.StopWatching();
@@ -624,7 +625,7 @@ namespace KOTORModSync.Tests
                     {
                         string file = Path.Combine(_testDirectory, $"stability_{counter++}.txt");
                         _createdFiles.Add(file);
-                        await File.WriteAllTextAsync(file, $"content {counter}", cts.Token);
+                        await NetFrameworkCompatibility.WriteAllTextAsync(file, $"content {counter}", cts.Token);
                         await Task.Delay(500, cts.Token);
                     }
                     catch (OperationCanceledException)
@@ -676,7 +677,7 @@ namespace KOTORModSync.Tests
             await Task.Delay(100);
 
             string testFile = Path.Combine(tempDir, "test.txt");
-            await File.WriteAllTextAsync(testFile, "test");
+            await NetFrameworkCompatibility.WriteAllTextAsync(testFile, "test");
             await Task.Delay(150);
 
             watcher.StopWatching();
@@ -721,7 +722,7 @@ namespace KOTORModSync.Tests
                 _createdFiles.Add(filePath);
 
                 timestamps[fileName] = Stopwatch.GetTimestamp();
-                await File.WriteAllTextAsync(filePath, $"content {i}");
+                await NetFrameworkCompatibility.WriteAllTextAsync(filePath, $"content {i}");
                 await Task.Delay(150);
             }
 

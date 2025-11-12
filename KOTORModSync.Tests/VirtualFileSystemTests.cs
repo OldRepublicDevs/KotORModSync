@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Utility;
 using NUnit.Framework;
 
 namespace KOTORModSync.Tests
@@ -1286,11 +1287,10 @@ namespace KOTORModSync.Tests
                         continue;
                     }
 
-                    foreach (string cleanSource in instruction.Source.Select(source => source.Replace("<<modDirectory>>\\", "", StringComparison.Ordinal)
-                                 .Replace("<<modDirectory>>/", "", StringComparison.Ordinal)))
+                    foreach (string cleanSource in instruction.Source.Select(source => NetFrameworkCompatibility.Replace(NetFrameworkCompatibility.Replace(source, "<<modDirectory>>\\", "", StringComparison.Ordinal), "<<modDirectory>>/", "", StringComparison.Ordinal)))
                     {
 
-                        if (cleanSource.Contains('*', StringComparison.Ordinal))
+                        if (NetFrameworkCompatibility.Contains(cleanSource, '*', StringComparison.Ordinal))
                         {
                             try
                             {

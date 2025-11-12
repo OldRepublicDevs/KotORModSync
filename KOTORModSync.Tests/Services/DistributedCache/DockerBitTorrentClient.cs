@@ -7,10 +7,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Tests.Services.DistributedCache
 {
@@ -52,11 +54,17 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
         private static int GetRandomPort()
         {
-            using var socket = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
-            socket.Start();
-            int port = ((System.Net.IPEndPoint)socket.LocalEndpoint).Port;
-            socket.Stop();
-            return port;
+            var socket = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            try
+            {
+                socket.Start();
+                int port = ((System.Net.IPEndPoint)socket.LocalEndpoint).Port;
+                return port;
+            }
+            finally
+            {
+                socket.Stop();
+            }
         }
 
         public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -137,7 +145,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                     return false;
                 }
 
-                await versionProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                await NetFrameworkCompatibility.WaitForExitAsync(versionProcess, cancellationToken).ConfigureAwait(false);
                 if (versionProcess.ExitCode != 0)
                 {
                     return false;
@@ -187,7 +195,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 Task<string> outputTask = infoProcess.StandardOutput.ReadToEndAsync();
                 Task<string> errorTask = infoProcess.StandardError.ReadToEndAsync();
                 
-                await infoProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                await NetFrameworkCompatibility.WaitForExitAsync(infoProcess, cancellationToken).ConfigureAwait(false);
                 
                 string errorOutput = await errorTask.ConfigureAwait(false);
                 string standardOutput = await outputTask.ConfigureAwait(false);
@@ -248,7 +256,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 Task<string> psOutputTask = psProcess.StandardOutput.ReadToEndAsync();
                 Task<string> psErrorTask = psProcess.StandardError.ReadToEndAsync();
                 
-                await psProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                await NetFrameworkCompatibility.WaitForExitAsync(psProcess, cancellationToken).ConfigureAwait(false);
                 
                 string psErrorOutput = await psErrorTask.ConfigureAwait(false);
                 string psStandardOutput = await psOutputTask.ConfigureAwait(false);
@@ -402,7 +410,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 string output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
                 string error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
 
-                await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                await NetFrameworkCompatibility.WaitForExitAsync(process, cancellationToken).ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {

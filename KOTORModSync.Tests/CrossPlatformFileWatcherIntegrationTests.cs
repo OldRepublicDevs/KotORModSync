@@ -342,7 +342,7 @@ namespace KOTORModSync.Tests
                     {
                         string file = Path.Combine(_testDirectory, $"stress_{counter++}.txt");
                         _createdFiles.Add(file);
-                        await NetFrameworkCompatibility.WriteAllTextAsync(file, $"stress content {counter}", cts.Token);
+                        await NetFrameworkCompatibility.WriteAllTextAsync(file, $"stress content {counter}", null, cts.Token);
                         await Task.Delay(100, cts.Token);
 
                         if (counter % 5 == 0 && File.Exists(file))
@@ -625,7 +625,7 @@ namespace KOTORModSync.Tests
                     {
                         string file = Path.Combine(_testDirectory, $"stability_{counter++}.txt");
                         _createdFiles.Add(file);
-                        await NetFrameworkCompatibility.WriteAllTextAsync(file, $"content {counter}", cts.Token);
+                        await NetFrameworkCompatibility.WriteAllTextAsync(file, $"content {counter}", null, cts.Token);
                         await Task.Delay(500, cts.Token);
                     }
                     catch (OperationCanceledException)

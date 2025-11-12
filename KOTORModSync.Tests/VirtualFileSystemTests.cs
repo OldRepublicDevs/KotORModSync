@@ -86,7 +86,7 @@ namespace KOTORModSync.Tests
             {
                 var process = Process.Start(new ProcessStartInfo
                 {
-                    FileName = OperatingSystem.IsWindows() ? "where" : "which",
+                    FileName = NetFrameworkCompatibility.IsWindows() ? "where" : "which",
                     Arguments = "7z",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,

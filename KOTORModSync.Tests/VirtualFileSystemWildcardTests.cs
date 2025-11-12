@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
 
@@ -91,7 +92,7 @@ namespace KOTORModSync.Tests
             {
                 var process = Process.Start(new ProcessStartInfo
                 {
-                    FileName = OperatingSystem.IsWindows() ? "where" : "which",
+                    FileName = NetFrameworkCompatibility.IsWindows() ? "where" : "which",
                     Arguments = "7z",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,

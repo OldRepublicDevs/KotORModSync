@@ -414,6 +414,18 @@ namespace KOTORModSync.Core.Utility
             }
             return sb;
         }
+
+        /// <summary>
+        /// Polyfill for OperatingSystem.IsWindows() (available in .NET 5+ but not .NET Framework 4.8).
+        /// </summary>
+        public static bool IsWindows()
+        {
+#if NETFRAMEWORK
+            return Environment.OSVersion.Platform == PlatformID.Win32NT;
+#else
+            return OperatingSystem.IsWindows();
+#endif
+        }
     }
 }
 

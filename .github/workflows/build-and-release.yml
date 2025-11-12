@@ -485,7 +485,7 @@ jobs:
           cat appcast.xml
 
       - name: Commit and Push AppCast
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event_name == 'workflow_run'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -500,7 +500,7 @@ jobs:
           fi
 
       - name: Upload AppCast to Release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event_name == 'workflow_run'
         uses: softprops/action-gh-release@v2
         with:
           files: appcast.xml

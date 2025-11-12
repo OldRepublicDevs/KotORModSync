@@ -541,10 +541,12 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          # Ensure we're on master branch, forcibly resetting if needed
-          # Use -B flag to create branch if it doesn't exist, or reset if it does
-          git checkout -B master origin/master || git checkout -B master
-          
+          # Ensure we're on master branch and reset to origin/master
+          # Fetch latest from origin first to ensure origin/master exists
+          git fetch origin master:master || true
+          # Use -B to force create/reset branch, or switch -C for modern git
+          git checkout -B master origin/master 2>/dev/null || git switch -C master origin/master 2>/dev/null || git checkout master
+
           git add appcast.xml
 
           if git diff --staged --quiet; then

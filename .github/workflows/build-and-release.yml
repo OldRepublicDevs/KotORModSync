@@ -107,7 +107,7 @@ jobs:
           - rid: win-arm64
             os: windows-latest
             framework: net48
-            platform: x64
+            platform: arm64
 
           # Linux builds
           - rid: linux-x64
@@ -117,7 +117,7 @@ jobs:
           - rid: linux-arm64
             os: ubuntu-latest
             framework: net8.0
-            platform: x64
+            platform: arm64
 
           # macOS builds
           - rid: osx-x64
@@ -127,7 +127,7 @@ jobs:
           - rid: osx-arm64
             os: macos-latest
             framework: net8.0
-            platform: x64
+            platform: arm64
 
     steps:
       - name: Checkout Repository

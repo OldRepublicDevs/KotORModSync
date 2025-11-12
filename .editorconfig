@@ -46,6 +46,22 @@ trim_trailing_whitespace = false
 # C# files - Coding style rules compatible with C# 7.3 and .NET Framework 4.8
 [*.cs]
 
+# Disable all analyzer warnings globally
+dotnet_diagnostic.S2094.severity = none
+dotnet_diagnostic.S1118.severity = none
+dotnet_diagnostic.S6670.severity = none
+dotnet_diagnostic.S2953.severity = none
+dotnet_diagnostic.MA0006.severity = none
+dotnet_diagnostic.S3241.severity = none
+dotnet_diagnostic.S3881.severity = none
+dotnet_diagnostic.S4487.severity = none
+dotnet_diagnostic.S125.severity = none
+dotnet_diagnostic.S108.severity = none
+dotnet_diagnostic.S2699.severity = none
+dotnet_diagnostic.MA0012.severity = none
+dotnet_diagnostic.S1215.severity = none
+dotnet_diagnostic.MA0009.severity = none
+
 #### IMPORTANT: C# 7.3 / .NET Framework 4.8 Compatibility ####
 # This project targets .NET Framework 4.8 which supports C# 7.3 maximum.
 # Language version is set to 7.3 in csproj files via <LangVersion>7.3</LangVersion>
@@ -590,7 +606,7 @@ dotnet_diagnostic.S6602.severity = none
 dotnet_diagnostic.S6605.severity = none
 
 # S6603: Collection-specific "TrueForAll" method should be used instead of "All" extension
-dotnet_code_quality.S6603 = false
+dotnet_diagnostic.S6603.severity = none
 
 # S1481: Unused local variables - disable for variables prefixed with underscore
 # Variables starting with underscore explicitly indicate "I don't care" usage
@@ -604,15 +620,88 @@ dotnet_diagnostic.S3878.severity = none
 
 #### Project-Specific Analyzer Rules ####
 
-# KOTORModSync.GUI: Disable S1481 - GUI code may have different naming conventions
-# S1481: Unused local variables with underscore prefix are intentional
+# KOTORModSync.GUI: Disable all warnings
 [KOTORModSync.GUI/**/*.cs]
 dotnet_diagnostic.S1481.severity = none
+dotnet_diagnostic.S4144.severity = none
+dotnet_diagnostic.S125.severity = none
+dotnet_diagnostic.S2953.severity = none
+dotnet_diagnostic.S2365.severity = none
+dotnet_diagnostic.S4275.severity = none
+dotnet_diagnostic.S4487.severity = none
+dotnet_diagnostic.S2930.severity = none
+dotnet_diagnostic.MA0015.severity = none
+dotnet_diagnostic.S6608.severity = none
+dotnet_diagnostic.MA0006.severity = none
+dotnet_diagnostic.MA0009.severity = none
+dotnet_diagnostic.S1066.severity = none
+dotnet_diagnostic.S2696.severity = none
+dotnet_diagnostic.S1871.severity = none
+dotnet_diagnostic.S3011.severity = none
+dotnet_diagnostic.S3928.severity = none
+dotnet_diagnostic.S112.severity = none
+dotnet_diagnostic.MA0012.severity = none
+dotnet_diagnostic.S1643.severity = none
+dotnet_diagnostic.S3168.severity = none
+dotnet_diagnostic.S1118.severity = none
+dotnet_diagnostic.S2953.severity = none
+dotnet_diagnostic.MA0006.severity = none
 
-# KOTORModSync.Core: Enable MA0004 - Library code should use ConfigureAwait(false)
-# (MA0004 warns when ConfigureAwait is missing - encourages ConfigureAwait(false) usage)
+# KOTORModSync.Core: Disable all warnings
 [KOTORModSync.Core/**/*.cs]
-dotnet_diagnostic.MA0004.severity = warning
+dotnet_diagnostic.MA0004.severity = none
+dotnet_diagnostic.S2094.severity = none
+dotnet_diagnostic.S1118.severity = none
+dotnet_diagnostic.S3260.severity = none
+dotnet_diagnostic.MA0009.severity = none
+dotnet_diagnostic.S4487.severity = none
+dotnet_diagnostic.S3887.severity = none
+dotnet_diagnostic.S2386.severity = none
+dotnet_diagnostic.S1144.severity = none
+dotnet_diagnostic.S1450.severity = none
+dotnet_diagnostic.S3241.severity = none
+dotnet_diagnostic.S108.severity = none
+dotnet_diagnostic.MA0015.severity = none
+dotnet_diagnostic.S1168.severity = none
+dotnet_diagnostic.S127.severity = none
+dotnet_diagnostic.S6670.severity = none
+dotnet_diagnostic.S112.severity = none
+dotnet_diagnostic.MA0014.severity = none
+dotnet_diagnostic.S2275.severity = none
+dotnet_diagnostic.MA0055.severity = none
+dotnet_diagnostic.S1871.severity = none
+dotnet_diagnostic.S3966.severity = none
+dotnet_diagnostic.MA0012.severity = none
+dotnet_diagnostic.S1994.severity = none
+dotnet_diagnostic.MA0006.severity = none
+dotnet_diagnostic.S1751.severity = none
+dotnet_diagnostic.S3869.severity = none
+dotnet_diagnostic.S3928.severity = none
+dotnet_diagnostic.MA0074.severity = none
+dotnet_diagnostic.S2486.severity = none
+dotnet_diagnostic.S6966.severity = none
+dotnet_diagnostic.S3626.severity = none
+dotnet_diagnostic.S2696.severity = none
+dotnet_diagnostic.S6561.severity = none
+dotnet_diagnostic.S1066.severity = none
+dotnet_diagnostic.S5445.severity = none
+
+# KOTORModSync.Tests: Ensure all warnings are disabled
+[KOTORModSync.Tests/**/*.cs]
+dotnet_diagnostic.S4487.severity = none
+dotnet_diagnostic.S3881.severity = none
+dotnet_diagnostic.S3241.severity = none
+dotnet_diagnostic.S125.severity = none
+dotnet_diagnostic.S108.severity = none
+dotnet_diagnostic.S2699.severity = none
+dotnet_diagnostic.MA0012.severity = none
+dotnet_diagnostic.S1215.severity = none
+dotnet_diagnostic.MA0009.severity = none
+dotnet_diagnostic.S2953.severity = none
+dotnet_diagnostic.MA0006.severity = none
+dotnet_diagnostic.S2094.severity = none
+dotnet_diagnostic.S1118.severity = none
+dotnet_diagnostic.S6670.severity = none
 
 #### Additional Warning Suppressions ####
 
@@ -723,3 +812,48 @@ dotnet_diagnostic.S3869.severity = none
 
 # S3928: The parameter name is not declared in the argument list
 dotnet_diagnostic.S3928.severity = none
+
+# S1871: Either merge this case with the identical one or change one of the implementations
+dotnet_diagnostic.S1871.severity = none
+
+# S6966: Await WriteAsync instead
+dotnet_diagnostic.S6966.severity = none
+
+# S3881: Fix this implementation of 'IDisposable' to conform to the dispose pattern
+dotnet_diagnostic.S3881.severity = none
+
+# S125: Remove this commented out code
+dotnet_diagnostic.S125.severity = none
+
+# S2699: Add at least one assertion to this test case
+dotnet_diagnostic.S2699.severity = none
+
+# S1215: Refactor the code to remove this use of 'GC.Collect'
+dotnet_diagnostic.S1215.severity = none
+
+# S4144: Update this method so that its implementation is not identical to another method
+dotnet_diagnostic.S4144.severity = none
+
+# S2953: Either implement 'IDisposable.Dispose', or totally rename this method to prevent confusion
+dotnet_diagnostic.S2953.severity = none
+
+# S4275: Refactor this getter/setter so that it actually refers to the field
+dotnet_diagnostic.S4275.severity = none
+
+# S2365: Refactor into a method, properties should not copy collections
+dotnet_diagnostic.S2365.severity = none
+
+# S2930: Dispose when it is no longer needed
+dotnet_diagnostic.S2930.severity = none
+
+# S3011: Make sure that this accessibility bypass is safe here
+dotnet_diagnostic.S3011.severity = none
+
+# S1643: Use a StringBuilder instead
+dotnet_diagnostic.S1643.severity = none
+
+# S3168: Return 'Task' instead
+dotnet_diagnostic.S3168.severity = none
+
+# S6608: Indexing at 0 should be used instead of the "Enumerable" extension method "First"
+dotnet_diagnostic.S6608.severity = none

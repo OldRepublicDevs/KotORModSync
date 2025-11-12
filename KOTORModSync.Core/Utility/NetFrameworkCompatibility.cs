@@ -384,6 +384,19 @@ namespace KOTORModSync.Core.Utility
 
             await Task.Run(() => disposable.Dispose()).ConfigureAwait(false);
         }
+
+        /// <summary>
+        /// Polyfill for OperatingSystem.IsWindows() (available in .NET 5+ but not .NET Framework 4.8).
+        /// </summary>
+        public static bool IsWindows()
+        {
+#if NET8_0_OR_GREATER
+            return OperatingSystem.IsWindows();
+#else
+            // Use Environment.OSVersion for .NET Framework 4.8 compatibility
+            return Environment.OSVersion.Platform == PlatformID.Win32NT;
+#endif
+        }
     }
 
     /// <summary>
@@ -413,18 +426,6 @@ namespace KOTORModSync.Core.Utility
                 first = false;
             }
             return sb;
-        }
-
-        /// <summary>
-        /// Polyfill for OperatingSystem.IsWindows() (available in .NET 5+ but not .NET Framework 4.8).
-        /// </summary>
-        public static bool IsWindows()
-        {
-#if NETFRAMEWORK
-            return Environment.OSVersion.Platform == PlatformID.Win32NT;
-#else
-            return OperatingSystem.IsWindows();
-#endif
         }
     }
 }

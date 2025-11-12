@@ -49,7 +49,7 @@
   </PropertyGroup>
   <!-- .NET 8+: Modern Windows RIDs + cross-platform (forward-compatible with net10.0, net11.0, etc.) -->
   <PropertyGroup Condition="!$(TargetFramework.StartsWith('net4')) AND '$(TargetFramework)'!='net6.0' AND '$(TargetFramework)'!='net7.0'">
-    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <!-- Release Configuration: Additional error handling, at the slight cost of performance. All
@@ -269,6 +269,38 @@
       DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
     <Move Condition=" '$(Platform)' == 'x86' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll') "
       SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll"
+      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
+
+    <!-- For arm64 Platform -->
+    <!-- Note: If 7z_arm64.dll doesn't exist, arm64 builds may need to use 7z_x64.dll for compatibility -->
+    <Copy Condition=" '$(Platform)' == 'arm64' AND Exists('$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll') "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll"
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Platform)' == 'arm64' AND '$(PublishDir)' != '' AND Exists('$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll') "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll"
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Move Condition=" '$(Platform)' == 'arm64' AND Exists('$(TargetDir)Resources$(DirectorySeparatorChar)7z_arm64.dll') "
+      SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_arm64.dll"
+      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Move Condition=" '$(Platform)' == 'arm64' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)Resources$(DirectorySeparatorChar)7z_arm64.dll') "
+      SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_arm64.dll"
+      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <!-- Fallback: Use x64 DLL for arm64 if arm64-specific DLL doesn't exist (common compatibility pattern) -->
+    <Copy Condition=" '$(Platform)' == 'arm64' AND !Exists('$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll') "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Platform)' == 'arm64' AND '$(PublishDir)' != '' AND !Exists('$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll') "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Move Condition=" '$(Platform)' == 'arm64' AND !Exists('$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll') AND Exists('$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll') "
+      SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
+      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Move Condition=" '$(Platform)' == 'arm64' AND '$(PublishDir)' != '' AND !Exists('$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_arm64.dll') AND Exists('$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll') "
+      SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
       DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
   </Target>
 

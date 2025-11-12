@@ -1,0 +1,79 @@
+name: Build and Test KOTORModSync
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup MSBuild (Windows/.NET Framework 4.8)
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore NuGet Packages (net48)
+        run: msbuild KOTORModSync.sln /t:Restore /p:TargetFramework=net48 /p:Configuration=Release
+
+      - name: Build for .NET Framework 4.8
+        run: msbuild KOTORModSync.sln /p:Configuration=Release /p:TargetFramework=net48
+
+      - name: Restore NuGet Packages (net8.0)
+        run: dotnet restore --framework net8.0
+
+      - name: Build for .NET 8.0
+        run: dotnet build -c Release --framework net8.0 --no-restore
+
+      - name: Run Unit Tests
+        run: dotnet test -c Release --verbosity normal --no-build
+        continue-on-error: true
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-build
+          path: |
+            **/bin/Release/**/*.dll
+            **/bin/Release/**/*.exe
+          retention-days: 7
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore Dependencies
+        run: dotnet restore --framework net8.0
+
+      - name: Run Security Audit
+        run: dotnet list package --vulnerable --include-transitive
+        continue-on-error: true
+
+      - name: Check for Secrets in Code
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+        continue-on-error: true

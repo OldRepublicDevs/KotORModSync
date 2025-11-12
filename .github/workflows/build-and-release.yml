@@ -106,7 +106,7 @@ jobs:
             platform: x64
           - rid: win-arm64
             os: windows-latest
-            framework: net48
+            framework: net8.0
             platform: arm64
 
           # Linux builds

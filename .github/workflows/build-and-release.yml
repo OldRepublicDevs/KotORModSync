@@ -156,11 +156,11 @@ jobs:
           Write-Host "✅ Info.plist updated for ${{ matrix.rid }}"
 
       - name: Setup MSBuild (Windows/.NET Framework 4.8)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && matrix.framework == 'net48'
         uses: microsoft/setup-msbuild@v2
 
-      - name: Setup .NET 8 SDK (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Setup .NET 8 SDK
+        if: matrix.framework == 'net8.0'
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -198,16 +198,16 @@ jobs:
           $content | Out-File -FilePath $secretFile -Encoding UTF8 -NoNewline
           Write-Host "✅ Secret injected for ${{ matrix.rid }}"
 
-      - name: Restore Dependencies (Windows - NuGet)
-        if: runner.os == 'Windows'
+      - name: Restore Dependencies (Windows - MSBuild for .NET Framework 4.8)
+        if: runner.os == 'Windows' && matrix.framework == 'net48'
         run: msbuild KOTORModSync.sln /t:Restore /p:TargetFramework=${{ matrix.framework }} /p:Configuration=Release
 
-      - name: Restore Dependencies (Linux/macOS - dotnet)
-        if: runner.os != 'Windows'
+      - name: Restore Dependencies (dotnet CLI for .NET 8.0)
+        if: matrix.framework == 'net8.0'
         run: dotnet restore KOTORModSync.sln /p:TargetFramework=${{ matrix.framework }} /p:Configuration=Release
 
-      - name: Publish ${{ matrix.rid }} (Windows - MSBuild)
-        if: runner.os == 'Windows'
+      - name: Publish ${{ matrix.rid }} (Windows - MSBuild for .NET Framework 4.8)
+        if: runner.os == 'Windows' && matrix.framework == 'net48'
         shell: pwsh
         run: |
           Write-Host "🔨 Publishing ${{ matrix.rid }} using MSBuild (.NET Framework 4.8)..."
@@ -225,8 +225,8 @@ jobs:
             /p:PublishDir="$PWD/publish/${{ matrix.rid }}/"
           Write-Host "✅ Published ${{ matrix.rid }}"
 
-      - name: Publish ${{ matrix.rid }} (Linux/macOS - dotnet)
-        if: runner.os != 'Windows'
+      - name: Publish ${{ matrix.rid }} (dotnet CLI for .NET 8.0)
+        if: matrix.framework == 'net8.0'
         shell: pwsh
         run: |
           Write-Host "🔨 Publishing ${{ matrix.rid }} using dotnet CLI (.NET 8)..."

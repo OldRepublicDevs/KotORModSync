@@ -1,3 +1,5 @@
+*note: this project is currently in the middle of a large-scale rework. please keep this in mind when reading the subsequent material.*
+
 # KOTORModSync
 
 KOTORModSync is a multi-mod installer for KOTOR games that makes it easier to install and manage mods.

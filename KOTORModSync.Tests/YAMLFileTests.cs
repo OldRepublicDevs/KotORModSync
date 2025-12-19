@@ -42,14 +42,14 @@ namespace KOTORModSync.Tests
         private string _filePath = string.Empty;
 
         private readonly string _exampleYaml = @"---
-Name: Ultimate Dantooine
+Name: Example Dantooine Enhancement
 Guid: B3525945-BDBD-45D8-A324-AAF328A5E13E
 Dependencies:
   - C5418549-6B7E-4A8C-8B8E-4AA1BC63C732
   - D0F371DA-5C69-4A26-8A37-76E3A6A2A50D
 Instructions:
   - Action: extract
-    Source: Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar
+    Source: Example Dantooine Enhancement High Resolution - TPC Version-1103-2-1-1670680013.rar
   - Action: delete
     Source:
       - '%temp%\mod_files\Dantooine HR\DAN_wall03.tpc'
@@ -59,7 +59,7 @@ Instructions:
     Source: '%temp%\mod_files\Dantooine HR\'
     Destination: '%temp%\Override'
 ---
-Name: TSLRCM Tweak Pack
+Name: Example Tweak Pack
 Guid: C5418549-6B7E-4A8C-8B8E-4AA1BC63C732
 Dependencies: []
 Instructions:
@@ -77,7 +77,7 @@ Instructions:
             {
                 new ModComponent
                 {
-                    Name = "Ultimate Dantooine",
+                    Name = "Example Dantooine Enhancement",
                     Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
                     IsSelected = true,
                     Dependencies = new List<Guid> { Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"), Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}") },
@@ -86,7 +86,7 @@ Instructions:
                         new Instruction
                         {
                             Action = Instruction.ActionType.Extract,
-                            Source = new List<string> { "Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar" },
+                            Source = new List<string> { "Example Dantooine Enhancement High Resolution - TPC Version-1103-2-1-1670680013.rar" },
                         },
                         new Instruction
                         {
@@ -108,7 +108,7 @@ Instructions:
                 },
                 new ModComponent
                 {
-                    Name = "TSLRCM Tweak Pack",
+                    Name = "Example Tweak Pack",
                     Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
                     IsSelected = true,
                     Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
@@ -139,7 +139,14 @@ Instructions:
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(tempFilePath), Is.True, "Temporary file should exist");
+                Assert.That(serializedYaml, Is.Not.Null.And.Not.Empty, "Serialized YAML should not be null or empty");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
@@ -174,6 +181,14 @@ Instructions:
             List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromYamlString(yamlString).ToList() ?? throw new InvalidDataException();
             ModComponent duplicateComponent = loadedComponents[0];
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(newComponent, Is.Not.Null, "New component should not be null");
+                Assert.That(duplicateComponent, Is.Not.Null, "Duplicate component should not be null");
+                Assert.That(yamlString, Is.Not.Null.And.Not.Empty, "YAML string should not be null or empty");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(loadedComponents, Has.Count.EqualTo(1), "Should load exactly one component");
+            });
             AssertComponentEquality(newComponent, duplicateComponent);
         }
 
@@ -194,13 +209,25 @@ Instructions:
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(modifiedFilePath), Is.True, "Modified file should exist");
+                Assert.That(yamlContents, Is.Not.Null.And.Not.Empty, "YAML contents should not be null or empty");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original after whitespace modification");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(originalComponent, loadedComponent);
             }
         }
@@ -230,13 +257,25 @@ Instructions:
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(modifiedFilePath), Is.True, "Modified file should exist");
+                Assert.That(yamlContents, Is.Not.Null.And.Not.Empty, "YAML contents should not be null or empty");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original after whitespace modification");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(originalComponent, loadedComponent);
             }
         }
@@ -295,7 +334,15 @@ Instructions:
             string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".yaml");
             FileLoadingService.SaveToFile(originalComponents, tempFilePath);
 
-            Assert.Throws<InvalidDataException>(() => FileLoadingService.LoadFromFile(tempFilePath));
+            var exception = Assert.Throws<InvalidDataException>(() => FileLoadingService.LoadFromFile(tempFilePath));
+            
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception, Is.Not.Null, "Empty components list should throw InvalidDataException");
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(originalComponents, Is.Empty, "Original components list should be empty");
+                Assert.That(File.Exists(tempFilePath), Is.True, "Temporary file should exist");
+            });
         }
 
         [Test]
@@ -325,13 +372,24 @@ Instructions:
             FileLoadingService.SaveToFile(originalComponents, tempFilePath);
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(tempFilePath), Is.True, "Temporary file should exist");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original (duplicate GUIDs allowed)");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(originalComponent, loadedComponent);
             }
         }
@@ -479,6 +537,10 @@ Instructions:
             string extractYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { extractComponent });
             Assert.Multiple(() =>
             {
+                Assert.That(extractComponent, Is.Not.Null, "Extract component should not be null");
+                Assert.That(extractYaml, Is.Not.Null.And.Not.Empty, "Extract YAML string should not be null or empty");
+                Assert.That(extractComponent.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(extractComponent.Instructions, Has.Count.EqualTo(1), "Should have exactly one instruction");
                 Assert.That(NetFrameworkCompatibility.Contains(extractYaml, "Overwrite", StringComparison.Ordinal), Is.False, "Extract should not serialize Overwrite");
                 Assert.That(NetFrameworkCompatibility.Contains(extractYaml, "Destination", StringComparison.Ordinal), Is.False, "Extract should not serialize Destination");
                 Assert.That(NetFrameworkCompatibility.Contains(extractYaml, "Arguments", StringComparison.Ordinal), Is.False, "Extract should not serialize Arguments");
@@ -573,12 +635,14 @@ Instructions:
             string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { component });
             Assert.Multiple(() =>
             {
-                Assert.That(yamlString, Does.Not.Contain("IsDownloaded"), "YAML should not contain IsDownloaded");
-                Assert.That(yamlString, Does.Not.Contain("InstallState"), "YAML should not contain InstallState");
-                Assert.That(yamlString, Does.Not.Contain("LastStartedUtc"), "YAML should not contain LastStartedUtc");
-                Assert.That(yamlString, Does.Not.Contain("LastCompletedUtc"), "YAML should not contain LastCompletedUtc");
-
-                Assert.That(yamlString, Does.Contain("IsSelected"), "YAML should contain IsSelected");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(yamlString, Is.Not.Null.And.Not.Empty, "YAML string should not be null or empty");
+                Assert.That(yamlString, Does.Not.Contain("IsDownloaded"), "YAML should not contain IsDownloaded (runtime field)");
+                Assert.That(yamlString, Does.Not.Contain("InstallState"), "YAML should not contain InstallState (runtime field)");
+                Assert.That(yamlString, Does.Not.Contain("LastStartedUtc"), "YAML should not contain LastStartedUtc (runtime field)");
+                Assert.That(yamlString, Does.Not.Contain("LastCompletedUtc"), "YAML should not contain LastCompletedUtc (runtime field)");
+                Assert.That(yamlString, Does.Contain("IsSelected"), "YAML should contain IsSelected (persistent field)");
+                Assert.That(yamlString, Does.Contain("Test Mod"), "YAML should contain component name");
             });
         }
 

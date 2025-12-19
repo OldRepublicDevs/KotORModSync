@@ -120,7 +120,7 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.Parse("3b732fd8-4f55-4c34-891b-245303765eed"),
                 Name = "Swoop Bike Upgrades",
-                Author = "Salk",
+                Author = "TestAuthorA",
                 Tier = "4 - Optional",
                 Description = "Originally, swoop bikes in KOTOR were intended to have upgrades available for purchase which would modify their performance.",
                 InstallationMethod = "TSLPatcher Mod",
@@ -136,8 +136,11 @@ namespace KOTORModSync.Tests
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.True, "Should successfully generate instructions");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Instructions, Is.Not.Null, "Instructions list should not be null");
                 Assert.That(component.Instructions, Is.Not.Empty, "Should have generated at least one instruction");
                 Assert.That(component.InstallationMethod, Is.Not.Null.And.Not.Empty, "Should have set InstallationMethod");
+                Assert.That(File.Exists(Path.Combine(_testDirectory, archiveName)), Is.True, "Archive file should exist");
             });
 
             TestContext.Progress.WriteLine($"Generated {component.Instructions.Count} instructions");
@@ -169,12 +172,19 @@ namespace KOTORModSync.Tests
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.True, "Should find the correct archive");
-                Assert.That(component.Instructions, Is.Not.Empty);
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(component.Instructions, Is.Not.Empty, "Should have generated instructions");
             });
 
             Instruction extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
-            Assert.That(extractInstruction, Is.Not.Null);
-            Assert.That(extractInstruction.Source[0], Does.Contain("correct-mod.zip"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(extractInstruction, Is.Not.Null, "Extract instruction should be generated");
+                Assert.That(extractInstruction.Source, Is.Not.Null, "Source list should not be null");
+                Assert.That(extractInstruction.Source, Is.Not.Empty, "Source list should not be empty");
+                Assert.That(extractInstruction.Source[0], Does.Contain("correct-mod.zip"), "Should use correct archive file");
+            });
         }
 
         [Test]
@@ -196,7 +206,9 @@ namespace KOTORModSync.Tests
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.False, "Should return false when archive is not found");
-                Assert.That(component.Instructions, Is.Empty, "Should not generate any instructions");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(component.Instructions, Is.Empty, "Should not generate any instructions when archive is not found");
             });
         }
 
@@ -281,9 +293,15 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(extract1.Source[0], Does.Contain("mod-one.zip"));
-                Assert.That(extract2.Source[0], Does.Contain("mod-two.zip"));
-                Assert.That(extract3.Source[0], Does.Contain("mod-three.zip"));
+                Assert.That(extract1, Is.Not.Null, "Extract instruction for component 1 should not be null");
+                Assert.That(extract2, Is.Not.Null, "Extract instruction for component 2 should not be null");
+                Assert.That(extract3, Is.Not.Null, "Extract instruction for component 3 should not be null");
+                Assert.That(extract1.Source, Is.Not.Null.And.Not.Empty, "Extract 1 source should not be null or empty");
+                Assert.That(extract2.Source, Is.Not.Null.And.Not.Empty, "Extract 2 source should not be null or empty");
+                Assert.That(extract3.Source, Is.Not.Null.And.Not.Empty, "Extract 3 source should not be null or empty");
+                Assert.That(extract1.Source[0], Does.Contain("mod-one.zip"), "Component 1 should use correct archive");
+                Assert.That(extract2.Source[0], Does.Contain("mod-two.zip"), "Component 2 should use correct archive");
+                Assert.That(extract3.Source[0], Does.Contain("mod-three.zip"), "Component 3 should use correct archive");
             });
         }
 
@@ -311,9 +329,12 @@ namespace KOTORModSync.Tests
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.False, "Should not regenerate when instructions already exist");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Instructions, Is.Not.Null, "Instructions list should not be null");
                 Assert.That(component.Instructions, Has.Count.EqualTo(1), "Should keep existing instruction");
+                Assert.That(component.Instructions[0], Is.Not.Null, "First instruction should not be null");
+                Assert.That(component.Instructions[0], Is.SameAs(existingInstruction), "Should preserve the exact same instruction instance");
             });
-            Assert.That(component.Instructions[0], Is.SameAs(existingInstruction));
         }
 
         [Test]
@@ -332,8 +353,10 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Is.False);
-                Assert.That(component.Instructions, Is.Empty);
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(result, Is.False, "Should return false when mod link is empty");
+                Assert.That(component.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(component.Instructions, Is.Empty, "Should not generate any instructions when mod link is empty");
             });
         }
 

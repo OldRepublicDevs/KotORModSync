@@ -70,8 +70,10 @@ namespace KOTORModSync.Tests
             Assert.Multiple(() =>
             {
                 // All should have acquired and released
-                Assert.That(acquired, Is.EqualTo(10));
-                Assert.That(released, Is.EqualTo(10));
+                Assert.That(acquired, Is.EqualTo(10), "All 10 tasks should have acquired the lock");
+                Assert.That(released, Is.EqualTo(10), "All 10 tasks should have released the lock");
+                Assert.That(acquired, Is.EqualTo(released), "Acquired and released counts should match");
+                Assert.That(contentKey, Is.Not.Null.And.Not.Empty, "Content key should not be null or empty");
             });
         }
 
@@ -102,8 +104,13 @@ namespace KOTORModSync.Tests
 
             await Task.WhenAll(tasks);
 
-            // Max concurrent should be 1 (serialized access)
-            Assert.That(maxConcurrent, Is.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                // Max concurrent should be 1 (serialized access)
+                Assert.That(maxConcurrent, Is.EqualTo(1), "Lock should serialize access - only one task should hold lock at a time");
+                Assert.That(currentConcurrent, Is.EqualTo(0), "All tasks should have released the lock");
+                Assert.That(contentKey, Is.Not.Null.And.Not.Empty, "Content key should not be null or empty");
+            });
         }
 
         [Test]
@@ -133,8 +140,13 @@ namespace KOTORModSync.Tests
 
             await Task.WhenAll(tasks);
 
-            // Different keys should allow parallel access
-            Assert.That(maxConcurrent, Is.GreaterThan(1));
+            Assert.Multiple(() =>
+            {
+                // Different keys should allow parallel access
+                Assert.That(maxConcurrent, Is.GreaterThan(1), "Different content keys should allow parallel access");
+                Assert.That(maxConcurrent, Is.LessThanOrEqualTo(5), "Max concurrent should not exceed number of tasks");
+                Assert.That(currentConcurrent, Is.EqualTo(0), "All tasks should have released their locks");
+            });
         }
 
         [Test]
@@ -152,20 +164,29 @@ namespace KOTORModSync.Tests
             var tasks = files.Select(f => DownloadCacheOptimizer.ComputeFileIntegrityData(f)).ToList();
             (string contentHashSHA256, int pieceLength, string pieceHashes)[] results = await Task.WhenAll(tasks);
 
-            // All should succeed
-            Assert.That(results.Length, Is.EqualTo(5));
+            Assert.Multiple(() =>
+            {
+                // All should succeed
+                Assert.That(results.Length, Is.EqualTo(5), "All 5 files should have integrity data computed");
+                Assert.That(files, Has.Count.EqualTo(5), "Test should have created 5 files");
+            });
+
             foreach ((string contentHashSHA256, int pieceLength, string pieceHashes) result in results)
             {
                 Assert.Multiple(() =>
                 {
-                    Assert.That(result.contentHashSHA256, Has.Length.EqualTo(64));
-                    Assert.That(result.pieceLength, Is.GreaterThan(0));
+                    Assert.That(result.contentHashSHA256, Is.Not.Null, "Content hash should not be null");
+                    Assert.That(result.contentHashSHA256, Has.Length.EqualTo(64), "SHA-256 hash should be exactly 64 hexadecimal characters");
+                    Assert.That(result.contentHashSHA256, Does.Match("^[0-9a-f]+$"), "Content hash should contain only lowercase hexadecimal digits");
+                    Assert.That(result.pieceLength, Is.GreaterThan(0), "Piece length should be greater than zero");
+                    Assert.That(result.pieceLength, Is.LessThanOrEqualTo(4194304), "Piece length should not exceed 4MB maximum");
+                    Assert.That(result.pieceHashes, Is.Not.Null, "Piece hashes should not be null");
                 });
             }
         }
 
         [Test]
-        public async Task ComputeContentIdFromMetadata_ConcurrentCalls_ProduceConsistentResults()
+        public async Task ComputeContentIdFromMetadata_ConcurrentCalls_ProduceConsistentResults_ContentIdGeneration()
         {
             var metadata = new Dictionary<string, object>(StringComparer.Ordinal)
             {
@@ -182,11 +203,29 @@ namespace KOTORModSync.Tests
 
             string[] results = await Task.WhenAll(tasks);
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(results, Is.Not.Null, "Results array should not be null");
+                Assert.That(results.Length, Is.EqualTo(10), "Should have 10 results from 10 concurrent calls");
+            });
+
             // All results should be identical
             string first = results[0];
+            Assert.Multiple(() =>
+            {
+                Assert.That(first, Is.Not.Null, "First result should not be null");
+                Assert.That(first, Has.Length.EqualTo(40), "ContentId should be exactly 40 characters");
+                Assert.That(first, Does.Match("^[0-9a-f]+$"), "ContentId should contain only hexadecimal digits");
+            });
+
             foreach (string result in results)
             {
-                Assert.That(result, Is.EqualTo(first));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result, Is.EqualTo(first), "All concurrent calls should produce identical ContentId");
+                    Assert.That(result, Is.Not.Null, "Each result should not be null");
+                    Assert.That(result, Has.Length.EqualTo(40), "Each ContentId should be exactly 40 characters");
+                });
             }
         }
 
@@ -203,10 +242,21 @@ namespace KOTORModSync.Tests
 
             await Task.WhenAll(tasks);
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(tasks, Has.Count.EqualTo(10), "Should have created 10 blocking tasks");
+            });
+
             // All should be blocked
             for (int i = 0; i < 10; i++)
             {
-                Assert.That(DownloadCacheOptimizer.IsContentIdBlocked($"blocked_{i}"), Is.True);
+                string contentId = $"blocked_{i}";
+                Assert.Multiple(() =>
+                {
+                    Assert.That(DownloadCacheOptimizer.IsContentIdBlocked(contentId), Is.True, 
+                        $"ContentId '{contentId}' should be blocked after concurrent blocking");
+                    Assert.That(contentId, Is.Not.Null.And.Not.Empty, "ContentId should not be null or empty");
+                });
             }
         }
 
@@ -222,8 +272,15 @@ namespace KOTORModSync.Tests
 
             bool[] results = await Task.WhenAll(tasks);
 
-            // All should return true
-            Assert.That(results.All(r => r), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(results, Is.Not.Null, "Results array should not be null");
+                Assert.That(results.Length, Is.EqualTo(20), "Should have 20 results from 20 concurrent reads");
+                // All should return true
+                Assert.That(results.All(r => r), Is.True, "All concurrent reads should return true for blocked ContentId");
+                Assert.That(results, Has.None.EqualTo(false), "No result should be false");
+                Assert.That(contentId, Is.Not.Null.And.Not.Empty, "ContentId should not be null or empty");
+            });
         }
 
         [Test]
@@ -238,11 +295,23 @@ namespace KOTORModSync.Tests
 
             int[] results = await Task.WhenAll(tasks);
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(results, Is.Not.Null, "Results array should not be null");
+                Assert.That(results.Length, Is.EqualTo(20), "Should have 20 results (4 file sizes × 5 iterations)");
+            });
+
             // All should return valid piece sizes
+            int[] validPieceSizes = { 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304 };
             foreach (int result in results)
             {
-                Assert.That(result, Is.GreaterThan(0));
-                Assert.That(result, Is.LessThanOrEqualTo(4194304)); // Max 4MB
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result, Is.GreaterThan(0), "Piece size should be greater than zero");
+                    Assert.That(result, Is.LessThanOrEqualTo(4194304), "Piece size should not exceed 4MB maximum");
+                    Assert.That(validPieceSizes, Contains.Item(result), 
+                        $"Piece size {result} should be one of the valid piece sizes");
+                });
             }
         }
 
@@ -256,14 +325,30 @@ namespace KOTORModSync.Tests
 
             string[] paths = await Task.WhenAll(tasks);
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(paths, Is.Not.Null, "Paths array should not be null");
+                Assert.That(paths.Length, Is.EqualTo(10), "Should have 10 unique paths");
+            });
+
             // All paths should be unique
             var uniquePaths = paths.Distinct(StringComparer.Ordinal).ToList();
-            Assert.That(uniquePaths.Count, Is.EqualTo(10));
+            Assert.Multiple(() =>
+            {
+                Assert.That(uniquePaths.Count, Is.EqualTo(10), "All 10 paths should be unique");
+                Assert.That(paths.Length, Is.EqualTo(uniquePaths.Count), "No duplicate paths should exist");
+            });
 
             // All should be in .partial directory
             foreach (string path in paths)
             {
-                Assert.That(path, Does.Contain(".partial"));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(path, Is.Not.Null, "Path should not be null");
+                    Assert.That(path, Does.Contain(".partial"), "Path should be in .partial directory");
+                    Assert.That(path, Does.Contain(_testDirectory), "Path should be within test directory");
+                    Assert.That(Path.IsPathRooted(path), Is.True, "Path should be absolute");
+                });
             }
         }
 
@@ -300,7 +385,12 @@ namespace KOTORModSync.Tests
             }
 
             // Should complete without deadlock
-            Assert.Pass();
+            Assert.Multiple(() =>
+            {
+                Assert.That(contentKey, Is.Not.Null.And.Not.Empty, "Content key should not be null or empty");
+                // Test passes if we reach here without deadlock
+            });
+            Assert.Pass("Lock acquisition with timeout should not cause deadlock");
         }
     }
 }

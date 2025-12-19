@@ -150,7 +150,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public async Task RealMods_KOTOR1_ContentIds_Generated()
+        public async Task RealMods_KOTOR1_ContentIds_Generated_ContentIdGeneration()
         {
             ResetDiagnostics();
 
@@ -178,7 +178,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public async Task RealMods_KOTOR2_ContentIds_Generated()
+        public async Task RealMods_KOTOR2_ContentIds_Generated_ContentIdGeneration()
         {
             ResetDiagnostics();
 
@@ -270,7 +270,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         /// This test may take longer than 2 minutes but is NOT intended for GitHub runners.
         /// </summary>
         [Fact]
-        public async Task RealMods_KOTOR1_CanComputeContentIds_LongRunning()
+        public async Task RealMods_KOTOR1_CanComputeContentIds_LongRunning_ContentIdGeneration()
         {
             ResetDiagnostics();
 
@@ -319,7 +319,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         /// This test may take longer than 2 minutes but is NOT intended for GitHub runners.
         /// </summary>
         [Fact]
-        public async Task RealMods_KOTOR2_CanComputeContentIds_LongRunning()
+        public async Task RealMods_KOTOR2_CanComputeContentIds_LongRunning_ContentIdGeneration()
         {
             ResetDiagnostics();
 

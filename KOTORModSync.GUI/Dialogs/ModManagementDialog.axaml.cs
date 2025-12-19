@@ -268,7 +268,7 @@ namespace KOTORModSync.Dialogs
                     bool? proceed = await _dialogService.ShowConfirmationDialog(
                         $"Update category for {selectedComponents.Count} selected mod(s)?{categoryOptions}\n\n" +
                         "This feature requires a custom input dialog.\n" +
-                        "For now, you can edit categories individually in the mod editor.\n\n" +
+                        "TODO - STUB: For now, you can edit categories individually in the mod editor.\n\n" +
                         "Would you like to clear all categories for selected mods?",
                         "Clear Categories",
 

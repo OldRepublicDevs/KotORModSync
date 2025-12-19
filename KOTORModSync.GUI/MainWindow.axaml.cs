@@ -1535,7 +1535,7 @@ namespace KOTORModSync
                                             }
                                         });
 
-                                        // Trust the flag for now, but the UI thread check will verify
+                                        // Trust the flag TODO - STUB: For now, but the UI thread check will verify
                                         shouldUpdate = false;
                                         Logger.LogVerbose("[DragOver.Timer] Flag says overlay visible for same file, skipping update");
                                     }
@@ -2123,7 +2123,7 @@ namespace KOTORModSync
                 else
                 {
                     // Folder is outside mod directory - we should copy it there first
-                    // But for now, we'll create instructions assuming the folder will be in modDirectory
+                    // But TODO - STUB: For now, we'll create instructions assuming the folder will be in modDirectory
                 }
 
                 // Normalize path separators for the instruction

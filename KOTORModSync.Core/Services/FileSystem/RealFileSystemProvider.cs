@@ -150,6 +150,14 @@ namespace KOTORModSync.Core.Services.FileSystem
 
                     await Logger.LogAsync($"Extracting archive '{sourcePath}'...").ConfigureAwait(false);
 
+                    // Determine if destination was explicitly provided (different from archive's directory)
+                    // When explicitly provided, extract directly to destination without archive name subfolder
+                    // When using default (archive directory), add archive name subfolder to avoid conflicts
+                    string archiveDirectory = Path.GetDirectoryName(archive.FullName) ?? string.Empty;
+                    string normalizedDestPath = Path.GetFullPath(destPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    string normalizedArchiveDir = Path.GetFullPath(archiveDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    bool isExplicitDestination = !string.Equals(normalizedDestPath, normalizedArchiveDir, StringComparison.OrdinalIgnoreCase);
+
                     if (archive.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase))
                     {
                         if (ArchiveHelper.TryExtractSevenZipSfx(archive.FullName, destPath, extracted))
@@ -195,8 +203,11 @@ namespace KOTORModSync.Core.Services.FileSystem
                                     continue;
                                 }
 
-                                string extractFolderName = Path.GetFileNameWithoutExtension(archive.Name);
-                                string destinationItemPath = Path.Combine(destPath, extractFolderName, reader.Entry.Key);
+                                // When destination is explicitly provided, extract directly to it
+                                // Otherwise, add archive name subfolder to avoid conflicts when extracting multiple archives
+                                string destinationItemPath = isExplicitDestination
+                                    ? Path.Combine(destPath, reader.Entry.Key)
+                                    : Path.Combine(destPath, Path.GetFileNameWithoutExtension(archive.Name), reader.Entry.Key);
                                 string destinationDirectory = Path.GetDirectoryName(destinationItemPath) ?? throw new InvalidOperationException($"Path.GetDirectoryName({destinationItemPath})");
 
                                 if (MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory))

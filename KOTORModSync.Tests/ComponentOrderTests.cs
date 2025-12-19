@@ -41,20 +41,38 @@ namespace KOTORModSync.Tests
             (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
                 ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(componentsListExpectedOrder, Is.Not.Null, "Expected order list should not be null");
+                Assert.That(componentsListExpectedOrder, Is.Not.Empty, "Expected order list should not be empty");
+                Assert.That(reorderedComponents, Is.Not.Null, "Reordered components list should not be null");
+                Assert.That(reorderedComponents, Is.Not.Empty, "Reordered components list should not be empty");
+            });
+
             foreach (ModComponent component in reorderedComponents)
             {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(component, Is.Not.Null, $"Component should not be null: {component?.Name ?? "Unknown"}");
+                    Assert.That(component.Guid, Is.Not.EqualTo(Guid.Empty), $"Component GUID should not be empty: {component.Name}");
+                });
+
                 int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
                 int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
-                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(actualIndex, Is.GreaterThanOrEqualTo(0), $"Component should be found in reordered list: {component.Name}");
+                    Assert.That(expectedIndex, Is.GreaterThanOrEqualTo(0), $"Component should be found in expected list: {component.Name}");
+                    Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+                });
             }
 
-            Assert.Multiple(
-                () =>
-                {
-                    Assert.That(isCorrectOrder, Is.True);
-                    Assert.That(reorderedComponents, Is.Not.Empty);
-                }
-            );
+            Assert.Multiple(() =>
+            {
+                Assert.That(isCorrectOrder, Is.True, "Components should be in correct order");
+                Assert.That(reorderedComponents, Is.Not.Empty, "Reordered components list should not be empty");
+                Assert.That(reorderedComponents.Count, Is.EqualTo(componentsListExpectedOrder.Count), "Reordered components count should match expected");
+            });
         }
 
         [Test]
@@ -134,20 +152,38 @@ namespace KOTORModSync.Tests
             (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
                 ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(componentsListExpectedOrder, Is.Not.Null, "Expected order list should not be null");
+                Assert.That(componentsListExpectedOrder, Is.Not.Empty, "Expected order list should not be empty");
+                Assert.That(reorderedComponents, Is.Not.Null, "Reordered components list should not be null");
+                Assert.That(reorderedComponents, Is.Not.Empty, "Reordered components list should not be empty");
+            });
+
             foreach (ModComponent component in reorderedComponents)
             {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(component, Is.Not.Null, $"Component should not be null: {component?.Name ?? "Unknown"}");
+                    Assert.That(component.Guid, Is.Not.EqualTo(Guid.Empty), $"Component GUID should not be empty: {component.Name}");
+                });
+
                 int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
                 int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
-                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(actualIndex, Is.GreaterThanOrEqualTo(0), $"Component should be found in reordered list: {component.Name}");
+                    Assert.That(expectedIndex, Is.GreaterThanOrEqualTo(0), $"Component should be found in expected list: {component.Name}");
+                    Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+                });
             }
 
-            Assert.Multiple(
-                () =>
-                {
-                    Assert.That(isCorrectOrder, Is.True);
-                    Assert.That(reorderedComponents, Is.Not.Empty);
-                }
-            );
+            Assert.Multiple(() =>
+            {
+                Assert.That(isCorrectOrder, Is.True, "Components should be in correct order");
+                Assert.That(reorderedComponents, Is.Not.Empty, "Reordered components list should not be empty");
+                Assert.That(reorderedComponents.Count, Is.EqualTo(componentsListExpectedOrder.Count), "Reordered components count should match expected");
+            });
         }
 
         [Test]
@@ -536,10 +572,22 @@ namespace KOTORModSync.Tests
                 componentA, componentB, componentC,
             };
 
-            _ = Assert.Throws<KeyNotFoundException>(
+            Assert.Multiple(() =>
+            {
+                Assert.That(componentsList, Is.Not.Null, "Components list should not be null");
+                Assert.That(componentsList, Is.Not.Empty, "Components list should not be empty");
+            });
+
+            var exception = Assert.Throws<KeyNotFoundException>(
                 () => { _ = ModComponent.ConfirmComponentsInstallOrder(componentsList); },
-                message: "ConfirmComponentsInstallOrder should have raised a KeyNotFoundException"
+                message: "ConfirmComponentsInstallOrder should have raised a KeyNotFoundException for impossible scenario"
             );
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception, Is.Not.Null, "Exception should not be null");
+                Assert.That(exception.Message, Is.Not.Null.And.Not.Empty, "Exception message should not be null or empty");
+            });
         }
 
         private static void Swap<T>(IList<T> list, int index1, int index2) =>

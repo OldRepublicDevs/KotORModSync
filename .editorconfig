@@ -25,6 +25,9 @@ indent_style = space
 # IDE0040: Add accessibility modifiers
 dotnet_diagnostic.IDE0040.severity = none
 
+# IDE0028: Simplify collection initialization
+dotnet_diagnostic.IDE0028.severity = none
+
 [*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct}]
 indent_size = 2
 indent_style = space
@@ -341,7 +344,7 @@ csharp_style_expression_bodied_operators = false:silent
 csharp_style_expression_bodied_accessors = true:suggestion
 
 # IDE0028: Simplify collection initialization
-dotnet_style_collection_initializer = true:suggestion
+dotnet_style_collection_initializer = false:none
 
 # IDE0029: Use coalesce expression
 dotnet_style_coalesce_expression = true:suggestion
@@ -621,6 +624,13 @@ dotnet_diagnostic.S3878.severity = none
 #### Project-Specific Analyzer Rules ####
 
 # KOTORModSync.GUI: Disable all warnings
+
+# S6966: Awaitable method should be used
+dotnet_diagnostic.S6966.severity = none
+
+# Default severity for analyzer diagnostics with category 'Style'
+dotnet_analyzer_diagnostic.category-Style.severity = none
+
 [KOTORModSync.GUI/**/*.cs]
 dotnet_diagnostic.S1481.severity = none
 dotnet_diagnostic.S4144.severity = none

@@ -34,11 +34,11 @@ namespace KOTORModSync.Tests
             try
             {
                 // Create incoming markdown content with NEW Directions
-                string incomingMarkdown = @"### KOTOR Dialogue Fixes
+                string incomingMarkdown = @"### Example Dialogue Enhancement
 
-**Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
+**Name:** [Example Dialogue Enhancement](https://deadlystream.com/files/file/1313-example-dialogue-enhancement/)
 
-**Author:** Salk & Kainzorus Prime
+**Author:** Test Author A & Test Author B
 
 **Description:** In addition to fixing several typos, this mod takes the PC's dialogue—which is written in such a way as to make the PC sound constantly shocked, stupid, or needlessly and overtly evil—and replaces it with more moderate and reasonable responses, even for DS choices.
 
@@ -54,22 +54,21 @@ ___
 ";
 
                 // Create existing TOML content with OLD Directions
-                string existingToml = @"
-[[thisMod]]
+                string existingToml = @"[[thisMod]]
 Guid = ""a9aa5bf5-b4ac-4aa3-acbb-402337235e54""
-Name = ""KOTOR Dialogue Fixes""
-Author = ""Salk & Kainzorus Prime""
+Name = ""Example Dialogue Enhancement""
+Author = ""Test Author A & Test Author B""
 Category = ""Immersion""
 Tier = ""Essential""
 Description = ""In addition to fixing several typos, this mod takes the PC's dialogue--which is written in such a way as to make the PC sound constantly shocked, stupid, or needlessly and overtly evil--and replaces it with more moderate and reasonable responses, even for DS choices.""
 Directions = ""Move the dialogue.tlk file from the \""PC Response Moderation\"" folder into the main KOTOR directory (where the executable file is).""
 IsSelected = true
-ModLinkFilenames = { ""https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"" = {  } }
+ModLinkFilenames = { ""https://deadlystream.com/files/file/1313-example-dialogue-enhancement/"" = {  } }
 
 [[thisMod.Instructions]]
 Action = ""Extract""
 Overwrite = true
-Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z""]
+Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*.7z""]
 
 [[thisMod.Instructions]]
 Action = ""Choose""
@@ -88,7 +87,7 @@ Parent = ""cf2a12ec-3932-42f8-996d-b1b1bdfdbb48""
 Action = ""Move""
 Destination = ""<<kotorDirectory>>""
 Overwrite = true
-Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk""]
+Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\Corrections only\\dialog.tlk""]
 
 [[thisMod.Options]]
 Guid = ""6d593186-e356-4994-b6a8-f71445869937""
@@ -102,7 +101,7 @@ Parent = ""6d593186-e356-4994-b6a8-f71445869937""
 Action = ""Move""
 Destination = ""<<kotorDirectory>>""
 Overwrite = true
-Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk""]
+Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderation version\\dialog.tlk""]
 ";
 
                 // Write files to disk
@@ -110,7 +109,9 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 string existingPath = Path.Combine(tempDir, "existing.toml");
 
                 await NetFrameworkCompatibility.WriteAllTextAsync(incomingPath, incomingMarkdown);
-                await NetFrameworkCompatibility.WriteAllTextAsync(existingPath, existingToml);
+                // Strip any BOM from TOML string and write without BOM
+                string tomlWithoutBom = existingToml.TrimStart('\uFEFF');
+                await NetFrameworkCompatibility.WriteAllTextAsync(existingPath, tomlWithoutBom, new System.Text.UTF8Encoding(false));
 
                 // Act - Perform merge using ComponentMergeService
                 var mergeOptions = new MergeOptions
@@ -142,14 +143,21 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 );
 
                 // Assert
-                Assert.That(mergedComponents, Is.Not.Null);
-                Assert.That(mergedComponents.Count, Is.EqualTo(1));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(mergedComponents, Is.Not.Null, "Merged components list should not be null");
+                    Assert.That(mergedComponents.Count, Is.EqualTo(1), "Should merge exactly 1 component");
+                    Assert.That(File.Exists(incomingPath), Is.True, "Incoming file should exist");
+                    Assert.That(File.Exists(existingPath), Is.True, "Existing file should exist");
+                });
 
                 ModComponent mergedComponent = mergedComponents[0];
                 Assert.Multiple(() =>
                 {
-                    Assert.That(mergedComponent.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
-                    Assert.That(mergedComponent.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                    Assert.That(mergedComponent, Is.Not.Null, "Merged component should not be null");
+                    Assert.That(mergedComponent.Name, Is.Not.Null.And.Not.Empty, "Merged component name should not be null or empty");
+                    Assert.That(mergedComponent.Name, Is.EqualTo("Example Dialogue Enhancement"), "Merged component should have correct name");
+                    Assert.That(mergedComponent.Author, Is.EqualTo("Test Author A & Test Author B"), "Merged component should have correct author");
                 });
 
                 // The critical assertion: Directions should come from INCOMING (markdown), not existing (TOML)
@@ -158,20 +166,26 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
 
                 Assert.Multiple(() =>
                 {
+                    Assert.That(expectedDirections, Is.Not.Null.And.Not.Empty, "Expected directions should not be null or empty");
+                    Assert.That(actualDirections, Is.Not.Null, "Actual directions should not be null");
                     Assert.That(actualDirections, Is.EqualTo(expectedDirections),
                                     $"Directions should come from INCOMING file, not EXISTING file.\nExpected (incoming): {expectedDirections}\nActual: {actualDirections}");
 
                     // Also verify other incoming fields are preserved
-                    Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"));
-                    Assert.That(mergedComponent.Tier, Is.EqualTo("1 - Essential"));
-                    Assert.That(mergedComponent.Category.Count, Is.EqualTo(1));
+                    Assert.That(mergedComponent.InstallationMethod, Is.Not.Null, "Installation method should not be null");
+                    Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"), "Installation method should come from incoming");
+                    Assert.That(mergedComponent.Tier, Is.Not.Null, "Tier should not be null");
+                    Assert.That(mergedComponent.Tier, Is.EqualTo("1 - Essential"), "Tier should come from incoming");
+                    Assert.That(mergedComponent.Category, Is.Not.Null, "Category list should not be null");
+                    Assert.That(mergedComponent.Category.Count, Is.EqualTo(1), "Category list should have exactly 1 item");
                 });
                 Assert.Multiple(() =>
                 {
-                    Assert.That(mergedComponent.Category[0], Is.EqualTo("Immersion"));
-                    Assert.That(mergedComponent.Language.Count, Is.EqualTo(1));
+                    Assert.That(mergedComponent.Category[0], Is.EqualTo("Immersion"), "Category should match incoming value");
+                    Assert.That(mergedComponent.Language, Is.Not.Null, "Language list should not be null");
+                    Assert.That(mergedComponent.Language.Count, Is.EqualTo(1), "Language list should have exactly 1 item");
+                    Assert.That(mergedComponent.Language[0], Is.EqualTo("NO"), "Language should match incoming value");
                 });
-                Assert.That(mergedComponent.Language[0], Is.EqualTo("NO"));
             }
             finally
             {
@@ -200,11 +214,11 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
             try
             {
                 // Create incoming markdown with component
-                string incomingMarkdown = @"### KOTOR Dialogue Fixes
+                string incomingMarkdown = @"### Example Dialogue Enhancement
 
-**Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
+**Name:** [Example Dialogue Enhancement](https://deadlystream.com/files/file/1313-example-dialogue-enhancement/)
 
-**Author:** Salk & Kainzorus Prime
+**Author:** Test Author A & Test Author B
 
 **Description:** Incoming description
 
@@ -220,11 +234,10 @@ ___
 ";
 
                 // Create existing TOML
-                string existingToml = @"
-[[thisMod]]
+                string existingToml = @"[[thisMod]]
 Guid = ""a9aa5bf5-b4ac-4aa3-acbb-402337235e54""
-Name = ""KOTOR Dialogue Fixes""
-Author = ""Salk & Kainzorus Prime""
+Name = ""Example Dialogue Enhancement""
+Author = ""Test Author A & Test Author B""
 Category = ""Immersion""
 Tier = ""Essential""
 Description = ""Existing description""
@@ -237,7 +250,9 @@ IsSelected = true
                 string existingPath = Path.Combine(tempDir, "existing.toml");
 
                 await NetFrameworkCompatibility.WriteAllTextAsync(incomingPath, incomingMarkdown);
-                await NetFrameworkCompatibility.WriteAllTextAsync(existingPath, existingToml);
+                // Strip any BOM from TOML string and write without BOM
+                string tomlWithoutBom = existingToml.TrimStart('\uFEFF');
+                await NetFrameworkCompatibility.WriteAllTextAsync(existingPath, tomlWithoutBom, new System.Text.UTF8Encoding(false));
 
                 // Act - Merge with default options (UseExistingOrder = false means use incoming order)
                 var mergeOptions = new MergeOptions
@@ -256,22 +271,34 @@ IsSelected = true
                 );
 
                 // Assert - Incoming values should be preserved
-                Assert.That(mergedComponents, Is.Not.Null);
-                Assert.That(mergedComponents.Count, Is.EqualTo(1));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(mergedComponents, Is.Not.Null, "Merged components list should not be null");
+                    Assert.That(mergedComponents.Count, Is.EqualTo(1), "Should merge exactly 1 component");
+                    Assert.That(File.Exists(incomingPath), Is.True, "Incoming file should exist");
+                    Assert.That(File.Exists(existingPath), Is.True, "Existing file should exist");
+                });
 
                 ModComponent mergedComponent = mergedComponents[0];
+                Assert.Multiple(() =>
+                {
+                    Assert.That(mergedComponent, Is.Not.Null, "Merged component should not be null");
+                });
 
                 Assert.Multiple(() =>
                 {
                     // Description should come from INCOMING
+                    Assert.That(mergedComponent.Description, Is.Not.Null, "Description should not be null");
                     Assert.That(mergedComponent.Description, Is.EqualTo("Incoming description"),
                         "Description should come from INCOMING file");
 
                     // Directions should come from INCOMING
+                    Assert.That(mergedComponent.Directions, Is.Not.Null, "Directions should not be null");
                     Assert.That(mergedComponent.Directions, Is.EqualTo("Incoming directions text"),
                         "Directions should come from INCOMING file");
 
                     // InstallationMethod only exists in incoming
+                    Assert.That(mergedComponent.InstallationMethod, Is.Not.Null, "Installation method should not be null");
                     Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"),
                         "InstallationMethod should come from INCOMING file");
                 });

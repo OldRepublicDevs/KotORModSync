@@ -27,13 +27,22 @@ namespace KOTORModSync.Tests
             context.AddModComponentIssue(guid, "Test issue 2");
 
             // Assert
-            IReadOnlyList<string> issues = context.GetComponentIssues(guid);
-            Assert.That(issues.Count, Is.EqualTo(2));
             Assert.Multiple(() =>
             {
-                Assert.That(issues[0], Is.EqualTo("Test issue 1"));
-                Assert.That(issues[1], Is.EqualTo("Test issue 2"));
-                Assert.That(context.HasIssues(guid), Is.True);
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(guid, Is.Not.EqualTo(Guid.Empty), "GUID should not be empty");
+            });
+
+            IReadOnlyList<string> issues = context.GetComponentIssues(guid);
+            Assert.Multiple(() =>
+            {
+                Assert.That(issues, Is.Not.Null, "Issues list should not be null");
+                Assert.That(issues.Count, Is.EqualTo(2), "Should have exactly 2 issues");
+                Assert.That(issues[0], Is.Not.Null.And.Not.Empty, "First issue should not be null or empty");
+                Assert.That(issues[0], Is.EqualTo("Test issue 1"), "First issue should match");
+                Assert.That(issues[1], Is.Not.Null.And.Not.Empty, "Second issue should not be null or empty");
+                Assert.That(issues[1], Is.EqualTo("Test issue 2"), "Second issue should match");
+                Assert.That(context.HasIssues(guid), Is.True, "Context should report issues for this GUID");
             });
         }
 
@@ -49,12 +58,21 @@ namespace KOTORModSync.Tests
             context.AddInstructionIssue(componentGuid, instructionIndex, "Instruction error");
 
             // Assert
-            List<string> issues = context.GetInstructionIssues(componentGuid, instructionIndex);
-            Assert.That(issues, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
             {
-                Assert.That(issues[0], Is.EqualTo("Instruction error"));
-                Assert.That(context.HasInstructionIssues(componentGuid, instructionIndex), Is.True);
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(componentGuid, Is.Not.EqualTo(Guid.Empty), "Component GUID should not be empty");
+                Assert.That(instructionIndex, Is.GreaterThanOrEqualTo(0), "Instruction index should be non-negative");
+            });
+
+            List<string> issues = context.GetInstructionIssues(componentGuid, instructionIndex);
+            Assert.Multiple(() =>
+            {
+                Assert.That(issues, Is.Not.Null, "Issues list should not be null");
+                Assert.That(issues, Has.Count.EqualTo(1), "Should have exactly 1 issue");
+                Assert.That(issues[0], Is.Not.Null.And.Not.Empty, "Issue should not be null or empty");
+                Assert.That(issues[0], Is.EqualTo("Instruction error"), "Issue should match");
+                Assert.That(context.HasInstructionIssues(componentGuid, instructionIndex), Is.True, "Context should report issues for this instruction");
             });
         }
 
@@ -70,12 +88,22 @@ namespace KOTORModSync.Tests
             context.AddUrlFailure(url, "Download timeout");
 
             // Assert
-            List<string> failures = context.GetUrlFailures(url);
-            Assert.That(failures.Count, Is.EqualTo(2));
             Assert.Multiple(() =>
             {
-                Assert.That(failures[0], Is.EqualTo("404 Not Found"));
-                Assert.That(context.HasUrlFailures(url), Is.True);
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(url, Is.Not.Null.And.Not.Empty, "URL should not be null or empty");
+            });
+
+            List<string> failures = context.GetUrlFailures(url);
+            Assert.Multiple(() =>
+            {
+                Assert.That(failures, Is.Not.Null, "Failures list should not be null");
+                Assert.That(failures.Count, Is.EqualTo(2), "Should have exactly 2 failures");
+                Assert.That(failures[0], Is.Not.Null.And.Not.Empty, "First failure should not be null or empty");
+                Assert.That(failures[0], Is.EqualTo("404 Not Found"), "First failure should match");
+                Assert.That(failures[1], Is.Not.Null.And.Not.Empty, "Second failure should not be null or empty");
+                Assert.That(failures[1], Is.EqualTo("Download timeout"), "Second failure should match");
+                Assert.That(context.HasUrlFailures(url), Is.True, "Context should report failures for this URL");
             });
         }
 
@@ -100,9 +128,15 @@ namespace KOTORModSync.Tests
                 context);
 
             // Assert
-            Assert.That(toml, Does.Contain("# VALIDATION ISSUES:"));
-            Assert.That(toml, Does.Contain("# Missing required files"));
-            Assert.That(toml, Does.Contain("# Invalid instruction format"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(toml, Is.Not.Null.And.Not.Empty, "TOML string should not be null or empty");
+                Assert.That(toml, Does.Contain("# VALIDATION ISSUES:"), "TOML should contain validation issues header");
+                Assert.That(toml, Does.Contain("# Missing required files"), "TOML should contain first validation issue");
+                Assert.That(toml, Does.Contain("# Invalid instruction format"), "TOML should contain second validation issue");
+            });
         }
 
         [Test]
@@ -128,8 +162,15 @@ namespace KOTORModSync.Tests
                 context);
 
             // Assert
-            Assert.That(toml, Does.Contain("# URL RESOLUTION FAILURE: https://example.com/mod.zip"));
-            Assert.That(toml, Does.Contain("# Failed to resolve filename"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.ResourceRegistry, Is.Not.Null, "Resource registry should not be null");
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(toml, Is.Not.Null.And.Not.Empty, "TOML string should not be null or empty");
+                Assert.That(toml, Does.Contain("# URL RESOLUTION FAILURE: https://example.com/mod.zip"), "TOML should contain URL resolution failure header");
+                Assert.That(toml, Does.Contain("# Failed to resolve filename"), "TOML should contain URL resolution failure message");
+            });
         }
 
         [Test]
@@ -160,8 +201,17 @@ namespace KOTORModSync.Tests
                 context);
 
             // Assert
-            Assert.That(toml, Does.Contain("# INSTRUCTION VALIDATION ISSUES:"));
-            Assert.That(toml, Does.Contain("# MoveFile: Source file does not exist"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(instruction, Is.Not.Null, "Instruction should not be null");
+                Assert.That(component.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(component.Instructions, Has.Count.GreaterThan(0), "Component should have at least one instruction");
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(toml, Is.Not.Null.And.Not.Empty, "TOML string should not be null or empty");
+                Assert.That(toml, Does.Contain("# INSTRUCTION VALIDATION ISSUES:"), "TOML should contain instruction validation issues header");
+                Assert.That(toml, Does.Contain("# MoveFile: Source file does not exist"), "TOML should contain instruction validation issue message");
+            });
         }
 
         [Test]
@@ -192,9 +242,16 @@ namespace KOTORModSync.Tests
                 context);
 
             // Assert
-            Assert.That(yaml, Does.Contain("# VALIDATION ISSUES:"));
-            Assert.That(yaml, Does.Contain("# Component validation issue"));
-            // Note: YAML serialization does not render instruction validation warnings as comments
+            Assert.Multiple(() =>
+            {
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(instruction, Is.Not.Null, "Instruction should not be null");
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(yaml, Is.Not.Null.And.Not.Empty, "YAML string should not be null or empty");
+                Assert.That(yaml, Does.Contain("# VALIDATION ISSUES:"), "YAML should contain validation issues header");
+                Assert.That(yaml, Does.Contain("# Component validation issue"), "YAML should contain component validation issue");
+                // Note: YAML serialization does not render instruction validation warnings as comments
+            });
         }
 
         [Test]
@@ -222,10 +279,17 @@ namespace KOTORModSync.Tests
                 context);
 
             // Assert
-            Assert.That(json, Does.Contain("_validationWarnings"));
-            Assert.That(json, Does.Contain("JSON validation test"));
-            Assert.That(json, Does.Contain("_urlResolutionFailures"));
-            Assert.That(json, Does.Contain("Resolution failed"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.ResourceRegistry, Is.Not.Null, "Resource registry should not be null");
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(json, Is.Not.Null.And.Not.Empty, "JSON string should not be null or empty");
+                Assert.That(json, Does.Contain("_validationWarnings"), "JSON should contain validation warnings field");
+                Assert.That(json, Does.Contain("JSON validation test"), "JSON should contain validation warning message");
+                Assert.That(json, Does.Contain("_urlResolutionFailures"), "JSON should contain URL resolution failures field");
+                Assert.That(json, Does.Contain("Resolution failed"), "JSON should contain URL resolution failure message");
+            });
         }
 
         [Test]
@@ -248,8 +312,14 @@ namespace KOTORModSync.Tests
                 context);
 
             // Assert
-            Assert.That(markdown, Does.Contain("> **⚠️ VALIDATION WARNINGS:**"));
-            Assert.That(markdown, Does.Contain("> - Markdown test warning"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(markdown, Is.Not.Null.And.Not.Empty, "Markdown string should not be null or empty");
+                Assert.That(markdown, Does.Contain("> **⚠️ VALIDATION WARNINGS:**"), "Markdown should contain validation warnings header");
+                Assert.That(markdown, Does.Contain("> - Markdown test warning"), "Markdown should contain validation warning message");
+            });
         }
 
         [Test]
@@ -263,12 +333,21 @@ namespace KOTORModSync.Tests
             };
 
             // Act & Assert - should not throw
+            Assert.Multiple(() =>
+            {
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+            });
+
             Assert.DoesNotThrow(() =>
             {
                 string toml = ModComponentSerializationService.SerializeModComponentAsTomlString(
                     new List<ModComponent> { component },
                     validationContext: null);
-                Assert.That(toml, Does.Not.Contain("# VALIDATION"));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(toml, Is.Not.Null.And.Not.Empty, "TOML string should not be null or empty");
+                    Assert.That(toml, Does.Not.Contain("# VALIDATION"), "TOML should not contain validation comments when context is null");
+                });
             });
         }
 
@@ -282,13 +361,22 @@ namespace KOTORModSync.Tests
             context.AddUrlFailure("https://Example.COM/Mod.ZIP", "Test error");
 
             // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+            });
+
             List<string> failures1 = context.GetUrlFailures("https://example.com/mod.zip");
             List<string> failures2 = context.GetUrlFailures("https://EXAMPLE.COM/MOD.ZIP");
 
             Assert.Multiple(() =>
             {
-                Assert.That(failures1.Count, Is.EqualTo(1));
-                Assert.That(failures2.Count, Is.EqualTo(1));
+                Assert.That(failures1, Is.Not.Null, "First failures list should not be null");
+                Assert.That(failures1.Count, Is.EqualTo(1), "First failures list should contain exactly 1 failure");
+                Assert.That(failures1[0], Is.EqualTo("Test error"), "First failure should match");
+                Assert.That(failures2, Is.Not.Null, "Second failures list should not be null");
+                Assert.That(failures2.Count, Is.EqualTo(1), "Second failures list should contain exactly 1 failure (case-insensitive)");
+                Assert.That(failures2[0], Is.EqualTo("Test error"), "Second failure should match");
             });
         }
 
@@ -309,8 +397,15 @@ namespace KOTORModSync.Tests
                 context);
 
             // Assert
-            Assert.That(toml, Does.Contain("# Mod 1 issue"));
-            Assert.That(toml, Does.Contain("# Mod 2 issue"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(comp1, Is.Not.Null, "First component should not be null");
+                Assert.That(comp2, Is.Not.Null, "Second component should not be null");
+                Assert.That(context, Is.Not.Null, "Validation context should not be null");
+                Assert.That(toml, Is.Not.Null.And.Not.Empty, "TOML string should not be null or empty");
+                Assert.That(toml, Does.Contain("# Mod 1 issue"), "TOML should contain first component issue");
+                Assert.That(toml, Does.Contain("# Mod 2 issue"), "TOML should contain second component issue");
+            });
         }
     }
 }

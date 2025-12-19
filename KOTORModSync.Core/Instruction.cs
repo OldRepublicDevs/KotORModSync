@@ -358,7 +358,7 @@ namespace KOTORModSync.Core
                 RealSourcePaths = argSourcePaths.ToList();
                 foreach (string sourcePath in RealSourcePaths)
                 {
-                    string destinationPath = argDestinationPath?.FullName ?? Path.GetDirectoryName(sourcePath);
+                    string destinationPath = argDestinationPath?.FullName ?? RealDestinationPath?.FullName ?? Path.GetDirectoryName(sourcePath);
                     if (string.IsNullOrEmpty(destinationPath))
                     {
                         await Logger.LogErrorAsync($"Could not determine destination path for archive: {sourcePath}").ConfigureAwait(false);
@@ -759,6 +759,16 @@ namespace KOTORModSync.Core
                 if (sourcePaths.Count == 0)
                 {
                     Logger.Log("No files to delete, skipping this instruction.");
+                    // If Overwrite=true and no files were provided, this is an error condition
+                    if (Overwrite)
+                    {
+                        exitCode = ActionExitCode.FileNotFoundPost;
+                    }
+                }
+                else if (exitCode == ActionExitCode.Success && Overwrite)
+                {
+                    // If Overwrite=true and we processed files but none existed, ensure we return an error
+                    // (exitCode would have been set to FileNotFoundPost in the loop if any file was missing)
                 }
             }
             catch (Exception ex)
@@ -1272,7 +1282,25 @@ namespace KOTORModSync.Core
 
                 if (sourcePaths.IsNullOrEmptyCollection())
                 {
-                    throw new ArgumentNullException(nameof(sourcePaths));
+                    // If RealSourcePaths is empty, try to resolve Source paths to check if files exist
+                    if (Source != null && Source.Count > 0)
+                    {
+                        var resolvedPaths = Source.Select(UtilityHelper.ReplaceCustomVariables).ToList();
+                        foreach (string resolvedPath in resolvedPaths)
+                        {
+                            if (!_fileSystemProvider.FileExists(resolvedPath))
+                            {
+                                await Logger.LogErrorAsync($"Executable not found: {resolvedPath}").ConfigureAwait(false);
+                                return ActionExitCode.FileNotFoundPost;
+                            }
+                        }
+                        // If files exist but weren't in RealSourcePaths, use resolved paths
+                        sourcePaths = resolvedPaths;
+                    }
+                    else
+                    {
+                        throw new ArgumentNullException(nameof(sourcePaths));
+                    }
                 }
 
                 ActionExitCode exitCode = ActionExitCode.Success;

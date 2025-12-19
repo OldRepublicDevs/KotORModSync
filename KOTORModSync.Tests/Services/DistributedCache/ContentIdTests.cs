@@ -44,7 +44,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void ContentId_SameFile_ProducesSameHash()
+        public void ContentId_SameFile_ProducesSameHash_ContentIdGeneration()
         {
             // Create test file
             string file = _fixture.CreateTestFile("test1.bin", 1024);
@@ -57,7 +57,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void ContentId_DifferentFiles_ProduceDifferentHashes()
+        public void ContentId_DifferentFiles_ProduceDifferentHashes_ContentIdGeneration()
         {
             // Create two different files
             string file1 = _fixture.CreateTestFile("test1.bin", 1024);
@@ -66,11 +66,17 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             string id1 = _fixture.ComputeContentId(file1);
             string id2 = _fixture.ComputeContentId(file2);
 
+            Assert.NotNull(id1);
+            Assert.NotNull(id2);
             Assert.NotEqual(id1, id2);
+            Assert.Equal(40, id1.Length);
+            Assert.Equal(40, id2.Length);
+            Assert.Matches("^[0-9a-f]+$", id1);
+            Assert.Matches("^[0-9a-f]+$", id2);
         }
 
         [Fact]
-        public void ContentId_IdenticalContent_SameHash()
+        public void ContentId_IdenticalContent_SameHash_ContentIdGeneration()
         {
             // Create two files with identical content
             string content = new string('A', 1000);
@@ -83,21 +89,29 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             string id1 = _fixture.ComputeContentId(file1);
             string id2 = _fixture.ComputeContentId(file2);
 
+            Assert.NotNull(id1);
+            Assert.NotNull(id2);
             Assert.Equal(id1, id2);
+            Assert.Equal(40, id1.Length);
+            Assert.Equal(40, id2.Length);
+            Assert.Matches("^[0-9a-f]+$", id1);
+            Assert.Matches("^[0-9a-f]+$", id2);
         }
 
         [Fact]
-        public void ContentId_EmptyFile_ValidHash()
+        public void ContentId_EmptyFile_ValidHash_ContentIdGeneration()
         {
             string file = _fixture.CreateTestFile("empty.bin", 0);
             string id = _fixture.ComputeContentId(file);
 
+            Assert.NotNull(id);
             Assert.False(string.IsNullOrEmpty(id));
             Assert.Equal(40, id.Length); // SHA-1 is 40 hex chars
+            Assert.Matches("^[0-9a-f]+$", id);
         }
 
         [Fact]
-        public void ContentId_VerySmallFile_ValidHash()
+        public void ContentId_VerySmallFile_ValidHash_ContentIdGeneration()
         {
             string file = _fixture.CreateTestFile("tiny.bin", 1);
             string id = _fixture.ComputeContentId(file);
@@ -111,17 +125,19 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         [InlineData(262144)]
         [InlineData(1048576)]
         [InlineData(10485760)]
-        public void ContentId_VariousFileSizes_ValidHash(long size)
+        public void ContentId_VariousFileSizes_ValidHash_ContentIdGeneration(long size)
         {
             string file = _fixture.CreateTestFile($"size{size}.bin", size);
             string id = _fixture.ComputeContentId(file);
 
+            Assert.NotNull(id);
             Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
             Assert.True(id.All(c => "0123456789abcdef".Contains(c)));
         }
 
         [Fact]
-        public void ContentId_SingleByteChange_DifferentHash()
+        public void ContentId_SingleByteChange_DifferentHash_ContentIdGeneration()
         {
             // Create file
             byte[] data = new byte[1000];
@@ -142,11 +158,17 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
             string id2 = _fixture.ComputeContentId(file2);
 
+            Assert.NotNull(id1);
+            Assert.NotNull(id2);
             Assert.NotEqual(id1, id2);
+            Assert.Equal(40, id1.Length);
+            Assert.Equal(40, id2.Length);
+            Assert.Matches("^[0-9a-f]+$", id1);
+            Assert.Matches("^[0-9a-f]+$", id2);
         }
 
         [Fact]
-        public void ContentId_DifferentFilenames_SameContentId()
+        public void ContentId_DifferentFilenames_SameContentId_ContentIdGeneration()
         {
             // ContentId should depend on content, not filename
             string content = "Test content";
@@ -163,20 +185,26 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void ContentId_Format_Lowercase()
+        public void ContentId_Format_Lowercase_ContentIdGeneration()
         {
             string file = _fixture.CreateTestFile("test.bin", 100);
             string id = _fixture.ComputeContentId(file);
 
+            Assert.NotNull(id);
             Assert.Equal(id, id.ToLowerInvariant());
+            Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
         }
 
         [Fact]
-        public void ContentId_Format_HexadecimalOnly()
+        public void ContentId_Format_HexadecimalOnly_ContentIdGeneration()
         {
             string file = _fixture.CreateTestFile("test.bin", 100);
             string id = _fixture.ComputeContentId(file);
 
+            Assert.NotNull(id);
+            Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
             Assert.True(id.All(c => "0123456789abcdef".Contains(c)));
         }
 
@@ -186,7 +214,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         [InlineData(262144)]  // 256 KB
         [InlineData(524288)]  // 512 KB
         [InlineData(1048576)] // 1 MB
-        public void ContentId_PieceSizeBoundaries_Deterministic(long size)
+        public void ContentId_PieceSizeBoundaries_Deterministic_ContentIdGeneration(long size)
         {
             string file = _fixture.CreateTestFile($"boundary{size}.bin", size);
 
@@ -194,21 +222,29 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             string id1 = _fixture.ComputeContentId(file);
             string id2 = _fixture.ComputeContentId(file);
 
+            Assert.NotNull(id1);
+            Assert.NotNull(id2);
             Assert.Equal(id1, id2);
+            Assert.Equal(40, id1.Length);
+            Assert.Equal(40, id2.Length);
+            Assert.Matches("^[0-9a-f]+$", id1);
+            Assert.Matches("^[0-9a-f]+$", id2);
         }
 
         [Fact]
-        public void ContentId_MaximumFileSize_ValidHash()
+        public void ContentId_MaximumFileSize_ValidHash_ContentIdGeneration()
         {
             // Test with 100MB file
             string file = _fixture.CreateTestFile("large.bin", 100 * 1024 * 1024);
             string id = _fixture.ComputeContentId(file);
 
+            Assert.NotNull(id);
             Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
         }
 
         [Fact]
-        public void ContentId_MultipleComputations_Consistent()
+        public void ContentId_MultipleComputations_Consistent_ContentIdGeneration()
         {
             string file = _fixture.CreateTestFile("consistent.bin", 10000);
 
@@ -217,11 +253,20 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 .Select(_ => _fixture.ComputeContentId(file))
                 .ToList();
 
-            Assert.True(ids.All(id => string.Equals(id, ids[0], StringComparison.Ordinal)));
+            Assert.NotNull(ids);
+            Assert.Equal(10, ids.Count);
+            Assert.All(ids, id => 
+            {
+                Assert.NotNull(id);
+                Assert.Equal(40, id.Length);
+                Assert.Matches("^[0-9a-f]+$", id);
+            });
+            Assert.True(ids.All(id => string.Equals(id, ids[0], StringComparison.Ordinal)), 
+                "All 10 computations should produce identical ContentId");
         }
 
         [Fact]
-        public void ContentId_BinaryData_ValidHash()
+        public void ContentId_BinaryData_ValidHash_ContentIdGeneration()
         {
             // Create file with all possible byte values
             byte[] data = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
@@ -231,42 +276,50 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 data);
 
             string id = _fixture.ComputeContentId(file);
+            Assert.NotNull(id);
             Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
         }
 
         [Fact]
-        public void ContentId_TextData_ValidHash()
+        public void ContentId_TextData_ValidHash_ContentIdGeneration()
         {
             string text = "The quick brown fox jumps over the lazy dog";
             string file = _fixture.CreateTestFile("text.txt", 0, text);
 
             string id = _fixture.ComputeContentId(file);
+            Assert.NotNull(id);
             Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
         }
 
         [Fact]
-        public void ContentId_UnicodeContent_ValidHash()
+        public void ContentId_UnicodeContent_ValidHash_ContentIdGeneration()
         {
             string unicode = "Hello 世界 🌍 Ñoño";
             string file = _fixture.CreateTestFile("unicode.txt", 0, unicode);
 
             string id = _fixture.ComputeContentId(file);
+            Assert.NotNull(id);
             Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
         }
 
         [Fact]
-        public void ContentId_RepeatingPattern_ValidHash()
+        public void ContentId_RepeatingPattern_ValidHash_ContentIdGeneration()
         {
             // File with repeating pattern (tests compression resistance)
             string pattern = new string('A', 1000);
             string file = _fixture.CreateTestFile("pattern.txt", 0, pattern);
 
             string id = _fixture.ComputeContentId(file);
+            Assert.NotNull(id);
             Assert.Equal(40, id.Length);
+            Assert.Matches("^[0-9a-f]+$", id);
         }
 
         [Fact]
-        public void ContentId_RandomData_ValidHash()
+        public void ContentId_RandomData_ValidHash_ContentIdGeneration()
         {
             // File with truly random data
             var random = new Random();
@@ -282,7 +335,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void ContentId_FileWithNullBytes_ValidHash()
+        public void ContentId_FileWithNullBytes_ValidHash_ContentIdGeneration()
         {
             byte[] data = new byte[1000]; // All zeros
             string file = DistributionTestSupport.EnsureBinaryTestFile(
@@ -295,7 +348,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void ContentId_FileWith0xFF_ValidHash()
+        public void ContentId_FileWith0xFF_ValidHash_ContentIdGeneration()
         {
             byte[] data = Enumerable.Repeat((byte)0xFF, 1000).ToArray();
             string file = DistributionTestSupport.EnsureBinaryTestFile(

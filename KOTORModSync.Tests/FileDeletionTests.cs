@@ -192,9 +192,13 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-                Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
-                Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Delete duplicate operation with no duplicates should not produce errors");
+                Assert.That(_sourceDir, Is.Not.Null, "Source directory should not be null");
+                Assert.That(Directory.Exists(_sourceDir), Is.True, "Source directory should exist");
+                Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True, "File1 should remain when no duplicates exist");
+                Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True, "File2 should remain when no duplicates exist");
             });
         }
 
@@ -223,10 +227,12 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-                Assert.That(File.Exists(Path.Combine(realSource, "file.txt")), Is.False);
-                Assert.That(File.Exists(Path.Combine(realSource, "file.png")), Is.True);
-                Assert.That(File.Exists(Path.Combine(realSource, "file.jpg")), Is.True);
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Delete duplicate operation should not produce errors");
+                Assert.That(File.Exists(Path.Combine(realSource, "file.txt")), Is.False, "File with target extension should be deleted");
+                Assert.That(File.Exists(Path.Combine(realSource, "file.png")), Is.True, "File with different extension should remain");
+                Assert.That(File.Exists(Path.Combine(realSource, "file.jpg")), Is.True, "File with different extension should remain");
             });
         }
 
@@ -253,9 +259,11 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-                Assert.That(File.Exists(Path.Combine(realSource, "FILE.tga")), Is.False);
-                Assert.That(File.Exists(Path.Combine(realSource, "fIle.tpc")), Is.True);
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Delete duplicate operation should not produce errors");
+                Assert.That(File.Exists(Path.Combine(realSource, "FILE.tga")), Is.False, "File with target extension should be deleted (case-insensitive)");
+                Assert.That(File.Exists(Path.Combine(realSource, "fIle.tpc")), Is.True, "File with different extension should remain");
             });
         }
 
@@ -282,9 +290,13 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-                Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
-                Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Delete duplicate operation with invalid extension should not produce errors");
+                Assert.That(_sourceDir, Is.Not.Null, "Source directory should not be null");
+                Assert.That(Directory.Exists(_sourceDir), Is.True, "Source directory should exist");
+                Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True, "File1 should remain when target extension doesn't match");
+                Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True, "File2 should remain when target extension doesn't match");
             });
         }
 
@@ -306,8 +318,11 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-                Assert.That(Directory.GetFiles(_sourceDir), Is.Empty);
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Delete duplicate operation on empty directory should not produce errors");
+                Assert.That(Directory.Exists(_sourceDir), Is.True, "Source directory should still exist");
+                Assert.That(Directory.GetFiles(_sourceDir), Is.Empty, "Empty directory should remain empty");
             });
         }
 
@@ -336,9 +351,12 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-                Assert.That(File.Exists(file1), Is.True);
-                Assert.That(File.Exists(file2), Is.True);
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Delete duplicate operation should not produce errors");
+                Assert.That(File.Exists(file1), Is.True, "File in root directory should remain (duplicates only checked in same directory)");
+                Assert.That(File.Exists(file2), Is.True, "File in subdirectory should remain (duplicates only checked in same directory)");
+                Assert.That(Directory.Exists(subdirectory), Is.True, "Subdirectory should still exist");
             });
         }
 
@@ -374,9 +392,9 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(!File.Exists(file1));
-                Assert.That(!File.Exists(file2));
-                Assert.That(File.Exists(file3));
+                Assert.That(File.Exists(file1), Is.False, "First file with target extension should be deleted");
+                Assert.That(File.Exists(file2), Is.False, "Second file with target extension (different case) should be deleted");
+                Assert.That(File.Exists(file3), Is.True, "File with different extension should remain");
             });
         }
     }

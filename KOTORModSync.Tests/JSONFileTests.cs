@@ -41,7 +41,7 @@ namespace KOTORModSync.Tests
         private readonly string _exampleJson = @"{
   ""components"": [
 {
-  ""name"": ""Ultimate Dantooine"",
+  ""name"": ""Example Dantooine Enhancement"",
   ""guid"": ""{B3525945-BDBD-45D8-A324-AAF328A5E13E}"",
   ""dependencies"": [
 ""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"",
@@ -51,7 +51,7 @@ namespace KOTORModSync.Tests
   ""instructions"": [
 {
   ""action"": ""extract"",
-  ""source"": ""Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar"",
+  ""source"": ""Example Dantooine Enhancement High Resolution - TPC Version-1103-2-1-1670680013.rar"",
   ""destination"": ""%temp%\\mod_files\\Dantooine HR"",
   ""overwrite"": true
 },
@@ -71,7 +71,7 @@ namespace KOTORModSync.Tests
   ]
 },
 {
-  ""name"": ""TSLRCM Tweak Pack"",
+  ""name"": ""Example Tweak Pack"",
   ""guid"": ""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"",
   ""installOrder"": 1,
   ""dependencies"": [],
@@ -79,7 +79,7 @@ namespace KOTORModSync.Tests
 {
   ""action"": ""extract"",
   ""source"": ""URCMTP 1.3.rar"",
-  ""destination"": ""%temp%\\mod_files\\TSLRCM Tweak Pack"",
+  ""destination"": ""%temp%\\mod_files\\Example Tweak Pack"",
   ""overwrite"": true
 },
 {
@@ -103,13 +103,24 @@ namespace KOTORModSync.Tests
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(modifiedFilePath), Is.True, "Modified file should exist");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(loadedComponent, originalComponent);
             }
 
@@ -140,7 +151,12 @@ namespace KOTORModSync.Tests
             string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString(new List<ModComponent> { newComponent });
             ModComponent duplicateComponent = ModComponentSerializationService.DeserializeModComponentFromJsonString(jsonString)[0];
 
-            Assert.That(duplicateComponent, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(newComponent, Is.Not.Null, "New component should not be null");
+                Assert.That(duplicateComponent, Is.Not.Null, "Duplicate component should not be null");
+                Assert.That(jsonString, Is.Not.Null.And.Not.Empty, "JSON string should not be null or empty");
+            });
             AssertComponentEquality(newComponent, duplicateComponent);
         }
 
@@ -159,13 +175,24 @@ namespace KOTORModSync.Tests
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(modifiedFilePath), Is.True, "Modified file should exist");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original after whitespace modification");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(originalComponent, loadedComponent);
             }
 
@@ -186,10 +213,21 @@ namespace KOTORModSync.Tests
             {
                 List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList()
                     ?? throw new InvalidDataException();
-                Assert.That(loadedComponents, Is.Null.Or.Empty);
+                
+                Assert.Multiple(() =>
+                {
+                    Assert.That(_filePath, Is.Not.Null, "File path should not be null");
+                    Assert.That(File.Exists(_filePath), Is.True, "File should exist after saving");
+                    Assert.That(loadedComponents, Is.Null.Or.Empty, "Empty components list should load as null or empty");
+                });
             }
             catch (InvalidDataException ex)
             {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(ex, Is.Not.Null, "Exception should not be null");
+                    Assert.That(_filePath, Is.Not.Null, "File path should not be null");
+                });
                 Logger.LogException(ex);
             }
         }
@@ -363,6 +401,10 @@ namespace KOTORModSync.Tests
             string extractJson = ModComponentSerializationService.SerializeModComponentAsJsonString(new List<ModComponent> { extractComponent });
             Assert.Multiple(() =>
             {
+                Assert.That(extractComponent, Is.Not.Null, "Extract component should not be null");
+                Assert.That(extractJson, Is.Not.Null.And.Not.Empty, "Extract JSON string should not be null or empty");
+                Assert.That(extractComponent.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(extractComponent.Instructions, Has.Count.EqualTo(1), "Should have exactly one instruction");
                 Assert.That(extractJson, Does.Not.Contain("overwrite"), "Extract should not serialize Overwrite");
                 Assert.That(extractJson, Does.Not.Contain("destination"), "Extract should not serialize Destination");
                 Assert.That(extractJson, Does.Not.Contain("arguments"), "Extract should not serialize Arguments");
@@ -466,6 +508,8 @@ namespace KOTORModSync.Tests
             // Verify JSON contains expected structures
             Assert.Multiple(() =>
             {
+                Assert.That(testComponent, Is.Not.Null, "Test component should not be null");
+                Assert.That(jsonString, Is.Not.Null.And.Not.Empty, "JSON string should not be null or empty");
                 Assert.That(jsonString, Does.Contain("options"), "JSON should contain options");
                 Assert.That(jsonString, Does.Contain("Optional Feature 1"), "JSON should contain option names");
                 Assert.That(jsonString, Does.Contain("modLinkFilenames"), "JSON should contain modLinkFilenames");
@@ -476,35 +520,57 @@ namespace KOTORModSync.Tests
             // Load from JSON
             List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromJsonString(jsonString).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(loadedComponents, Has.Count.EqualTo(1), "Should load exactly one component");
+            });
+            
             ModComponent loadedComponent = loadedComponents[0];
 
             Assert.Multiple(() =>
             {
+                Assert.That(loadedComponent, Is.Not.Null, "Loaded component should not be null");
                 // Verify component properties
-                Assert.That(loadedComponent.Name, Is.EqualTo(testComponent.Name));
+                Assert.That(loadedComponent.Name, Is.EqualTo(testComponent.Name), "Component name should match");
+                Assert.That(loadedComponent.Options, Is.Not.Null, "Options list should not be null");
                 Assert.That(loadedComponent.Options.Count, Is.EqualTo(2), "Should have 2 options");
             });
+            
             Assert.Multiple(() =>
             {
-                Assert.That(loadedComponent.Options[0].Name, Is.EqualTo("Optional Feature 1"));
-                Assert.That(loadedComponent.Options[1].Name, Is.EqualTo("Optional Feature 2"));
+                Assert.That(loadedComponent.Options[0], Is.Not.Null, "First option should not be null");
+                Assert.That(loadedComponent.Options[1], Is.Not.Null, "Second option should not be null");
+                Assert.That(loadedComponent.Options[0].Name, Is.EqualTo("Optional Feature 1"), "First option should have correct name");
+                Assert.That(loadedComponent.Options[1].Name, Is.EqualTo("Optional Feature 2"), "Second option should have correct name");
+                Assert.That(loadedComponent.Options[0].Instructions, Is.Not.Null, "First option instructions should not be null");
+                Assert.That(loadedComponent.Options[1].Instructions, Is.Not.Null, "Second option instructions should not be null");
                 Assert.That(loadedComponent.Options[0].Instructions.Count, Is.EqualTo(1), "Option 1 should have 1 instruction");
                 Assert.That(loadedComponent.Options[1].Instructions.Count, Is.EqualTo(1), "Option 2 should have 1 instruction");
-
-                // Verify ModLinkFilenames
-                Assert.That(loadedComponent.ResourceRegistry.Count, Is.EqualTo(2), "Should have 2 URLs");
             });
-            Assert.That(loadedComponent.ResourceRegistry.ContainsKey("https://example.com/mod.zip"), Is.True);
-            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files.Count, Is.EqualTo(3), "First URL should have 3 filenames");
-            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v1.0.zip"], Is.EqualTo(expected: true));
-            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v2.0.zip"], Is.EqualTo(expected: false));
-            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_beta.zip"], Is.EqualTo(expected: null));
-
-            // Verify ExcludedDownloads
-            Assert.That(loadedComponent.ExcludedDownloads.Count, Is.EqualTo(2), "Should have 2 excluded downloads");
-            Assert.That(loadedComponent.ExcludedDownloads, Does.Contain("debug.zip"));
-            Assert.That(loadedComponent.ExcludedDownloads, Does.Contain("old_version.rar"));
+            
+            Assert.Multiple(() =>
+            {
+                // Verify ModLinkFilenames
+                Assert.That(loadedComponent.ResourceRegistry, Is.Not.Null, "Resource registry should not be null");
+                Assert.That(loadedComponent.ResourceRegistry.Count, Is.EqualTo(2), "Should have 2 URLs");
+                Assert.That(loadedComponent.ResourceRegistry.ContainsKey("https://example.com/mod.zip"), Is.True, "Should contain first URL");
+                Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"], Is.Not.Null, "First URL entry should not be null");
+                Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files, Is.Not.Null, "Files dictionary should not be null");
+                Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files.Count, Is.EqualTo(3), "First URL should have 3 filenames");
+                Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v1.0.zip"], Is.EqualTo(true), "First filename should be true");
+                Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v2.0.zip"], Is.EqualTo(false), "Second filename should be false");
+                Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_beta.zip"], Is.EqualTo(null), "Third filename should be null");
+            });
+            
+            Assert.Multiple(() =>
+            {
+                // Verify ExcludedDownloads
+                Assert.That(loadedComponent.ExcludedDownloads, Is.Not.Null, "Excluded downloads list should not be null");
+                Assert.That(loadedComponent.ExcludedDownloads.Count, Is.EqualTo(2), "Should have 2 excluded downloads");
+                Assert.That(loadedComponent.ExcludedDownloads, Does.Contain("debug.zip"), "Should contain first excluded download");
+                Assert.That(loadedComponent.ExcludedDownloads, Does.Contain("old_version.rar"), "Should contain second excluded download");
+            });
         }
 
         private static void AssertComponentEquality([CanBeNull] ModComponent comp1, [CanBeNull] ModComponent comp2)

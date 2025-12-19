@@ -200,17 +200,21 @@ namespace KOTORModSync.Core.Services
 
                 await Logger.LogVerboseAsync($"[ComponentValidationService] Found {availableFilenames.Count} available filename(s) from ResourceRegistry, disk, and archives").ConfigureAwait(false);
 
-                // Collect all Extract instruction source patterns
-                var extractPatterns = new List<string>();
+                // Collect all Extract, Move, and Copy instruction source patterns
+                // These instructions reference files that may need to be downloaded
+                var filePatterns = new List<string>();
                 foreach (Instruction instruction in component.Instructions)
                 {
-                    if (instruction.Action == Instruction.ActionType.Extract && instruction.Source != null)
+                    if ((instruction.Action == Instruction.ActionType.Extract ||
+                         instruction.Action == Instruction.ActionType.Move ||
+                         instruction.Action == Instruction.ActionType.Copy) &&
+                        instruction.Source != null)
                     {
                         foreach (string sourcePath in instruction.Source)
                         {
                             if (!string.IsNullOrWhiteSpace(sourcePath))
                             {
-                                extractPatterns.Add(sourcePath);
+                                filePatterns.Add(sourcePath);
                             }
                         }
                     }
@@ -219,13 +223,16 @@ namespace KOTORModSync.Core.Services
                 {
                     foreach (Instruction instruction in option.Instructions)
                     {
-                        if (instruction.Action == Instruction.ActionType.Extract && instruction.Source != null)
+                        if ((instruction.Action == Instruction.ActionType.Extract ||
+                             instruction.Action == Instruction.ActionType.Move ||
+                             instruction.Action == Instruction.ActionType.Copy) &&
+                            instruction.Source != null)
                         {
                             foreach (string sourcePath in instruction.Source)
                             {
                                 if (!string.IsNullOrWhiteSpace(sourcePath))
                                 {
-                                    extractPatterns.Add(sourcePath);
+                                    filePatterns.Add(sourcePath);
                                 }
                             }
                         }
@@ -239,7 +246,7 @@ namespace KOTORModSync.Core.Services
                     .ToList();
 
                 var unmatchedPatterns = new List<string>();
-                foreach (string pattern in extractPatterns)
+                foreach (string pattern in filePatterns)
                 {
                     bool matched = false;
 
@@ -331,14 +338,14 @@ namespace KOTORModSync.Core.Services
                         else
                         {
                             unmatchedPatterns.Add(pattern);
-                            await Logger.LogVerboseAsync($"[ComponentValidationService] Unmatched Extract pattern: {pattern}").ConfigureAwait(false);
+                            await Logger.LogVerboseAsync($"[ComponentValidationService] Unmatched file pattern: {pattern}").ConfigureAwait(false);
                         }
                     }
                 }
 
                 if (unmatchedPatterns.Count > 0)
                 {
-                    await Logger.LogWarningAsync($"[ComponentValidationService] Found {unmatchedPatterns.Count} unmatched Extract pattern(s)").ConfigureAwait(false);
+                    await Logger.LogWarningAsync($"[ComponentValidationService] Found {unmatchedPatterns.Count} unmatched file pattern(s)").ConfigureAwait(false);
                     var targetedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                     foreach (string unmatched in unmatchedPatterns)

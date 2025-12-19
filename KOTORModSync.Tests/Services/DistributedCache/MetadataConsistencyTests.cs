@@ -36,11 +36,16 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
             DistributionPayload payload = _fixture.GetDescriptorPayload(descriptorPath);
             Assert.NotNull(payload);
-            Assert.True(payload.DescriptorBytes.Length > 0);
+            Assert.True(payload.DescriptorBytes.Length > 0, "Descriptor bytes should not be empty");
+            Assert.NotNull(payload.DescriptorBytes);
 
             byte[] persistedBytes = await NetFrameworkCompatibility.ReadAllBytesAsync(descriptorPath);
-            Assert.True(persistedBytes.Length > 0);
+            Assert.NotNull(persistedBytes);
+            Assert.True(persistedBytes.Length > 0, "Persisted bytes should not be empty");
+            Assert.Equal(payload.DescriptorBytes.Length, persistedBytes.Length);
             Assert.True(payload.DescriptorBytes.AsSpan().SequenceEqual(persistedBytes), "Descriptor bytes on disk differ from payload snapshot.");
+            Assert.True(File.Exists(descriptorPath), "Descriptor file should exist");
+            Assert.True(File.Exists(testFile), "Test file should exist");
         }
 
         [Fact]
@@ -57,19 +62,27 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 pieceLength);
             DistributionPayload payload = _fixture.GetDescriptorPayload(descriptorPath);
 
+            Assert.NotNull(payload);
+            Assert.NotNull(payload.PieceHashes);
             Assert.Equal(expectedPieces, payload.PieceHashes.Count);
-            Assert.All(payload.PieceHashes, hash => Assert.Equal(20, hash.Length));
+            Assert.All(payload.PieceHashes, hash => 
+            {
+                Assert.NotNull(hash);
+                Assert.Equal(20, hash.Length);
+            });
             Assert.Equal(pieceLength, payload.PieceLength);
+            Assert.True(File.Exists(testFile), "Test file should exist");
+            Assert.True(File.Exists(descriptorPath), "Descriptor file should exist");
         }
 
         [Fact]
         public async Task Metadata_PayloadMatchesIntegrityData()
         {
             string testFile = _fixture.CreateTestFile("integrity_test.bin", 2 * 1024 * 1024);
-            
+
             // Compute the piece length that ComputeFileIntegrityData would use
             int expectedPieceLength = DownloadCacheOptimizer.DeterminePieceSize(new FileInfo(testFile).Length);
-            
+
             string descriptorPath = await _fixture.CreateDescriptorFileAsync(
                 testFile,
                 "integrity_test",
@@ -77,25 +90,33 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
             DistributionPayload payload = _fixture.GetDescriptorPayload(descriptorPath);
             Assert.NotNull(payload);
+            Assert.NotNull(payload.PieceHashes);
 
             var (contentHashSHA256, pieceLength, pieceHashesHex) = await DownloadCacheOptimizer
-                .ComputeFileIntegrityData(testFile)
-;
+                .ComputeFileIntegrityData(testFile);
 
+            Assert.NotNull(contentHashSHA256);
+            Assert.NotNull(pieceHashesHex);
             Assert.Equal(payload.PieceLength, pieceLength);
+            Assert.True(pieceLength > 0);
 
             string payloadPieceHashesHex = string.Concat(
                 payload.PieceHashes.Select(h => BitConverter.ToString(h).Replace("-", "").ToLowerInvariant()));
 
+            Assert.NotNull(payloadPieceHashesHex);
             Assert.Equal(payloadPieceHashesHex, pieceHashesHex, StringComparer.Ordinal);
 
             // Ensure content hash is stable and non-empty
             Assert.False(string.IsNullOrWhiteSpace(contentHashSHA256));
+            Assert.Equal(64, contentHashSHA256.Length);
+            Assert.Matches("^[0-9a-f]+$", contentHashSHA256);
             Assert.Equal(contentHashSHA256, contentHashSHA256.ToLowerInvariant());
+            Assert.True(File.Exists(testFile), "Test file should exist");
+            Assert.True(File.Exists(descriptorPath), "Descriptor file should exist");
         }
 
         [Fact]
-        public void Metadata_ContentId_Deterministic_AcrossRuns()
+        public void Metadata_ContentId_Deterministic_AcrossRuns_ContentIdGeneration()
         {
             string testFile = _fixture.CreateTestFile("deterministic.bin", 256 * 1024);
 
@@ -103,11 +124,20 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 .Select(_ => _fixture.ComputeContentId(testFile))
                 .ToList();
 
+            Assert.NotNull(ids);
+            Assert.Equal(5, ids.Count);
+            Assert.All(ids, id => 
+            {
+                Assert.NotNull(id);
+                Assert.Equal(40, id.Length);
+                Assert.Matches("^[0-9a-f]+$", id);
+            });
             Assert.True(ids.All(id => string.Equals(id, ids[0], StringComparison.Ordinal)));
+            Assert.True(File.Exists(testFile));
         }
 
         [Fact]
-        public void Metadata_SameContent_DifferentNames_SameStructure()
+        public void Metadata_SameContent_DifferentNames_SameStructure_ContentIdGeneration()
         {
             string content = new string('X', 10000);
             string file1 = _fixture.CreateTestFile("name_a.txt", 0, content);
@@ -118,8 +148,14 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
             // ContentId includes filename in info dict, so they'll be different
             // But both should be valid
+            Assert.NotNull(id1);
+            Assert.NotNull(id2);
             Assert.Equal(40, id1.Length);
             Assert.Equal(40, id2.Length);
+            Assert.Matches("^[0-9a-f]+$", id1);
+            Assert.Matches("^[0-9a-f]+$", id2);
+            Assert.True(File.Exists(file1));
+            Assert.True(File.Exists(file2));
         }
 
         [Fact]
@@ -131,12 +167,15 @@ namespace KOTORModSync.Tests.Services.DistributedCache
                 "timestamp_test");
 
             // Descriptor should have been created recently
+            Assert.True(File.Exists(descriptorFile));
+            Assert.True(File.Exists(testFile));
             DateTime creationTime = File.GetCreationTimeUtc(descriptorFile);
             Assert.True((DateTime.UtcNow - creationTime).TotalMinutes < 5);
+            Assert.True(creationTime <= DateTime.UtcNow);
         }
 
         [Fact]
-        public void Metadata_MultipleFiles_UniqueContentIds()
+        public void Metadata_MultipleFiles_UniqueContentIds_ContentIdGeneration()
         {
             var files = Enumerable.Range(0, 10)
                 .Select(i => _fixture.CreateTestFile($"unique_{i}.bin", 1024 * (i + 1)))
@@ -144,12 +183,22 @@ namespace KOTORModSync.Tests.Services.DistributedCache
 
             var contentIds = files.Select(f => _fixture.ComputeContentId(f)).ToList();
 
+            Assert.NotNull(contentIds);
+            Assert.Equal(10, contentIds.Count);
+            Assert.All(contentIds, id => 
+            {
+                Assert.NotNull(id);
+                Assert.Equal(40, id.Length);
+                Assert.Matches("^[0-9a-f]+$", id);
+            });
             // All ContentIds should be unique
-            Assert.Equal(contentIds.Count, contentIds.Distinct(StringComparer.Ordinal).Count());
+            var uniqueIds = contentIds.Distinct(StringComparer.Ordinal).ToList();
+            Assert.Equal(contentIds.Count, uniqueIds.Count);
+            Assert.All(files, f => Assert.True(File.Exists(f)));
         }
 
         [Fact]
-        public void Metadata_EmptyFile_ValidMetadata()
+        public void Metadata_EmptyFile_ValidMetadata_ContentIdGeneration()
         {
             string file = _fixture.CreateTestFile("empty_meta.bin", 0);
             string contentId = _fixture.ComputeContentId(file);
@@ -159,7 +208,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void Metadata_LargeFile_ValidMetadata()
+        public void Metadata_LargeFile_ValidMetadata_ContentIdGeneration()
         {
             string file = _fixture.CreateTestFile("large_meta.bin", 50 * 1024 * 1024);
             string contentId = _fixture.ComputeContentId(file);
@@ -168,7 +217,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void Metadata_PieceSize_FollowsSpec()
+        public void Metadata_PieceSize_FollowsSpec_ContentIdGeneration()
         {
             // Verify piece size determination follows specification
             long[] testSizes = { 100 * 1024, 1024 * 1024, 10 * 1024 * 1024, 100 * 1024 * 1024 };
@@ -184,7 +233,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void Metadata_ContentId_NoCollisions_SmallDataset()
+        public void Metadata_ContentId_NoCollisions_SmallDataset_ContentIdGeneration()
         {
             HashSet<string> contentIds = new HashSet<string>(StringComparer.Ordinal);
 
@@ -204,7 +253,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         [InlineData(10000)]
         [InlineData(100000)]
         [InlineData(1000000)]
-        public void Metadata_VariousSizes_AllValid(int sizeKB)
+        public void Metadata_VariousSizes_AllValid_ContentIdGeneration(int sizeKB)
         {
             string file = _fixture.CreateTestFile($"size_{sizeKB}kb.bin", sizeKB * 1024L);
             string contentId = _fixture.ComputeContentId(file);
@@ -214,7 +263,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void Metadata_BinaryPatterns_AllValid()
+        public void Metadata_BinaryPatterns_AllValid_ContentIdGeneration()
         {
             // Test various binary patterns
             byte[][] patterns = new[]
@@ -240,7 +289,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void Metadata_Sequential_Consistency()
+        public void Metadata_Sequential_Consistency_ContentIdGeneration()
         {
             // Create file with sequential byte values
             byte[] data = Enumerable.Range(0, 10000).Select(i => (byte)(i % 256)).ToArray();
@@ -256,7 +305,7 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         [Fact]
-        public void Metadata_Fragmented_Consistency()
+        public void Metadata_Fragmented_Consistency_ContentIdGeneration()
         {
             // Create file in multiple writes
             string relativePath = "fragmented.bin";

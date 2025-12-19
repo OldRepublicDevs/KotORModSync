@@ -3261,7 +3261,7 @@ namespace KOTORModSync.Core.Services
                 foreach (string key in entries.Select(entry => entry.Key))
                 {
                     // This requires access to GetCachePath from DownloadCacheOptimizer
-                    // For now, construct path manually
+                    // TODO - STUB: For now, construct path manually
                     string datPath = Path.Combine(cacheDir, $"{key}.dat");
 
                     if (File.Exists(datPath))

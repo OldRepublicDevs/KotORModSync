@@ -24,11 +24,14 @@ Category = ""Bugfix & Graphics Improvement""
 
             var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-            Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component?.Category, Has.Count.EqualTo(1));
-                Assert.That(component.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"));
+                Assert.That(tomlContent, Is.Not.Null.And.Not.Empty, "TOML content should not be null or empty");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Category, Is.Not.Null, "Category list should not be null");
+                Assert.That(component.Category, Has.Count.EqualTo(1), "Category should contain exactly 1 item");
+                Assert.That(component.Category[0], Is.Not.Null.And.Not.Empty, "Category item should not be null or empty");
+                Assert.That(component.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"), "Category should preserve ampersand");
             });
         }
 
@@ -154,8 +157,13 @@ Category = """"
 
             var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-            Assert.That(component, Is.Not.Null);
-            Assert.That(component?.Category, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(tomlContent, Is.Not.Null.And.Not.Empty, "TOML content should not be null or empty");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Category, Is.Not.Null, "Category list should not be null");
+                Assert.That(component.Category, Is.Empty, "Category should be empty for empty string");
+            });
         }
 
         [Test]
@@ -171,8 +179,13 @@ Category = ""   ""
 
             var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-            Assert.That(component, Is.Not.Null);
-            Assert.That(component?.Category, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(tomlContent, Is.Not.Null.And.Not.Empty, "TOML content should not be null or empty");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Category, Is.Not.Null, "Category list should not be null");
+                Assert.That(component.Category, Is.Empty, "Category should be empty for empty string");
+            });
         }
 
         [Test]
@@ -268,8 +281,14 @@ Category = ""{input}""
 
                 var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-                Assert.That(component, Is.Not.Null, $"Failed for input: '{input}'");
-                Assert.That(component?.Category, Is.EqualTo(expected), $"Failed for input: '{input}'");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(tomlContent, Is.Not.Null.And.Not.Empty, $"TOML content should not be null or empty for input: '{input}'");
+                    Assert.That(component, Is.Not.Null, $"Component should not be null for input: '{input}'");
+                    Assert.That(component.Category, Is.Not.Null, $"Category list should not be null for input: '{input}'");
+                    Assert.That(component.Category, Has.Count.EqualTo(expected.Length), $"Category count should match expected for input: '{input}'");
+                    Assert.That(component.Category, Is.EqualTo(expected), $"Category should match expected for input: '{input}'");
+                });
             }
         }
 
@@ -286,12 +305,16 @@ Category = [""Bugfix & Graphics Improvement"", ""Immersion""]
 
             var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-            Assert.That(component, Is.Not.Null);
-            Assert.That(component?.Category, Has.Count.EqualTo(2), "Category should have 2 items");
             Assert.Multiple(() =>
             {
-                Assert.That(component?.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"));
-                Assert.That(component?.Category[1], Is.EqualTo("Immersion"));
+                Assert.That(tomlContent, Is.Not.Null.And.Not.Empty, "TOML content should not be null or empty");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(component.Category, Is.Not.Null, "Category list should not be null");
+                Assert.That(component.Category, Has.Count.EqualTo(2), "Category should have exactly 2 items");
+                Assert.That(component.Category[0], Is.Not.Null.And.Not.Empty, "First category item should not be null or empty");
+                Assert.That(component.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"), "First category should match");
+                Assert.That(component.Category[1], Is.Not.Null.And.Not.Empty, "Second category item should not be null or empty");
+                Assert.That(component.Category[1], Is.EqualTo("Immersion"), "Second category should match");
             });
         }
 

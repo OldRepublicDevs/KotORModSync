@@ -3400,7 +3400,7 @@ componentName: null,
                 await Console.Out.WriteLineAsync().ConfigureAwait(false);
 
                 // Note: Actual test execution would require xUnit test runner integration
-                // For now, this provides a CLI entry point for test execution
+                // TODO - STUB: For now, this provides a CLI entry point for test execution
 
                 await Console.Out.WriteLineAsync("To run tests, use:").ConfigureAwait(false);
                 await Console.Out.WriteLineAsync("  dotnet test KOTORModSync.Tests --filter Category=DistributedCache").ConfigureAwait(false);

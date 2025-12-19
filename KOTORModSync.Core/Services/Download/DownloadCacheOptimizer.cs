@@ -549,7 +549,7 @@ namespace KOTORModSync.Core.Services.Download
                             if (progress >= 1.0)
                             {
                                 // Optionally check upload/download ratio if available
-                                // For now, keep active entries indefinitely to maximize availability.
+                                // TODO - STUB: For now, keep active entries indefinitely to maximize availability.
                                 // Adjust this condition if an idle timeout should remove the entry.
                             }
                         }
@@ -1068,6 +1068,12 @@ namespace KOTORModSync.Core.Services.Download
         {
             try
             {
+                if (meta == null)
+                {
+                    await Logger.LogErrorAsync($"[Cache] Integrity verification failed: Metadata is null").ConfigureAwait(false);
+                    return false;
+                }
+
                 // 1. CANONICAL CHECK: SHA-256 of file bytes
                 byte[] sha256Hash;
                 using (FileStream fs = File.OpenRead(filePath))
@@ -1078,7 +1084,7 @@ namespace KOTORModSync.Core.Services.Download
 						sha256Hash = sha.ComputeHash(fs);
 					}
 #else
-                    sha256Hash = await NetFrameworkCompatibility.HashDataSHA256Async(fs, s_sharingCts.Token).ConfigureAwait(false);
+                    sha256Hash = await NetFrameworkCompatibility.HashDataSHA256Async(fs, s_sharingCts?.Token ?? CancellationToken.None).ConfigureAwait(false);
 #endif
                 }
                 string computedSHA256 = NetFrameworkCompatibility.Replace(BitConverter.ToString(sha256Hash), "-", "", StringComparison.Ordinal).ToLowerInvariant();
@@ -1093,7 +1099,7 @@ namespace KOTORModSync.Core.Services.Download
                 }
 
                 // 2. Piece-level verification (if piece data available)
-                if (meta.PieceHashes != null && meta.PieceLength > 0)
+                if (meta.PieceHashes != null && !string.IsNullOrEmpty(meta.PieceHashes) && meta.PieceLength > 0)
                 {
                     bool piecesValid = await VerifyPieceHashesFromStored(filePath, meta.PieceLength, meta.PieceHashes).ConfigureAwait(false);
                     if (!piecesValid)
@@ -1131,6 +1137,12 @@ namespace KOTORModSync.Core.Services.Download
         {
             try
             {
+                if (string.IsNullOrEmpty(pieceHashesHex))
+                {
+                    await Logger.LogErrorAsync($"[Cache] Piece hashes string is null or empty").ConfigureAwait(false);
+                    return false;
+                }
+
                 // Parse stored piece hashes (hex-encoded concatenated SHA-1 hashes, 40 hex chars per piece)
                 var expectedHashes = new List<byte[]>();
                 for (int i = 0; i < pieceHashesHex.Length; i += 40)

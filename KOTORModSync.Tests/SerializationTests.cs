@@ -21,7 +21,13 @@ namespace KOTORModSync.Tests
             const string str = "Hello, world!";
             object serialized = Serializer.SerializeObject(str);
 
-            Assert.That(serialized, Is.EqualTo(str));
+            Assert.Multiple(() =>
+            {
+                Assert.That(str, Is.Not.Null.And.Not.Empty, "Input string should not be null or empty");
+                Assert.That(serialized, Is.Not.Null, "Serialized object should not be null");
+                Assert.That(serialized, Is.InstanceOf<string>(), "Serialized object should be a string");
+                Assert.That(serialized, Is.EqualTo(str), "Serialized string should equal original string");
+            });
         }
 
         [Test]
@@ -30,7 +36,13 @@ namespace KOTORModSync.Tests
             int thisInt = new Random().Next(minValue: 1, maxValue: 65535);
             object serialized = Serializer.SerializeObject(thisInt);
 
-            Assert.That(serialized, Is.EqualTo(thisInt.ToString()));
+            Assert.Multiple(() =>
+            {
+                Assert.That(thisInt, Is.GreaterThan(0), "Input integer should be greater than 0");
+                Assert.That(serialized, Is.Not.Null, "Serialized object should not be null");
+                Assert.That(serialized, Is.InstanceOf<string>(), "Serialized integer should be a string");
+                Assert.That(serialized, Is.EqualTo(thisInt.ToString()), "Serialized integer should equal string representation");
+            });
         }
 
         [Test]
@@ -39,17 +51,13 @@ namespace KOTORModSync.Tests
             var guid = Guid.NewGuid();
             object serialized = Serializer.SerializeObject(guid);
 
-            if (serialized is null)
+            Assert.Multiple(() =>
             {
-                throw new NullReferenceException(nameof(serialized));
-            }
-
-            Assert.That(
-                serialized,
-                Is.EqualTo(guid.ToString()),
-                "Serialized value should be equal to the string representation"
-                + $" of the Guid,{Environment.NewLine}but was {serialized.GetType()}"
-            );
+                Assert.That(guid, Is.Not.EqualTo(Guid.Empty), "Input GUID should not be empty");
+                Assert.That(serialized, Is.Not.Null, "Serialized object should not be null");
+                Assert.That(serialized, Is.InstanceOf<string>(), "Serialized GUID should be a string");
+                Assert.That(serialized, Is.EqualTo(guid.ToString()), "Serialized GUID should equal string representation");
+            });
         }
 
         [Test]
@@ -63,8 +71,13 @@ namespace KOTORModSync.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(serialized, Is.InstanceOf<IEnumerable<object>>());
-                Assert.That((IEnumerable<object>)serialized, Is.All.InstanceOf<string>());
+                Assert.That(list, Is.Not.Null, "Input list should not be null");
+                Assert.That(list, Has.Count.EqualTo(2), "Input list should contain exactly 2 GUIDs");
+                Assert.That(list, Is.All.Not.EqualTo(Guid.Empty), "All GUIDs in list should not be empty");
+                Assert.That(serialized, Is.Not.Null, "Serialized object should not be null");
+                Assert.That(serialized, Is.InstanceOf<IEnumerable<object>>(), "Serialized list should be enumerable");
+                Assert.That((IEnumerable<object>)serialized, Is.Not.Empty, "Serialized enumerable should not be empty");
+                Assert.That((IEnumerable<object>)serialized, Is.All.InstanceOf<string>(), "All serialized items should be strings");
             });
         }
 

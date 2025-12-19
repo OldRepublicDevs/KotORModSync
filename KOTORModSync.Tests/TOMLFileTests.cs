@@ -41,7 +41,7 @@ namespace KOTORModSync.Tests
         private string _filePath = string.Empty;
 
         private readonly string _exampleToml = @"[[thisMod]]
-name = ""Ultimate Dantooine""
+name = ""Example Dantooine Enhancement""
 guid = ""{B3525945-BDBD-45D8-A324-AAF328A5E13E}""
 dependencies = [
 ""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"",
@@ -51,7 +51,7 @@ installOrder = 3
 
 [[thisMod.instructions]]
 action = ""extract""
-source = ""Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar""
+source = ""Example Dantooine Enhancement High Resolution - TPC Version-1103-2-1-1670680013.rar""
 destination = ""%temp%\\mod_files\\Dantooine HR""
 overwrite = true
 
@@ -69,7 +69,7 @@ source = ""%temp%\\mod_files\\Dantooine HR\\""
 destination = ""%temp%\\Override""
 
 [[thisMod]]
-name = ""TSLRCM Tweak Pack""
+name = ""Example Tweak Pack""
 guid = ""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}""
 installOrder = 1
 dependencies = []
@@ -77,7 +77,7 @@ dependencies = []
 [[thisMod.instructions]]
 action = ""extract""
 source = ""URCMTP 1.3.rar""
-destination = ""%temp%\\mod_files\\TSLRCM Tweak Pack""
+destination = ""%temp%\\mod_files\\Example Tweak Pack""
 overwrite = true
 
 [[thisMod.instructions]]
@@ -102,13 +102,24 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(modifiedFilePath), Is.True, "Modified file should exist");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(loadedComponent, originalComponent);
             }
         }
@@ -127,6 +138,12 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             ModComponent duplicateComponent = ModComponent.DeserializeTomlComponent(tomlString)
                 ?? throw new InvalidOperationException();
 
+            Assert.Multiple(() =>
+            {
+                Assert.That(newComponent, Is.Not.Null, "New component should not be null");
+                Assert.That(duplicateComponent, Is.Not.Null, "Duplicate component should not be null");
+                Assert.That(tomlString, Is.Not.Null.And.Not.Empty, "TOML string should not be null or empty");
+            });
             AssertComponentEquality(newComponent, duplicateComponent);
         }
 
@@ -147,13 +164,24 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList() ?? throw new InvalidDataException();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(modifiedFilePath), Is.True, "Modified file should exist");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original after whitespace modification");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(originalComponent, loadedComponent);
             }
         }
@@ -174,13 +202,24 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 
             List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList() ?? throw new InvalidDataException();
 
-            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalComponents, Is.Not.Null, "Original components list should not be null");
+                Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                Assert.That(File.Exists(modifiedFilePath), Is.True, "Modified file should exist");
+                Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count), "Loaded components count should match original after whitespace modification");
+            });
 
             for (int i = 0; i < originalComponents.Count; i++)
             {
                 ModComponent originalComponent = originalComponents[i];
                 ModComponent loadedComponent = loadedComponents[i];
 
+                Assert.Multiple(() =>
+                {
+                    Assert.That(originalComponent, Is.Not.Null, $"Original component at index {i} should not be null");
+                    Assert.That(loadedComponent, Is.Not.Null, $"Loaded component at index {i} should not be null");
+                });
                 AssertComponentEquality(originalComponent, loadedComponent);
             }
         }
@@ -449,6 +488,10 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string extractToml = extractComponent.SerializeComponent();
             Assert.Multiple(() =>
             {
+                Assert.That(extractComponent, Is.Not.Null, "Extract component should not be null");
+                Assert.That(extractToml, Is.Not.Null.And.Not.Empty, "Extract TOML string should not be null or empty");
+                Assert.That(extractComponent.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(extractComponent.Instructions, Has.Count.EqualTo(1), "Should have exactly one instruction");
                 Assert.That(NetFrameworkCompatibility.Contains(extractToml, "Overwrite", StringComparison.Ordinal), Is.False, "Extract should not serialize Overwrite");
                 Assert.That(NetFrameworkCompatibility.Contains(extractToml, "Destination", StringComparison.Ordinal), Is.False, "Extract should not serialize Destination");
                 Assert.That(NetFrameworkCompatibility.Contains(extractToml, "Arguments", StringComparison.Ordinal), Is.False, "Extract should not serialize Arguments");
@@ -473,6 +516,10 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string moveToml = moveComponent.SerializeComponent();
             Assert.Multiple(() =>
             {
+                Assert.That(moveComponent, Is.Not.Null, "Move component should not be null");
+                Assert.That(moveToml, Is.Not.Null.And.Not.Empty, "Move TOML string should not be null or empty");
+                Assert.That(moveComponent.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(moveComponent.Instructions, Has.Count.EqualTo(1), "Should have exactly one instruction");
                 Assert.That(moveToml, Does.Contain("Overwrite"), "Move should serialize Overwrite");
                 Assert.That(moveToml, Does.Contain("Destination"), "Move should serialize Destination");
                 Assert.That(moveToml, Does.Not.Contain("Arguments"), "Move should not serialize Arguments");
@@ -497,6 +544,10 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string patcherToml = patcherComponent.SerializeComponent();
             Assert.Multiple(() =>
             {
+                Assert.That(patcherComponent, Is.Not.Null, "Patcher component should not be null");
+                Assert.That(patcherToml, Is.Not.Null.And.Not.Empty, "Patcher TOML string should not be null or empty");
+                Assert.That(patcherComponent.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(patcherComponent.Instructions, Has.Count.EqualTo(1), "Should have exactly one instruction");
                 Assert.That(patcherToml, Does.Not.Contain("Overwrite"), "Patcher should not serialize Overwrite");
                 Assert.That(patcherToml, Does.Contain("Destination"), "Patcher should serialize Destination");
                 Assert.That(patcherToml, Does.Contain("Arguments"), "Patcher should serialize Arguments");
@@ -521,6 +572,10 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string executeToml = executeComponent.SerializeComponent();
             Assert.Multiple(() =>
             {
+                Assert.That(executeComponent, Is.Not.Null, "Execute component should not be null");
+                Assert.That(executeToml, Is.Not.Null.And.Not.Empty, "Execute TOML string should not be null or empty");
+                Assert.That(executeComponent.Instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(executeComponent.Instructions, Has.Count.EqualTo(1), "Should have exactly one instruction");
                 Assert.That(executeToml, Does.Not.Contain("Overwrite"), "Execute should not serialize Overwrite");
                 Assert.That(executeToml, Does.Not.Contain("Destination"), "Execute should not serialize Destination");
                 Assert.That(executeToml, Does.Contain("Arguments"), "Execute should serialize Arguments");
@@ -543,12 +598,14 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             string tomlString = component.SerializeComponent();
             Assert.Multiple(() =>
             {
-                Assert.That(tomlString, Does.Not.Contain("IsDownloaded"), "TOML should not contain IsDownloaded");
-                Assert.That(tomlString, Does.Not.Contain("InstallState"), "TOML should not contain InstallState");
-                Assert.That(tomlString, Does.Not.Contain("LastStartedUtc"), "TOML should not contain LastStartedUtc");
-                Assert.That(tomlString, Does.Not.Contain("LastCompletedUtc"), "TOML should not contain LastCompletedUtc");
-
-                Assert.That(tomlString, Does.Contain("IsSelected"), "TOML should contain IsSelected");
+                Assert.That(component, Is.Not.Null, "Component should not be null");
+                Assert.That(tomlString, Is.Not.Null.And.Not.Empty, "TOML string should not be null or empty");
+                Assert.That(tomlString, Does.Not.Contain("IsDownloaded"), "TOML should not contain IsDownloaded (runtime field)");
+                Assert.That(tomlString, Does.Not.Contain("InstallState"), "TOML should not contain InstallState (runtime field)");
+                Assert.That(tomlString, Does.Not.Contain("LastStartedUtc"), "TOML should not contain LastStartedUtc (runtime field)");
+                Assert.That(tomlString, Does.Not.Contain("LastCompletedUtc"), "TOML should not contain LastCompletedUtc (runtime field)");
+                Assert.That(tomlString, Does.Contain("IsSelected"), "TOML should contain IsSelected (persistent field)");
+                Assert.That(tomlString, Does.Contain("Test Mod"), "TOML should contain component name");
             });
         }
 
@@ -558,18 +615,18 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
             // Test the legacy syntax where Options have Instructions inline (not as separate [[thisMod.Options.Instructions]])
             string legacyToml = @"[[thisMod]]
 Guid = ""a9aa5bf5-b4ac-4aa3-acbb-402337235e54""
-Name = ""KOTOR Dialogue Fixes""
-Author = ""Salk & Kainzorus Prime""
+Name = ""Example Dialogue Enhancement""
+Author = ""Test Author A & Test Author B""
 Category = ""Immersion""
 Tier = ""Essential""
 Description = ""In addition to fixing several typos, this mod takes the PC's dialogue--which is written in such a way as to make the PC sound constantly shocked, stupid, or needlessly and overtly evil--and replaces it with more moderate and reasonable responses, even for DS choices.""
 Directions = ""Move the dialogue.tlk file from the \""PC Response Moderation\"" folder into the main KOTOR directory (where the executable file is).""
 IsSelected = true
-ModLink = [""https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/""]
+ModLink = [""https://deadlystream.com/files/file/1313-example-dialogue-enhancement/""]
 [[thisMod.Instructions]]
 Action = ""Extract""
 Overwrite = true
-Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z""]
+Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*.7z""]
 
 [[thisMod.Instructions]]
 Action = ""Choose""
@@ -587,7 +644,7 @@ IsSelected = false
 Restrictions = [""6d593186-e356-4994-b6a8-f71445869937""]
 Instructions = [
     { Action = ""Move"", Destination = ""<<kotorDirectory>>"", Overwrite = true, Source = [
-        ""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"",
+        ""<<modDirectory>>\\Example_Dialogue_Enhancement*\\Corrections only\\dialog.tlk"",
     ] },
 ]
 
@@ -599,7 +656,7 @@ IsSelected = true
 Restrictions = [""cf2a12ec-3932-42f8-996d-b1b1bdfdbb48""]
 Instructions = [
     { Action = ""Move"", Destination = ""<<kotorDirectory>>"", Overwrite = true, Source = [
-        ""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"",
+        ""<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderation version\\dialog.tlk"",
     ] },
 ]";
 
@@ -613,33 +670,41 @@ Instructions = [
                 List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath).ToList();
 
                 // Verify we loaded exactly one component
-                Assert.That(loadedComponents, Has.Count.EqualTo(1));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(loadedComponents, Is.Not.Null, "Loaded components list should not be null");
+                    Assert.That(File.Exists(tempFilePath), Is.True, "Temporary file should exist");
+                    Assert.That(loadedComponents, Has.Count.EqualTo(1), "Should load exactly one component from legacy TOML");
+                });
 
                 ModComponent component = loadedComponents[0];
 
                 Assert.Multiple(() =>
                 {
+                    Assert.That(component, Is.Not.Null, "Component should not be null");
                     // Verify basic properties
-                    Assert.That(component.Guid.ToString(), Is.EqualTo("a9aa5bf5-b4ac-4aa3-acbb-402337235e54"));
-                    Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
-                    Assert.That(component.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                    Assert.That(component.Guid.ToString(), Is.EqualTo("a9aa5bf5-b4ac-4aa3-acbb-402337235e54"), "Should load correct GUID");
+                    Assert.That(component.Name, Is.EqualTo("Example Dialogue Enhancement"), "Should load correct name");
+                    Assert.That(component.Author, Is.EqualTo("Test Author A & Test Author B"), "Should load correct author");
                     // Tier might be serialized with a prefix like "1 - Essential", so just check it contains "Essential"
-                    Assert.That(component.Tier, Does.Contain("Essential"));
-                    Assert.That(component.IsSelected, Is.True);
-                    Assert.That(component.Category, Contains.Item("Immersion"));
+                    Assert.That(component.Tier, Is.Not.Null, "Tier should not be null");
+                    Assert.That(component.Tier, Does.Contain("Essential"), "Tier should contain Essential");
+                    Assert.That(component.IsSelected, Is.True, "IsSelected should be true");
+                    Assert.That(component.Category, Is.Not.Null, "Category list should not be null");
+                    Assert.That(component.Category, Contains.Item("Immersion"), "Category should contain Immersion");
 
                     // Verify ModLink was converted to ModLinkFilenames
                     Assert.That(component.ResourceRegistry, Is.Not.Null);
                 });
                 Assert.That(component.ResourceRegistry.Count, Is.EqualTo(1));
-                Assert.That(component.ResourceRegistry.ContainsKey("https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"), Is.True);
+                Assert.That(component.ResourceRegistry.ContainsKey("https://deadlystream.com/files/file/1313-example-dialogue-enhancement/"), Is.True);
 
                 // Verify Instructions - should have Extract and Choose
                 Assert.That(component.Instructions, Has.Count.EqualTo(2));
 
                 Instruction extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract) ?? throw new InvalidOperationException();
                 Assert.That(extractInstruction, Is.Not.Null, "Extract instruction should be present");
-                Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
+                Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\Example_Dialogue_Enhancement*.7z"));
 
                 Instruction chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose) ?? throw new InvalidOperationException();
                 Assert.That(chooseInstruction, Is.Not.Null, "Choose instruction should be present");
@@ -669,7 +734,7 @@ Instructions = [
                     {
                         Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
                         Assert.That(standardInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-                        Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"));
+                        Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\Example_Dialogue_Enhancement*\\Corrections only\\dialog.tlk"));
                     });
                 }
 
@@ -689,7 +754,7 @@ Instructions = [
                     {
                         Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
                         Assert.That(revisedInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-                        Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"));
+                        Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderation version\\dialog.tlk"));
                     });
                 }
 
@@ -716,10 +781,10 @@ Instructions = [
         {
             // Test the complex scenario with ModLinkFilenames, Options, and Instructions
             string expectedToml = @"[[thisMod]]
-ModLinkFilenames = { ""https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"" = {  } }
+ModLinkFilenames = { ""https://deadlystream.com/files/file/1313-example-dialogue-enhancement/"" = {  } }
 Guid = ""987a0d17-c596-49af-ba28-851232455253""
-Name = ""KOTOR Dialogue Fixes""
-Author = ""Salk & Kainzorus Prime""
+Name = ""Example Dialogue Enhancement""
+Author = ""Test Author A & Test Author B""
 Tier = ""1 - Essential""
 Description = ""In addition to fixing several typos, this mod takes the PC's dialogue—which is written in such a way as to make the PC sound constantly shocked, stupid, or needlessly and overtly evil—and replaces it with more moderate and reasonable responses, even for DS choices.""
 InstallationMethod = ""Loose-File Mod""
@@ -731,7 +796,7 @@ Language = [""NO""]
 [[thisMod.Instructions]]
 Guid = ""e6d0dbb7-75f7-4886-a4a5-e7eea85dac1c""
 Action = ""Extract""
-Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z""]
+Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*.7z""]
 
 [[thisMod.Instructions]]
 Guid = ""b201d6e8-3d07-4de5-a937-47ba9952afac""
@@ -749,7 +814,7 @@ Parent = ""cf2a12ec-3932-42f8-996d-b1b1bdfdbb48""
 Guid = ""9521423e-e617-474c-bcbb-a15563a516fc""
 Action = ""Move""
 Destination = ""<<kotorDirectory>>""
-Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk""]
+Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\Corrections only\\dialog.tlk""]
 
 [[thisMod.Options]]
 Guid = ""6d593186-e356-4994-b6a8-f71445869937""
@@ -763,7 +828,7 @@ Parent = ""6d593186-e356-4994-b6a8-f71445869937""
 Guid = ""80fba038-4a24-4716-a0cc-1d4051e952a0""
 Action = ""Move""
 Destination = ""<<kotorDirectory>>""
-Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk""]";
+Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderation version\\dialog.tlk""]";
 
             // Write the expected TOML to a temporary file
             string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
@@ -783,8 +848,8 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 {
                     // Verify basic properties
                     Assert.That(component.Guid.ToString(), Is.EqualTo("987a0d17-c596-49af-ba28-851232455253"));
-                    Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
-                    Assert.That(component.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                    Assert.That(component.Name, Is.EqualTo("Example Dialogue Enhancement"));
+                    Assert.That(component.Author, Is.EqualTo("Test Author A & Test Author B"));
                     Assert.That(component.Tier, Is.EqualTo("1 - Essential"));
                     Assert.That(component.IsSelected, Is.True);
 
@@ -792,7 +857,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                     Assert.That(component.ResourceRegistry, Is.Not.Null);
                 });
                 Assert.That(component.ResourceRegistry.Count, Is.EqualTo(1));
-                Assert.That(component.ResourceRegistry.ContainsKey("https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"), Is.True);
+                Assert.That(component.ResourceRegistry.ContainsKey("https://deadlystream.com/files/file/1313-example-dialogue-enhancement/"), Is.True);
 
                 // Verify Instructions
                 Assert.That(component.Instructions, Has.Count.EqualTo(2));
@@ -802,7 +867,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 Assert.Multiple(() =>
                 {
                     Assert.That(extractInstruction.Action, Is.EqualTo(Instruction.ActionType.Extract));
-                    Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
+                    Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\Example_Dialogue_Enhancement*.7z"));
                 });
 
                 Instruction chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
@@ -847,7 +912,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 {
                     Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
                     Assert.That(standardInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-                    Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"));
+                    Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\Example_Dialogue_Enhancement*\\Corrections only\\dialog.tlk"));
 
                     Assert.That(revisedOption.Instructions, Has.Count.EqualTo(1));
                 });
@@ -856,7 +921,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 {
                     Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
                     Assert.That(revisedInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-                    Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"));
+                    Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderation version\\dialog.tlk"));
                 });
 
                 // Now test round-trip: save and reload

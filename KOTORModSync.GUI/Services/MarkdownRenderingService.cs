@@ -95,7 +95,7 @@ namespace KOTORModSync.Services
                     return string.Empty;
                 }
 
-                // For now, just return the markdown content as-is since TextBlock can handle it
+                // TODO - STUB: For now, just return the markdown content as-is since TextBlock can handle it
                 // The actual rendering happens when it's assigned to TextBlock.Inlines
                 return markdownContent;
             }

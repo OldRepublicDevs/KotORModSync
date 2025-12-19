@@ -78,7 +78,6 @@
 
   <ItemGroup>
     <Compile Remove="RegexPreviewHighlightingTests.cs" />
-    <Compile Remove="HeadlessTestApp.cs" />
     <Compile Remove="MainWindowUITests.cs" />
     <Compile Remove="CheckpointSystemIntegrationTests.cs" />
     <Compile Remove="DocumentationRoundTripTests.cs" />

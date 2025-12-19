@@ -351,7 +351,13 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Extract archive operation should not produce validation errors");
+                Assert.That(File.Exists(archivePath), Is.True, "Source archive should still exist after extraction");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -370,7 +376,12 @@ namespace KOTORModSync.Tests
         };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -393,7 +404,12 @@ namespace KOTORModSync.Tests
         };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -412,7 +428,12 @@ namespace KOTORModSync.Tests
         };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -429,7 +450,12 @@ namespace KOTORModSync.Tests
         };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -451,7 +477,12 @@ namespace KOTORModSync.Tests
             };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -469,7 +500,12 @@ namespace KOTORModSync.Tests
             };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -488,9 +524,12 @@ namespace KOTORModSync.Tests
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
             Assert.Multiple(() =>
             {
-                Assert.That(v.GetValidationIssues(), Is.Empty);
-
-                Assert.That(v.GetTrackedFiles().Any(p => p.EndsWith("del\\rm.txt", StringComparison.OrdinalIgnoreCase)), Is.False);
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Delete extracted file operation should not produce validation errors");
+                Assert.That(v.GetTrackedFiles(), Is.Not.Null, "Tracked files list should not be null");
+                Assert.That(v.GetTrackedFiles().Any(p => p.EndsWith("del\\rm.txt", StringComparison.OrdinalIgnoreCase)), Is.False, 
+                    "Deleted file should not be in tracked files");
             });
             AssertFileSystemsMatch(v, r);
         }
@@ -511,7 +550,12 @@ namespace KOTORModSync.Tests
             };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -529,7 +573,12 @@ namespace KOTORModSync.Tests
             };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-            Assert.That(v.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(v, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(v.GetValidationIssues(), Is.Empty, "Operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(v, r);
         }
 
@@ -581,7 +630,12 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Move and extract archive operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -632,7 +686,12 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Copy and extract archive operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -666,7 +725,12 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Rename and extract archive operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -719,7 +783,12 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Extract multiple archives operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -758,7 +827,13 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Extract archive operation should not produce validation errors");
+                Assert.That(File.Exists(archivePath), Is.True, "Source archive should still exist after extraction");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -792,7 +867,13 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Extract archive operation should not produce validation errors");
+                Assert.That(File.Exists(archivePath), Is.True, "Source archive should still exist after extraction");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -826,7 +907,13 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Extract archive operation should not produce validation errors");
+                Assert.That(File.Exists(archivePath), Is.True, "Source archive should still exist after extraction");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -860,7 +947,13 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Extract archive operation should not produce validation errors");
+                Assert.That(File.Exists(archivePath), Is.True, "Source archive should still exist after extraction");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -883,7 +976,16 @@ namespace KOTORModSync.Tests
             };
 
             Debug.Assert(_sourceDir != null);
-            _ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir).ConfigureAwait(false));
+            var exception = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir).ConfigureAwait(false));
+            
+            Assert.Multiple(() =>
+            {
+                Assert.That(instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(instructions, Has.Count.GreaterThan(0), "Should have at least one instruction");
+                Assert.That(_sourceDir, Is.Not.Null, "Source directory should not be null");
+                Assert.That(Directory.Exists(_sourceDir), Is.True, "Source directory should exist");
+                Assert.That(exception, Is.Not.Null, "Extracting nonexistent archive should throw FileNotFoundException");
+            });
         }
 
         [Test]
@@ -918,7 +1020,18 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            _ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir).ConfigureAwait(false));
+            var exception = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir).ConfigureAwait(false));
+            
+            Assert.Multiple(() =>
+            {
+                Assert.That(instructions, Is.Not.Null, "Instructions list should not be null");
+                Assert.That(instructions, Has.Count.GreaterThan(0), "Should have at least one instruction");
+                Assert.That(_sourceDir, Is.Not.Null, "Source directory should not be null");
+                Assert.That(Directory.Exists(_sourceDir), Is.True, "Source directory should exist");
+                Assert.That(File.Exists(archivePath), Is.True, "Archive should exist");
+                Assert.That(exception, Is.Not.Null, "Moving deleted file should throw FileNotFoundException");
+            });
+            
             return Task.CompletedTask;
         }
 
@@ -954,7 +1067,12 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Extract moved archive operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 
@@ -1013,16 +1131,27 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Complex mod installation operation should not produce validation errors");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
 
             List<string> virtualFiles = virtualProvider.GetTrackedFiles();
             Assert.Multiple(() =>
             {
-                Assert.That(virtualFiles.Any(f => f.EndsWith("override\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
-                Assert.That(virtualFiles.Any(f => f.EndsWith("override\\dialog.dlg", StringComparison.OrdinalIgnoreCase)), Is.True);
-                Assert.That(virtualFiles.Any(f => f.EndsWith("override\\spells.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
-                Assert.That(virtualFiles.Any(f => f.EndsWith("backup\\appearance.2da.mod1\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
+                Assert.That(virtualFiles, Is.Not.Null, "Tracked files list should not be null");
+                Assert.That(virtualFiles, Is.Not.Empty, "Complex mod installation should track files");
+                Assert.That(virtualFiles.Any(f => f.EndsWith("override\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True, 
+                    "Final appearance.2da should be tracked");
+                Assert.That(virtualFiles.Any(f => f.EndsWith("override\\dialog.dlg", StringComparison.OrdinalIgnoreCase)), Is.True, 
+                    "Dialog file should be tracked");
+                Assert.That(virtualFiles.Any(f => f.EndsWith("override\\spells.2da", StringComparison.OrdinalIgnoreCase)), Is.True, 
+                    "Spells file should be tracked");
+                Assert.That(virtualFiles.Any(f => f.EndsWith("backup\\appearance.2da.mod1\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True, 
+                    "Backup file should be tracked");
             });
         }
 
@@ -1082,7 +1211,12 @@ namespace KOTORModSync.Tests
 
             (VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-            Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(virtualProvider, Is.Not.Null, "Virtual file system provider should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Not.Null, "Validation issues list should not be null");
+                Assert.That(virtualProvider.GetValidationIssues(), Is.Empty, "Nested archive operations should not produce validation errors");
+            });
             AssertFileSystemsMatch(virtualProvider, realDestDir);
         }
 

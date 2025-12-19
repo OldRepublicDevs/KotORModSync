@@ -25,6 +25,7 @@ namespace KOTORModSync.Core.Services.FileSystem
         private readonly Dictionary<string, HashSet<string>> _archiveContents;
         private readonly Dictionary<string, string> _archiveOriginalPaths;
         private readonly HashSet<string> _initializedRoots;
+        private readonly Dictionary<string, string> _fileContents;
         private readonly object _lockObject = new object();
         public bool IsDryRun => true;
 
@@ -41,6 +42,7 @@ namespace KOTORModSync.Core.Services.FileSystem
             _archiveContents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             _archiveOriginalPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _initializedRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            _fileContents = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
         public void InitializeFromRealFileSystem(string rootPath)
@@ -565,6 +567,12 @@ namespace KOTORModSync.Core.Services.FileSystem
                 _ = _virtualFiles.Add(destinationPath);
                 _ = _removedFiles.Remove(destinationPath);
 
+                // Copy file content if it exists
+                if (_fileContents.TryGetValue(sourcePath, out string fileContent))
+                {
+                    _fileContents[destinationPath] = fileContent;
+                }
+
                 if (IsArchiveFile(sourcePath))
                 {
                     if (_archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents))
@@ -654,6 +662,13 @@ namespace KOTORModSync.Core.Services.FileSystem
                     Logger.LogVerbose($"[VFS] MoveFileAsync: Added source to _removedFiles, removed destination from _removedFiles");
                 }
 
+                // Move file content if it exists
+                if (_fileContents.TryGetValue(sourcePath, out string fileContent))
+                {
+                    _fileContents[destinationPath] = fileContent;
+                    _ = _fileContents.Remove(sourcePath);
+                }
+
                 if (IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents))
                 {
                     _ = _archiveContents.Remove(sourcePath);
@@ -716,6 +731,7 @@ namespace KOTORModSync.Core.Services.FileSystem
             {
                 _ = _virtualFiles.Remove(path);
                 _ = _removedFiles.Add(path);
+                _ = _fileContents.Remove(path);
 
                 if (IsArchiveFile(path))
                 {
@@ -752,6 +768,13 @@ namespace KOTORModSync.Core.Services.FileSystem
                 _virtualFiles.Add(destinationPath);
                 _ = _removedFiles.Add(sourcePath);
                 _ = _removedFiles.Remove(destinationPath);
+
+                // Move file content if it exists
+                if (_fileContents.TryGetValue(sourcePath, out string fileContent))
+                {
+                    _fileContents[destinationPath] = fileContent;
+                    _ = _fileContents.Remove(sourcePath);
+                }
 
                 if (IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents))
                 {
@@ -791,6 +814,14 @@ namespace KOTORModSync.Core.Services.FileSystem
                 return Task.FromResult(string.Empty);
             }
 
+            lock (_lockObject)
+            {
+                if (_fileContents.TryGetValue(path, out string content))
+                {
+                    return Task.FromResult(content);
+                }
+            }
+
             return Task.FromResult(string.Empty);
         }
 
@@ -799,6 +830,7 @@ namespace KOTORModSync.Core.Services.FileSystem
             lock (_lockObject)
             {
                 _virtualFiles.Add(path);
+                _fileContents[path] = contents ?? string.Empty;
 
                 string directory = GetDirectoryName(path);
                 if (!string.IsNullOrEmpty(directory))

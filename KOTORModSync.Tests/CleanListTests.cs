@@ -96,14 +96,14 @@ namespace KOTORModSync.Tests
                     Destination = overrideDir,
                 };
 
-                // Selected components to drive matching
+                // Selected components to drive matching - names must match CSV entries for fuzzy matching
                 var selectedComponents = new List<ModComponent>
                 {
-                    new ModComponent { Name = "HD Astromech Droids", IsSelected = true },
-                    new ModComponent { Name = "Protocol Droids HD", IsSelected = true },
+                    new ModComponent { Name = "HD Astromechs by Dark Hope", IsSelected = true },
+                    new ModComponent { Name = "HD Protocol Droids by Dark Hope", IsSelected = true },
                     new ModComponent { Name = "KOTOR 1 Community Patch", IsSelected = true },
 					// Intentionally NOT selecting Sand People to verify those stay if not selected
-					new ModComponent { Name = "HD Twi'lek Females", IsSelected = true },
+					new ModComponent { Name = "HD Twi'lek Females by Dark Hope", IsSelected = true },
                 };
 
                 // Use Virtual FS so we don't touch disk state beyond our work dir but still simulate deletions
@@ -112,9 +112,11 @@ namespace KOTORModSync.Tests
 
                 var component = new ModComponent
                 {
-                    Name = "Character Textures & Model Fixes",
+                    Name = "Example Textures & Model Fixes",
                     Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(new[] { cleanList }),
                 };
+                cleanList.SetParentComponent(component);
+                cleanList.SetFileSystemProvider(vfs);
 
                 // Execute the single CleanList instruction
                 Instruction.ActionExitCode code = await component.ExecuteSingleInstructionAsync(
@@ -126,7 +128,14 @@ namespace KOTORModSync.Tests
                     cancellationToken: CancellationToken.None
                 );
 
-                Assert.That(code, Is.EqualTo(Instruction.ActionExitCode.Success));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(code, Is.EqualTo(Instruction.ActionExitCode.Success), "CleanList instruction should execute successfully");
+                    Assert.That(vfs, Is.Not.Null, "Virtual file system provider should not be null");
+                    Assert.That(overrideDir, Is.Not.Null, "Override directory path should not be null");
+                    Assert.That(Directory.Exists(overrideDir), Is.True, "Override directory should exist");
+                    Assert.That(File.Exists(cleanlistPath), Is.True, "Cleanlist file should exist");
+                });
 
                 // Assert deletions happened for: Mandatory deletion, Astromechs, Protocol Droids, K1CP, Twi'lek
                 string[] shouldBeDeleted =
@@ -137,10 +146,22 @@ namespace KOTORModSync.Tests
                     "L_Alien02.mdl",
                     "Twilek_F01.tpc",
                 };
+                
+                Assert.Multiple(() =>
+                {
+                    Assert.That(shouldBeDeleted, Is.Not.Null, "Files to delete list should not be null");
+                    Assert.That(shouldBeDeleted, Is.Not.Empty, "Should have files expected to be deleted");
+                });
+
                 foreach (string f in shouldBeDeleted)
                 {
                     string p = Path.Combine(overrideDir, f);
-                    Assert.That(vfs.FileExists(p), Is.False, $"Expected deleted: {f}");
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(f, Is.Not.Null.And.Not.Empty, $"File name '{f}' should not be null or empty");
+                        Assert.That(p, Is.Not.Null, $"File path for '{f}' should not be null");
+                        Assert.That(vfs.FileExists(p), Is.False, $"Expected deleted file should not exist: {f}");
+                    });
                 }
 
                 Assert.Multiple(() =>
@@ -149,6 +170,8 @@ namespace KOTORModSync.Tests
                     Assert.That(vfs.FileExists(Path.Combine(overrideDir, "N_Tusken02.tpc")), Is.True, "Unexpected deletion of non-selected mod file");
                     // Unrelated file should remain
                     Assert.That(vfs.FileExists(Path.Combine(overrideDir, "Unrelated_KeepMe.tpc")), Is.True, "Unrelated file should remain");
+                    Assert.That(selectedComponents, Is.Not.Null, "Selected components list should not be null");
+                    Assert.That(selectedComponents.Count, Is.GreaterThan(0), "Should have at least one selected component");
                 });
             }
             finally

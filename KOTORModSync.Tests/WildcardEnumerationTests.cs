@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using KOTORModSync.Core.FileSystemUtils;
 
@@ -25,12 +26,12 @@ namespace KOTORModSync.Tests
 (StringComparer.Ordinal)
             {
                 {
-                    @"Ultimate Korriban High Resolution-TPC Version-1\Korriban HR\Override\file1.txt",
-                    @"Ultimate Korriban High Resolution-TPC Version-1\Korriban HR\Override\file1.txt"
+                    @"Example Korriban Enhancement-TPC Version-1\Korriban HR\Override\file1.txt",
+                    @"Example Korriban Enhancement-TPC Version-1\Korriban HR\Override\file1.txt"
                 },
                 {
-                    @"Ultimate Korriban High Resolution-TPC Version-2\Korriban HR\Override\file2.txt",
-                    @"Ultimate Korriban High Resolution*TPC Version*\Korriban HR\Override\*"
+                    @"Example Korriban Enhancement-TPC Version-2\Korriban HR\Override\file2.txt",
+                    @"Example Korriban Enhancement*TPC Version*\Korriban HR\Override\*"
                 },
                 {
                     @"Ultimate Malachor V High Resolution - TPC Version-1106-1-1-1670682360\Malachor V HR\Override\file3.txt",
@@ -74,7 +75,13 @@ namespace KOTORModSync.Tests
                     TestContext.Progress.WriteLine(file);
                 }
 
-                Assert.That(files, Is.Not.Empty, $"No files found for path: {wildcardPath}");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(files, Is.Not.Null, $"Files list should not be null for path: {wildcardPath}");
+                    Assert.That(files, Is.Not.Empty, $"No files found for path: {wildcardPath}");
+                    Assert.That(files.All(f => !string.IsNullOrWhiteSpace(f)), Is.True, "All file paths should be non-empty");
+                    Assert.That(files.All(f => File.Exists(f)), Is.True, "All enumerated files should exist");
+                });
             }
         }
 
@@ -85,7 +92,7 @@ namespace KOTORModSync.Tests
             _ = Directory.CreateDirectory(
                 Path.Combine(
                     _basePath,
-                    path2: "Ultimate Korriban High Resolution-TPC Version-1",
+                    path2: "Example Korriban Enhancement-TPC Version-1",
                     path3: "Korriban HR",
                     path4: "Override"
                 )
@@ -93,7 +100,7 @@ namespace KOTORModSync.Tests
             _ = Directory.CreateDirectory(
                 Path.Combine(
                     _basePath,
-                    path2: "Ultimate Korriban High Resolution-TPC Version-2",
+                    path2: "Example Korriban Enhancement-TPC Version-2",
                     path3: "Korriban HR",
                     path4: "Override"
                 )
@@ -119,13 +126,13 @@ namespace KOTORModSync.Tests
                     _basePath,
                     path2: "Ultimate_Robes_Repair_For_TSL_v1.1",
                     path3: "Ultimate_Robes_Repair_For_TSL_v1.1",
-                    path4: "TSLRCM backup"
+                    path4: "Example backup"
                 )
             );
             File.WriteAllText(
                 Path.Combine(
                     _basePath,
-                    "Ultimate Korriban High Resolution-TPC Version-1",
+                    "Example Korriban Enhancement-TPC Version-1",
                     "Korriban HR",
                     "Override",
                     "file1.txt"
@@ -135,7 +142,7 @@ namespace KOTORModSync.Tests
             File.WriteAllText(
                 Path.Combine(
                     _basePath,
-                    "Ultimate Korriban High Resolution-TPC Version-2",
+                    "Example Korriban Enhancement-TPC Version-2",
                     "Korriban HR",
                     "Override",
                     "file2.txt"
@@ -167,7 +174,7 @@ namespace KOTORModSync.Tests
                     _basePath,
                     "Ultimate_Robes_Repair_For_TSL_v1.1",
                     "Ultimate_Robes_Repair_For_TSL_v1.1",
-                    "TSLRCM backup",
+                    "Example backup",
                     "file5.txt"
                 ),
                 contents: "Content 5"
@@ -184,7 +191,7 @@ namespace KOTORModSync.Tests
                 ),
                 Path.Combine(
                     _basePath,
-                    "Ultimate Korriban High Resolution*TGA Version*",
+                    "Example Korriban Enhancement*TGA Version*",
                     "Korriban HR",
                     "Override",
                     "file2.txt"
@@ -207,7 +214,11 @@ namespace KOTORModSync.Tests
                     },
                     new Core.Services.FileSystem.RealFileSystemProvider()
                 );
-                Assert.That(files, Is.Empty, $"Files found for path: {path}");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(files, Is.Not.Null, $"Files list should not be null for path: {path}");
+                    Assert.That(files, Is.Empty, $"Files found for path: {path}");
+                });
             }
         }
     }

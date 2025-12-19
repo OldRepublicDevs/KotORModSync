@@ -1,0 +1,157 @@
+// Matching DeNCS implementation at vendor/DeNCS/src/main/java/com/kotor/resource/formats/ncs/analysis/Analysis.java:147-748
+// Original: public interface Analysis extends Switch
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text;
+using KOTORModSync.Formats.NCS.NCSDecomp;
+using KOTORModSync.Formats.NCS.NCSDecomp.AST;
+
+namespace KOTORModSync.Formats.NCS.NCSDecomp.Analysis
+{
+    public interface IAnalysis : Switch
+    {
+        // Matching DeNCS implementation at vendor/DeNCS/src/main/java/com/kotor/resource/formats/ncs/analysis/Analysis.java:148-154
+        // Original: Object getIn(Node var1); void setIn(Node var1, Object var2); Object getOut(Node var1); void setOut(Node var1, Object var2);
+        object GetIn(Node p0);
+        void SetIn(Node p0, object p1);
+        object GetOut(Node p0);
+        void SetOut(Node p0, object p1);
+        void CaseStart(Start p0);
+        void CaseAProgram(AProgram p0);
+        void CaseASubroutine(ASubroutine p0);
+        void CaseACommandBlock(ACommandBlock p0);
+        void CaseAAddVarCmd(AAddVarCmd p0);
+        void CaseAActionJumpCmd(AActionJumpCmd p0);
+        void CaseAConstCmd(AConstCmd p0);
+        void CaseACopydownspCmd(ACopydownspCmd p0);
+        void CaseACopytopspCmd(ACopytopspCmd p0);
+        void CaseACopydownbpCmd(ACopydownbpCmd p0);
+        void CaseACopytopbpCmd(ACopytopbpCmd p0);
+        void CaseACondJumpCmd(ACondJumpCmd p0);
+        void CaseAJumpCmd(AJumpCmd p0);
+        void CaseAJumpSubCmd(AJumpSubCmd p0);
+        void CaseAMovespCmd(AMovespCmd p0);
+        void CaseALogiiCmd(ALogiiCmd p0);
+        void CaseAUnaryCmd(AUnaryCmd p0);
+        void CaseABinaryCmd(ABinaryCmd p0);
+        void CaseADestructCmd(ADestructCmd p0);
+        void CaseABpCmd(ABpCmd p0);
+        void CaseAActionCmd(AActionCmd p0);
+        void CaseAStackOpCmd(AStackOpCmd p0);
+        void CaseAReturnCmd(AReturnCmd p0);
+        void CaseAStoreStateCmd(AStoreStateCmd p0);
+        void CaseAAndLogiiOp(AAndLogiiOp p0);
+        void CaseAOrLogiiOp(AOrLogiiOp p0);
+        void CaseAInclOrLogiiOp(AInclOrLogiiOp p0);
+        void CaseAExclOrLogiiOp(AExclOrLogiiOp p0);
+        void CaseABitAndLogiiOp(ABitAndLogiiOp p0);
+        void CaseAEqualBinaryOp(AEqualBinaryOp p0);
+        void CaseANequalBinaryOp(ANequalBinaryOp p0);
+        void CaseAGeqBinaryOp(AGeqBinaryOp p0);
+        void CaseAGtBinaryOp(AGtBinaryOp p0);
+        void CaseALtBinaryOp(ALtBinaryOp p0);
+        void CaseALeqBinaryOp(ALeqBinaryOp p0);
+        void CaseAShrightBinaryOp(AShrightBinaryOp p0);
+        void CaseAShleftBinaryOp(AShleftBinaryOp p0);
+        void CaseAUnrightBinaryOp(AUnrightBinaryOp p0);
+        void CaseAAddBinaryOp(AAddBinaryOp p0);
+        void CaseASubBinaryOp(ASubBinaryOp p0);
+        void CaseAMulBinaryOp(AMulBinaryOp p0);
+        void CaseADivBinaryOp(ADivBinaryOp p0);
+        void CaseAModBinaryOp(AModBinaryOp p0);
+        void CaseANegUnaryOp(ANegUnaryOp p0);
+        void CaseACompUnaryOp(ACompUnaryOp p0);
+        void CaseANotUnaryOp(ANotUnaryOp p0);
+        void CaseADecispStackOp(ADecispStackOp p0);
+        void CaseAIncispStackOp(AIncispStackOp p0);
+        void CaseADecibpStackOp(ADecibpStackOp p0);
+        void CaseAIncibpStackOp(AIncibpStackOp p0);
+        void CaseAIntConstant(AIntConstant p0);
+        void CaseAFloatConstant(AFloatConstant p0);
+        void CaseAStringConstant(AStringConstant p0);
+        void CaseAZeroJumpIf(AZeroJumpIf p0);
+        void CaseANonzeroJumpIf(ANonzeroJumpIf p0);
+        void CaseASavebpBpOp(ASavebpBpOp p0);
+        void CaseARestorebpBpOp(ARestorebpBpOp p0);
+        void CaseAConditionalJumpCommand(AConditionalJumpCommand p0);
+        void CaseAJumpCommand(AJumpCommand p0);
+        void CaseAJumpToSubroutine(AJumpToSubroutine p0);
+        void CaseAReturn(AReturn p0);
+        void CaseACopyDownSpCommand(ACopyDownSpCommand p0);
+        void CaseACopyTopSpCommand(ACopyTopSpCommand p0);
+        void CaseACopyDownBpCommand(ACopyDownBpCommand p0);
+        void CaseACopyTopBpCommand(ACopyTopBpCommand p0);
+        void CaseAMoveSpCommand(AMoveSpCommand p0);
+        void CaseARsaddCommand(ARsaddCommand p0);
+        void CaseAConstCommand(AConstCommand p0);
+        void CaseAActionCommand(AActionCommand p0);
+        void CaseALogiiCommand(ALogiiCommand p0);
+        void CaseABinaryCommand(ABinaryCommand p0);
+        void CaseAUnaryCommand(AUnaryCommand p0);
+        void CaseAStackCommand(AStackCommand p0);
+        void CaseADestructCommand(ADestructCommand p0);
+        void CaseABpCommand(ABpCommand p0);
+        void CaseAStoreStateCommand(AStoreStateCommand p0);
+        void CaseASize(ASize p0);
+        void CaseTLPar(TLPar p0);
+        void CaseTRPar(TRPar p0);
+        void CaseTSemi(TSemi p0);
+        void CaseTDot(TDot p0);
+        void CaseTCpdownsp(TCpdownsp p0);
+        void CaseTRsadd(TRsadd p0);
+        void CaseTCptopsp(TCptopsp p0);
+        void CaseTConst(TConst p0);
+        void CaseTAction(TAction p0);
+        void CaseTLogandii(TLogandii p0);
+        void CaseTLogorii(TLogorii p0);
+        void CaseTIncorii(TIncorii p0);
+        void CaseTExcorii(TExcorii p0);
+        void CaseTBoolandii(TBoolandii p0);
+        void CaseTEqual(TEqual p0);
+        void CaseTNequal(TNequal p0);
+        void CaseTGeq(TGeq p0);
+        void CaseTGt(TGt p0);
+        void CaseTLt(TLt p0);
+        void CaseTLeq(TLeq p0);
+        void CaseTShleft(TShleft p0);
+        void CaseTShright(TShright p0);
+        void CaseTUnright(TUnright p0);
+        void CaseTAdd(TAdd p0);
+        void CaseTSub(TSub p0);
+        void CaseTMul(TMul p0);
+        void CaseTDiv(TDiv p0);
+        void CaseTMod(TMod p0);
+        void CaseTNeg(TNeg p0);
+        void CaseTComp(TComp p0);
+        void CaseTMovsp(TMovsp p0);
+        void CaseTJmp(TJmp p0);
+        void CaseTJsr(TJsr p0);
+        void CaseTJz(TJz p0);
+        void CaseTRetn(TRetn p0);
+        void CaseTDestruct(TDestruct p0);
+        void CaseTNot(TNot p0);
+        void CaseTDecisp(TDecisp p0);
+        void CaseTIncisp(TIncisp p0);
+        void CaseTJnz(TJnz p0);
+        void CaseTCpdownbp(TCpdownbp p0);
+        void CaseTCptopbp(TCptopbp p0);
+        void CaseTDecibp(TDecibp p0);
+        void CaseTIncibp(TIncibp p0);
+        void CaseTSavebp(TSavebp p0);
+        void CaseTRestorebp(TRestorebp p0);
+        void CaseTStorestate(TStorestate p0);
+        void CaseTNop(TNop p0);
+        void CaseTT(TT p0);
+        void CaseTStringLiteral(TStringLiteral p0);
+        void CaseTBlank(TBlank p0);
+        void CaseTIntegerConstant(TIntegerConstant p0);
+        void CaseTFloatConstant(TFloatConstant p0);
+        void CaseEOF(EOF p0);
+    }
+}
+
+
+
+

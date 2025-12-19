@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rtb="clr-namespace:AvRichTextBox;assembly=AvRichTextBox"
+        x:Class="HoloPatcher.UI.Views.RteEditorWindow"
+        Title="RTE Editor"
+        Width="900"
+        Height="600"
+        CanResize="True">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New" Click="OnNewDocument"/>
+                <MenuItem Header="_Open..." Click="OnOpenDocument"/>
+                <MenuItem Header="_Save" Click="OnSaveDocument"/>
+                <MenuItem Header="Save _As..." Click="OnSaveDocumentAs"/>
+                <Separator/>
+                <MenuItem Header="_Close" Click="OnCloseEditor"/>
+            </MenuItem>
+        </Menu>
+
+        <StackPanel Orientation="Horizontal"
+                    DockPanel.Dock="Top"
+                    Spacing="8"
+                    Margin="8"
+                    VerticalAlignment="Center">
+            <Button Content="Bold" Click="OnBoldClicked"/>
+            <Button Content="Italic" Click="OnItalicClicked"/>
+            <Button Content="Underline" Click="OnUnderlineClicked"/>
+            <Button Content="Strike" Click="OnStrikeClicked"/>
+            <ComboBox Width="80"
+                      x:Name="FontSizeComboBox"
+                      SelectionChanged="OnFontSizeChanged">
+                <ComboBoxItem>10</ComboBoxItem>
+                <ComboBoxItem>12</ComboBoxItem>
+                <ComboBoxItem>14</ComboBoxItem>
+                <ComboBoxItem>16</ComboBoxItem>
+                <ComboBoxItem>18</ComboBoxItem>
+                <ComboBoxItem>24</ComboBoxItem>
+                <ComboBoxItem>32</ComboBoxItem>
+            </ComboBox>
+            <ComboBox Width="180"
+                      x:Name="FontFamilyComboBox"
+                      SelectionChanged="OnFontFamilyChanged"/>
+            <ComboBox Width="120"
+                      x:Name="ForegroundComboBox"
+                      SelectionChanged="OnForegroundChanged">
+                <ComboBoxItem Content="Black"/>
+                <ComboBoxItem Content="Red"/>
+                <ComboBoxItem Content="Green"/>
+                <ComboBoxItem Content="Blue"/>
+                <ComboBoxItem Content="Gray"/>
+            </ComboBox>
+            <ComboBox Width="140"
+                      x:Name="BackgroundComboBox"
+                      SelectionChanged="OnBackgroundChanged">
+                <ComboBoxItem Content="Transparent"/>
+                <ComboBoxItem Content="Yellow"/>
+                <ComboBoxItem Content="LightBlue"/>
+                <ComboBoxItem Content="LightGreen"/>
+            </ComboBox>
+            <Button Content="Align Left" Click="OnAlignLeft"/>
+            <Button Content="Align Center" Click="OnAlignCenter"/>
+            <Button Content="Align Right" Click="OnAlignRight"/>
+        </StackPanel>
+
+        <rtb:RichTextBox x:Name="Editor"
+                         Margin="8"/>
+    </DockPanel>
+</Window>
+

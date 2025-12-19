@@ -1,0 +1,202 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:HoloPatcher.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:rtb="clr-namespace:AvRichTextBox;assembly=AvRichTextBox"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="500"
+        x:Class="HoloPatcher.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Width="400" Height="500"
+        MinWidth="400" MinHeight="500">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.Resources>
+        <!-- Log text colors matching Python's tkinter tags -->
+        <SolidColorBrush x:Key="DebugBrush" Color="#6495ED"/>
+        <SolidColorBrush x:Key="InfoBrush" Color="#000000"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#CC4E00"/>
+        <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#FFF3E0"/>
+        <SolidColorBrush x:Key="ErrorBrush" Color="#DC143C"/>
+        <SolidColorBrush x:Key="CriticalBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="CriticalBackgroundBrush" Color="#8B0000"/>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Menu Bar - Matches Python's menu structure -->
+        <Menu DockPanel.Dock="Top">
+            <!-- Tools Menu -->
+            <MenuItem Header="Tools">
+                <MenuItem Header="Validate INI" Command="{Binding ValidateIniCommand}"/>
+                <MenuItem Header="Uninstall Mod / Restore Backup" Command="{Binding UninstallModCommand}"/>
+                <MenuItem Header="Fix permissions to file/folder..." Command="{Binding FixPermissionsCommand}"/>
+                <MenuItem Header="Fix iOS Case Sensitivity" Command="{Binding FixCaseSensitivityCommand}"/>
+                <MenuItem Header="Create info.rte..." Command="{Binding CreateRteCommand}"/>
+            </MenuItem>
+
+            <!-- Help Menu -->
+            <MenuItem Header="Help">
+                <MenuItem Header="DeadlyStream">
+                    <MenuItem Header="Discord" Command="{Binding OpenUrlCommand}" CommandParameter="https://discord.gg/nDkHXfc36s"/>
+                    <MenuItem Header="Website" Command="{Binding OpenUrlCommand}" CommandParameter="https://deadlystream.com"/>
+                </MenuItem>
+                <MenuItem Header="KOTOR Community Portal">
+                    <MenuItem Header="Discord" Command="{Binding OpenUrlCommand}" CommandParameter="https://discord.com/invite/kotor"/>
+                    <MenuItem Header="Website" Command="{Binding OpenUrlCommand}" CommandParameter="https://kotor.neocities.org"/>
+                </MenuItem>
+                <MenuItem Header="PCGamingWiki">
+                    <MenuItem Header="KOTOR 1" Command="{Binding OpenUrlCommand}" CommandParameter="https://www.pcgamingwiki.com/wiki/Star_Wars:_Knights_of_the_Old_Republic"/>
+                    <MenuItem Header="KOTOR 2: TSL" Command="{Binding OpenUrlCommand}" CommandParameter="https://www.pcgamingwiki.com/wiki/Star_Wars:_Knights_of_the_Old_Republic_II_-_The_Sith_Lords"/>
+                </MenuItem>
+            </MenuItem>
+
+            <!-- About Menu (separate from Help in Python) -->
+            <MenuItem Header="About">
+                <MenuItem Header="Check for Updates" Command="{Binding CheckUpdatesCommand}"/>
+                <MenuItem Header="HoloPatcher Home" Command="{Binding OpenUrlCommand}" CommandParameter="https://deadlystream.com/files/file/2243-holopatcher"/>
+                <MenuItem Header="GitHub Source" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/NickHugi/PyKotor"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Bottom Progress Bar - Matches Python's layout -->
+        <Grid DockPanel.Dock="Bottom" Margin="5,0,5,5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Button Row - Exit on left, Install on right (matches Python) -->
+            <Grid Grid.Row="0" Margin="0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+                        Content="Exit"
+                        Command="{Binding ExitCommand}"
+                        MinWidth="60"
+                        Padding="10,5"/>
+
+                <Button Grid.Column="2"
+                        Content="Install"
+                        Command="{Binding InstallCommand}"
+                        IsEnabled="{Binding CanInstall}"
+                        MinWidth="60"
+                        Padding="10,5"/>
+            </Grid>
+
+            <!-- Progress Bar spanning full width -->
+            <ProgressBar Grid.Row="1"
+                         Value="{Binding ProgressValue}"
+                         Maximum="{Binding ProgressMaximum}"
+                         Height="20"
+                         Margin="0,0,0,0"/>
+        </Grid>
+
+        <!-- Main Content -->
+        <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="5,5,5,0">
+            <!-- ALPHA VERSION WARNING BANNER (only shown if version is alpha) -->
+            <Border Grid.Row="0"
+                    Background="#FFD700"
+                    BorderBrush="#FFA500"
+                    BorderThickness="2"
+                    CornerRadius="3"
+                    Margin="0,0,0,5"
+                    Padding="8,6"
+                    IsVisible="{Binding IsAlphaVersion}">
+                <TextBlock Text="⚠️ ALPHA VERSION - NOT FOR PRODUCTION USE ⚠️"
+                           FontWeight="Bold"
+                           FontSize="11"
+                           Foreground="#8B0000"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"/>
+            </Border>
+
+            <!-- Namespace/Mod Selection Row -->
+            <Grid Grid.Row="1"
+                  Margin="0,0,0,2"
+                  IsVisible="{Binding IsModSelectionVisible}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ComboBox Grid.Column="0"
+                          ItemsSource="{Binding Namespaces}"
+                          SelectedItem="{Binding SelectedNamespace}"
+                          PlaceholderText="Select the mod to install"
+                          HorizontalAlignment="Stretch"/>
+
+                <Button Grid.Column="1"
+                        Content="Browse"
+                        Command="{Binding BrowseModCommand}"
+                        Margin="5,0,0,0"
+                        Padding="10,2"/>
+
+                <Button Grid.Column="2"
+                        Content="?"
+                        Command="{Binding ShowNamespaceInfoCommand}"
+                        Width="25"
+                        Margin="2,0,0,0"
+                        Padding="0,2"/>
+            </Grid>
+
+            <!-- Game Path Selection Row -->
+            <Grid Grid.Row="2" Margin="0,0,0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ComboBox Grid.Column="0"
+                          ItemsSource="{Binding GamePaths}"
+                          SelectedItem="{Binding SelectedGamePath}"
+                          PlaceholderText="Select your KOTOR directory path"
+                          HorizontalAlignment="Stretch"/>
+
+                <Button Grid.Column="1"
+                        Content="Browse"
+                        Command="{Binding BrowseGamePathCommand}"
+                        Margin="5,0,0,0"
+                        Padding="10,2"/>
+            </Grid>
+
+            <!-- Log Text Area - Default light background matching Python's Tkinter Text widget -->
+            <!-- Python uses default tkinter colors (light theme), not black! -->
+            <Border Grid.Row="3"
+                    BorderBrush="{DynamicResource SystemBaseLowColor}"
+                    BorderThickness="1"
+                    CornerRadius="0"
+                    Padding="0">
+                <Grid>
+                    <!-- RichTextBox for RTF content (info.rtf files) - renders RTF directly! -->
+                    <rtb:RichTextBox x:Name="RtfRichTextBox"
+                                     IsVisible="{Binding IsRtfContent}"
+                                     IsReadOnly="True"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch"
+                                     Margin="0"/>
+
+                    <!-- TextBlock for formatted logs with colors - matches Python's tkinter text tags -->
+                    <ScrollViewer x:Name="LogScrollViewer"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  IsVisible="{Binding IsNotRtfContent}">
+                        <TextBlock x:Name="LogTextBlock"
+                                   TextWrapping="Wrap"
+                                   FontFamily="Helvetica, Arial, sans-serif"
+                                   FontSize="9"
+                                   Padding="5"/>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

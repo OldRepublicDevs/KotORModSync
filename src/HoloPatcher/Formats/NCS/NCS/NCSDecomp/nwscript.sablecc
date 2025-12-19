@@ -1,0 +1,178 @@
+
+Package com.knights2end.nwscript.decomp;
+
+Helpers
+
+    all = [0 .. 127];
+    digit = ['0' .. '9'];
+    nondigit = ['_' + [['a' .. 'z'] + ['A' .. 'Z']]];
+    sign = '-';
+    digit_sequence = digit+;
+    fractional_constant = digit_sequence '.' digit_sequence;
+    s_char = [all - '"'];
+    s_char_sequence = s_char+;
+    cr = 13;
+    lf = 10;
+    tab = 9;
+
+
+Tokens
+
+    l_par = '(';
+    r_par = ')';
+    semi = ';';
+    dot = '.';
+
+		cpdownsp = 'CPDOWNSP';
+		rsadd = 'RSADD';
+		cptopsp = 'CPTOPSP';
+		const = 'CONST';
+		action = 'ACTION';
+		logandii = 'LOGANDII';
+		logorii = 'LOGORII';
+		incorii = 'INCORII';
+		excorii = 'EXCORII';
+		boolandii = 'BOOLANDII';
+		equal = 'EQUAL';
+		nequal = 'NEQUAL';
+		geq = 'GEQ';
+		gt = 'GT';
+		lt = 'LT';
+		leq = 'LEQ';
+		shleft = 'SHLEFTII';
+		shright = 'SHRIGHTII';
+		unright = 'USHRIGHTII';
+		add = 'ADD';
+		sub = 'SUB';
+		mul = 'MUL';
+		div = 'DIV';
+		mod = 'MOD';
+		neg = 'NEG';
+		comp = 'COMP';
+		movsp = 'MOVSP';
+		jmp = 'JMP';
+		jsr = 'JSR';
+		jz = 'JZ';
+		retn = 'RETN';
+		destruct = 'DESTRUCT';
+		not = 'NOT';
+		decisp = 'DECISP';
+		incisp = 'INCISP';
+		jnz = 'JNZ';
+		cpdownbp = 'CPDOWNBP';
+		cptopbp = 'CPTOPBP';
+		decibp = 'DECIBP';
+		incibp = 'INCIBP';
+		savebp = 'SAVEBP';
+		restorebp = 'RESTOREBP';
+		storestate = 'STORE_STATE';
+		nop = 'NOP';
+		t = 'T';
+
+    string_literal = '"' s_char_sequence? '"';
+		blank = (cr | lf | tab | ' ')+;
+		integer_constant = sign? digit_sequence;
+		float_constant = sign? fractional_constant;
+
+Ignored Tokens
+		blank;
+
+Productions
+
+		program = size [conditional]: rsadd_command? jump_to_subroutine return subroutine+;
+
+
+		subroutine = command_block? return;
+
+		command_block = cmd+;
+
+		cmd =
+			{add_var}			rsadd_command |
+			{action_jump}	store_state_command jump_command command_block return |
+			{const}				const_command |
+			{copydownsp}	copy_down_sp_command |
+			{copytopsp}		copy_top_sp_command |
+			{copydownbp}	copy_down_bp_command |
+			{copytopbp}		copy_top_bp_command |
+			{cond_jump}		conditional_jump_command |
+			{jump}				jump_command |
+			{jump_sub}		jump_to_subroutine |
+			{movesp}			move_sp_command |
+			{logii}				logii_command |
+			{unary}				unary_command |
+			{binary}			binary_command |
+			{destruct}		destruct_command |
+			{bp}					bp_command |
+			{action}			action_command |
+			{stack_op}		stack_command |
+			({return}			return) |
+			({store_state}	store_state_command);
+
+		logii_op =
+			{and}			logandii |
+			{or}			logorii |
+			{incl_or}	incorii |
+			{excl_or}	excorii |
+			{bit_and}	boolandii;
+
+		binary_op =
+			{equal}		equal |
+			{nequal}	nequal |
+			{geq}			geq |
+			{gt}			gt |
+			{lt}			lt |
+			{leq}			leq |
+			{shright}	shright |
+			{shleft}	shleft |
+			{unright}	unright |
+			{add}		add |
+			{sub}		sub |
+			{mul}		mul |
+			{div}		div |
+			{mod}		mod;
+
+		unary_op =
+			{neg}		neg |
+			{comp}	comp |
+			{not}		not;
+
+		stack_op =
+			{decisp}	decisp |
+			{incisp}	incisp |
+			{decibp}	decibp |
+			{incibp}	incibp;
+
+		constant =
+			{int}				integer_constant |
+			{float}			float_constant |
+			{string}		string_literal;
+
+		jump_if =
+			{zero}			jz |
+			{nonzero}		jnz;
+
+		bp_op =
+			{savebp}		savebp |
+			{restorebp}	restorebp;
+
+		// commands
+		conditional_jump_command = jump_if [pos]: integer_constant [type]: integer_constant [offset]: integer_constant semi;
+		jump_command = jmp [pos]: integer_constant [type]: integer_constant [offset]: integer_constant semi;
+		jump_to_subroutine = jsr [pos]: integer_constant [type]: integer_constant [offset]: integer_constant semi;
+		return = retn [pos]: integer_constant [type]: integer_constant semi;
+		copy_down_sp_command = cpdownsp [pos]: integer_constant [type]: integer_constant [offset]: integer_constant [size]: integer_constant semi;
+		copy_top_sp_command = cptopsp [pos]: integer_constant [type]: integer_constant [offset]: integer_constant [size]: integer_constant semi;
+		copy_down_bp_command = cpdownbp [pos]: integer_constant [type]: integer_constant [offset]: integer_constant [size]: integer_constant semi;
+		copy_top_bp_command = cptopbp [pos]: integer_constant [type]: integer_constant [offset]: integer_constant [size]: integer_constant semi;
+		move_sp_command = movsp [pos]: integer_constant [type]: integer_constant [offset]: integer_constant semi;
+		rsadd_command = rsadd [pos]: integer_constant [type]: integer_constant semi;
+		const_command = const [pos]: integer_constant [type]: integer_constant constant semi;
+		action_command = action [pos]: integer_constant [type]: integer_constant [id]: integer_constant [arg_count]: integer_constant semi;
+		logii_command = logii_op [pos]: integer_constant [type]: integer_constant semi;
+		binary_command = binary_op [pos]: integer_constant [type]: integer_constant [size]: integer_constant? semi;
+		unary_command = unary_op [pos]: integer_constant [type]: integer_constant semi;
+		stack_command = stack_op [pos]: integer_constant [type]: integer_constant [offset]: integer_constant semi;
+		destruct_command = destruct [pos]: integer_constant [type]: integer_constant [size_rem]: integer_constant [offset]: integer_constant [size_save]: integer_constant semi;
+		bp_command = bp_op [pos]: integer_constant [type]: integer_constant semi;
+		store_state_command = storestate [pos]: integer_constant [offset]: integer_constant [size_bp]: integer_constant [size_sp]: integer_constant semi;
+		size = t [pos]: integer_constant integer_constant semi;

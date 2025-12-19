@@ -422,3 +422,4 @@ tslpatchdata/append.tlk
 tslpatchdata/changes.ini
 validation_logs.txt
 test-release/
+.husky

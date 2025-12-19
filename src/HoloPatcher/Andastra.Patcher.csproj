@@ -1,0 +1,115 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LangVersion>7.3</LangVersion>
+    <Version>2.0.0-alpha1</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <Platforms>x86;x64;arm64</Platforms>
+    <UseAppHost>true</UseAppHost>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- This is an EXECUTABLE, not a library - do NOT make it IsPackable -->
+    <IsPackable>false</IsPackable>
+    <TargetFrameworks></TargetFrameworks>
+    <!-- Helper to append without duplicate semicolons -->
+    <TargetFrameworks Condition="'$(TargetFrameworks)' != ''">
+      $([System.String]::Copy('$(TargetFrameworks)').TrimEnd(';').TrimStart(';'))
+    </TargetFrameworks>
+    <!-- Add each TFM conditionally -->
+    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0.0'))">
+      $(TargetFrameworks);net10
+    </TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '9.0.0'))">
+      $(TargetFrameworks);net9
+    </TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '8.0.0'))">
+      $(TargetFrameworks);net8
+    </TargetFrameworks>
+    <!-- === .NET 7 SDK: include net7.0 + net6.0 (legacy support) === -->
+    <TargetFrameworks Condition="$([System.String]::new('$(NETCoreSdkVersion)').StartsWith('7.'))">
+      $(TargetFrameworks);net7;net6
+    </TargetFrameworks>
+    <!-- === .NET 6 SDK: include (legacy support) === -->
+    <TargetFrameworks Condition="$([System.String]::new('$(NETCoreSdkVersion)').StartsWith('6.'))">
+      $(TargetFrameworks);net6
+    </TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' AND Exists('$(MSBuildProgramFiles32)\..\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8')">
+      $(TargetFrameworks);net48
+    </TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' AND Exists('$(MSBuildProgramFiles32)\..\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.2')">
+      $(TargetFrameworks);net462
+    </TargetFrameworks>
+    <!-- Ensure we always have at least one framework to avoid empty TargetFrameworks -->
+    <TargetFrameworks Condition="'$(TargetFrameworks)' == ''">net9</TargetFrameworks>
+  </PropertyGroup>
+
+  <!-- OutputType: WinExe for Windows (no console), Exe for Linux/macOS (GUI with optional console) -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)'=='' OR $(RuntimeIdentifier.StartsWith('win'))">
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+  <PropertyGroup Condition="!$(RuntimeIdentifier.StartsWith('win')) AND '$(RuntimeIdentifier)'!=''">
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <!-- RuntimeIdentifiers: Forward-compatible dynamic assignment based on .NET version -->
+  <!-- .NET Framework: Legacy Windows RIDs + cross-platform -->
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net4'))">
+    <RuntimeIdentifiers>win7-x86;win7-x64;win10-x86;win10-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <!-- .NET 8+: Modern Windows RIDs + cross-platform (forward-compatible with net10.0, net11.0, etc.) -->
+  <PropertyGroup Condition="!$(TargetFramework.StartsWith('net4'))">
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <!-- Release Configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <Optimize>true</Optimize>
+    <AllowOptimize>true</AllowOptimize>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <AllowEditAndContinue>false</AllowEditAndContinue>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <!-- Debug Configuration: Optimized for faster development builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <!-- Single target framework for fastest Debug builds -->
+    <TargetFrameworks>net9</TargetFrameworks>
+    <!-- Disable analyzers in Debug builds for faster compilation -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <!-- AvaloniaUI defs -->
+  <PropertyGroup>
+    <AvaloniaCopyWin32Dll>false</AvaloniaCopyWin32Dll>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <NoWin32Manifest>true</NoWin32Manifest>
+  </PropertyGroup>
+
+  <!-- Minimal package references needed for the entry point only -->
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.9" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.9" />
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+    <!-- NetSparkle only supports .NET Framework, so only include for net48 -->
+    <PackageReference Condition="'$(TargetFramework)' == 'net48'" Include="NetSparkle" Version="1.1.0" />
+    <PackageReference Include="Dotnet.Bundle" Version="*" />
+  </ItemGroup>
+
+  <!-- Reference the UI library and KOTORModSync -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\HoloPatcher.UI\HoloPatcher.UI\HoloPatcher.UI.csproj" />
+    <ProjectReference Include="..\..\KOTORModSync\KOTORModSync.csproj" />
+  </ItemGroup>
+
+</Project>

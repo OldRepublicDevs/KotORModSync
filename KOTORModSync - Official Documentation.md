@@ -124,31 +124,36 @@ All instruction types support the following universal properties:
 - **Restrictions**: List of Mod/Option GUIDs that must NOT be selected for this instruction to run
 
 ### 1. Extract Instruction
-Purpose: Extracts archive files to a destination directory.
 
-Supported Archive Formats:
+**Purpose:** Extracts archive files to a destination directory.
+
+**Supported Archive Formats:**
+
 - .7z (7-Zip)
 - .rar (WinRAR)
 - .zip (ZIP archives)
 - Self-extracting 7z .exe files (cross-platform support via embedded payload parsing)
 
-Properties:
-- Action: "Extract"
-- Source: List of archive file paths to extract. Each path should point to an archive file.
-  * Supports wildcards (*, ?) for pattern matching
-  * Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * Multiple archives can be specified and will be extracted in order
-- Destination: (Optional) Target directory where files should be extracted
-  * If not specified, extracts to the same directory as the archive
-  * Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
+**Properties:**
 
-Behavior:
+- **Action:** "Extract"
+- **Source:** List of archive file paths to extract. Each path should point to an archive file.
+  - Supports wildcards (*, ?) for pattern matching
+  - Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - Multiple archives can be specified and will be extracted in order
+- **Destination:** (Optional) Target directory where files should be extracted
+  - If not specified, extracts to the same directory as the archive
+  - Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
+
+**Behavior:**
+
 - All files from the archive are extracted to the destination directory
 - Preserves directory structure from within the archive
 - Updates the Virtual File System during dry-run validation
 - Logs the number of files extracted
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Extract"
@@ -157,30 +162,34 @@ Destination = "<<modDirectory>>/MyMod"
 ```
 
 ### 2. Move Instruction
-Purpose: Moves files from source location(s) to a destination directory.
 
-Properties:
-- Action: "Move"
-- Source: List of file paths to move
-  * Supports wildcards (*, ?) for pattern matching multiple files
-  * Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * All matching files will be moved
-- Destination: Target directory where files should be moved to
-  * Must be a directory path, not a file path
-  * Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * Directory will be created if it doesn't exist (during real install)
-- Overwrite: (Optional, default: true) Controls behavior when target file exists
-  * true: Deletes existing file and moves the new file
-  * false: Skips the file if it already exists at destination
+**Purpose:** Moves files from source location(s) to a destination directory.
 
-Behavior:
+**Properties:**
+
+- **Action:** "Move"
+- **Source:** List of file paths to move
+  - Supports wildcards (*, ?) for pattern matching multiple files
+  - Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - All matching files will be moved
+- **Destination:** Target directory where files should be moved to
+  - Must be a directory path, not a file path
+  - Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - Directory will be created if it doesn't exist (during real install)
+- **Overwrite:** (Optional, default: true) Controls behavior when target file exists
+  - true: Deletes existing file and moves the new file
+  - false: Skips the file if it already exists at destination
+
+**Behavior:**
+
 - Files are moved (not copied) from source to destination
 - Original file is removed from source location after successful move
 - If destination file exists and Overwrite=true, destination file is deleted first
 - If destination file exists and Overwrite=false, operation is skipped with a warning
 - Preserves filename; only directory location changes
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Move"
@@ -189,34 +198,38 @@ Destination = "<<kotorDirectory>>/Override"
 Overwrite = true
 ```
 
-Auto-Extraction Feature:
+**Auto-Extraction Feature:**
 If source files are not found and the component has a ResourceRegistry, Move will automatically attempt to extract the missing files from archives listed in the registry.
 
 ### 3. Copy Instruction
-Purpose: Copies files from source location(s) to a destination directory.
 
-Properties:
-- Action: "Copy"
-- Source: List of file paths to copy
-  * Supports wildcards (*, ?) for pattern matching multiple files
-  * Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * All matching files will be copied
-- Destination: Target directory where files should be copied to
-  * Must be a directory path, not a file path
-  * Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * Directory will be created if it doesn't exist (during real install)
-- Overwrite: (Optional, default: true) Controls behavior when target file exists
-  * true: Deletes existing file and copies the new file
-  * false: Skips the file if it already exists at destination
+**Purpose:** Copies files from source location(s) to a destination directory.
 
-Behavior:
+**Properties:**
+
+- **Action:** "Copy"
+- **Source:** List of file paths to copy
+  - Supports wildcards (*, ?) for pattern matching multiple files
+  - Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - All matching files will be copied
+- **Destination:** Target directory where files should be copied to
+  - Must be a directory path, not a file path
+  - Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - Directory will be created if it doesn't exist (during real install)
+- **Overwrite:** (Optional, default: true) Controls behavior when target file exists
+  - true: Deletes existing file and copies the new file
+  - false: Skips the file if it already exists at destination
+
+**Behavior:**
+
 - Files are copied from source to destination
 - Original file remains at source location (unlike Move)
 - If destination file exists and Overwrite=true, destination file is deleted first
 - If destination file exists and Overwrite=false, operation is skipped with a warning
 - Preserves filename; only directory location changes
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Copy"
@@ -225,33 +238,38 @@ Destination = "<<kotorDirectory>>/Override"
 Overwrite = false
 ```
 
-Auto-Extraction Feature:
+**Auto-Extraction Feature:**
+
 If source files are not found and the component has a ResourceRegistry, Copy will automatically attempt to extract the missing files from archives listed in the registry.
 
 ### 4. Rename Instruction
-Purpose: Renames a file to a new filename in the same directory.
 
-Properties:
-- Action: "Rename"
-- Source: List of file paths to rename
-  * Supports wildcards (*, ?) for pattern matching
-  * Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * Each matching file will be renamed to the same Destination filename
-- Destination: New filename (not a path, just the filename with extension)
-  * Should be just the filename, not a full path
-  * The file will be renamed in its current directory
-- Overwrite: (Optional, default: true) Controls behavior when target filename exists
-  * true: Deletes existing file with the target name and performs rename
-  * false: Skips the rename if target filename already exists
+**Purpose:** Renames a file to a new filename in the same directory.
 
-Behavior:
+**Properties:**
+
+- **Action:** "Rename"
+- **Source:** List of file paths to rename
+  - Supports wildcards (*, ?) for pattern matching
+  - Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - Each matching file will be renamed to the same Destination filename
+- **Destination:** New filename (not a path, just the filename with extension)
+  - Should be just the filename, not a full path
+  - The file will be renamed in its current directory
+- **Overwrite:** (Optional, default: true) Controls behavior when target filename exists
+  - true: Deletes existing file with the target name and performs rename
+  - false: Skips the rename if target filename already exists
+
+**Behavior:**
+
 - Changes the filename while keeping the file in the same directory
 - If target filename exists and Overwrite=true, existing file is deleted first
 - If target filename exists and Overwrite=false, operation is skipped
 - If source file doesn't exist, logs an error and continues
 - Note: SetRealPaths is called with skipExistenceCheck=true for backward compatibility
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Rename"
@@ -261,29 +279,33 @@ Overwrite = true
 ```
 
 ### 5. Delete Instruction
-Purpose: Deletes specified files from the file system.
 
-Properties:
+**Purpose:** Deletes specified files from the file system.
+
+**Properties:**
+
 - Action: "Delete"
 - Source: List of file paths to delete
-  * Supports wildcards (*, ?) for pattern matching
-  * Paths use placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * All matching files will be deleted
+  - Supports wildcards (*, ?) for pattern matching
+  - Paths use placeholders: `<<modDirectory>>` or `<<kotorDirectory>>`
+  - All matching files will be deleted
 - Destination: (Legacy/Optional) Not actively used for deletion target; delete operates on Source files
-  * Historically serialized but not functionally used
-  * Kept for backward compatibility with older TOML files
+  - Historically serialized but not functionally used
+  - Kept for backward compatibility with older TOML files
 - Overwrite: (Special behavior) Controls error handling mode
-  * true: Strict mode - logs warning and returns error code if file doesn't exist
-  * false: Lenient mode (default) - silently skips missing files with verbose log only
+  - true: Strict mode - logs warning and returns error code if file doesn't exist
+  - false: Lenient mode (default) - silently skips missing files with verbose log only
 
-Behavior:
+**Behavior:**
+
 - Deletes all files matching the Source patterns
 - Files are permanently removed (not moved to recycle bin)
 - If file doesn't exist and Overwrite=false: logs verbose message and continues
 - If file doesn't exist and Overwrite=true: logs warning and sets error code
 - SetRealPaths is called with skipExistenceCheck=true to allow deletion of non-existent files
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Delete"
@@ -292,80 +314,86 @@ Overwrite = false
 ```
 
 ### 6. DelDuplicate Instruction
-Purpose: Deletes duplicate files with different extensions but the same base filename. Useful for texture format conflicts (e.g., deleting .tpc when .tga exists).
 
-Properties:
+**Purpose:** Deletes duplicate files with different extensions but the same base filename. Useful for texture format conflicts (e.g., deleting .tpc when .tga exists).
+
+**Properties:**
+
 - Action: "DelDuplicate"
 - Source: List of file extensions to consider as "compatible" (duplicates of each other)
-  * Each entry should be a file extension (e.g., ".tpc", ".tga")
-  * Files with any of these extensions are considered for duplicate detection
-  * If not specified, defaults to Game.TextureOverridePriorityList
+  - Each entry should be a file extension (e.g., ".tpc", ".tga")
+  - Files with any of these extensions are considered for duplicate detection
+  - If not specified, defaults to Game.TextureOverridePriorityList
 - Destination: Directory to scan for duplicate files
-  * Must be a directory path
-  * Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - Must be a directory path
+  - Uses placeholders: `<<modDirectory>>` or `<<kotorDirectory>>`
 - Arguments: File extension to delete when duplicates are found
-  * Should be a single extension (e.g., ".tpc")
-  * When multiple files with the same base name exist, files with this extension are deleted
-  * If not specified in Arguments, falls back to first entry in Source
+  - Should be a single extension (e.g., ".tpc")
+  - When multiple files with the same base name exist, files with this extension are deleted
+  - If not specified in Arguments, falls back to first entry in Source
 
-Behavior:
+**Behavior:**
+
 - Scans the Destination directory for files
 - Groups files by base filename (without extension)
 - For each group with 2+ files having compatible extensions:
-  * Deletes files matching the Arguments extension
-  * Keeps files with other extensions
+  - Deletes files matching the Arguments extension
+  - Keeps files with other extensions
 - Case sensitivity controlled by Arguments parameter (defaults to case-insensitive)
 - SetRealPaths is called with sourceIsNotFilePath=true
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "DelDuplicate"
 Source = [".tpc", ".tga", ".dds"]
-Destination = "<<kotorDirectory>>/Override"
+Destination = "`<<kotorDirectory>>`/Override"
 Arguments = ".tpc"
 ```
 
 Common Use Case:
 Deleting .tpc files when .tga versions exist, since KOTOR prioritizes .tga over .tpc.
 
-----------------------------------------
-7. PATCHER INSTRUCTION
-----------------------------------------
+### 7. Patcher Instruction
+
 Purpose: Executes TSLPatcher/HoloPatcher installation using a tslpatchdata directory.
 
 Properties:
+
 - Action: "Patcher"
 - Source: Path to the tslpatchdata directory or a file within it
-  * Can be path to tslpatchdata folder itself
-  * Can be path to a file inside tslpatchdata (directory is extracted automatically)
-  * Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - Can be path to tslpatchdata folder itself
+  - Can be path to a file inside tslpatchdata (directory is extracted automatically)
+  - Uses placeholders: `<<modDirectory>>` or `<<kotorDirectory>>``
 - Destination: (Legacy) Historically serialized but not actively used by patcher execution
-  * Kept for backward compatibility
-  * Patcher always targets MainConfig.DestinationPath
+  - Kept for backward compatibility
+  - Patcher always targets MainConfig.DestinationPath
 - Arguments: (Optional) Namespace option index for multi-option patchers
-  * String representation of integer index (e.g., "0", "1", "2")
-  * Corresponds to option index in namespaces.ini (0-based)
-  * If specified, HoloPatcher will use --namespace-option-index parameter
-  * If not specified, default option is used
+  - String representation of integer index (e.g., "0", "1", "2")
+  - Corresponds to option index in namespaces.ini (0-based)
+  - If specified, HoloPatcher will use --namespace-option-index parameter
+  - If not specified, default option is used
 
-Behavior:
+**Behavior:**
+
 - Locates HoloPatcher executable (prioritizes Python version, falls back to native)
 - Modifies changes.ini automatically:
-  * Sets PlaintextLog=1 to enable text-based logging
-  * Sets LookupGameFolder=0 to prevent TSLPatcher from trying to automatically lookup kotor game installation folders
-  * Sets ConfirmMessage=N/A to suppress confirmation dialogs
+  - Sets PlaintextLog=1 to enable text-based logging
+  - Sets LookupGameFolder=0 to prevent TSLPatcher from trying to automatically lookup kotor game installation folders
+  - Sets ConfirmMessage=N/A to suppress confirmation dialogs
 - Executes HoloPatcher with parameters:
-  * --install
-  * --game-dir="<DestinationPath>"
-  * --tslpatchdata="<Source>"
-  * --namespace-option-index=<Arguments> (if Arguments specified)
+  - --install
+  - --game-dir="<DestinationPath>"
+  - --tslpatchdata="<Source>"
+  - --namespace-option-index=<Arguments> (if Arguments specified)
 - Verifies installation by checking installlog.txt/installlog.rtf for errors
 - Skips execution during dry-run validation (simulation mode)
 - Returns error if HoloPatcher exit code is non-zero
 - Returns TSLPatcherError if log contains "[Error]" entries
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Patcher"
@@ -376,36 +404,38 @@ Arguments = "1"
 Auto-Extraction Feature:
 If source files are not found and the component has a ResourceRegistry, Patcher will automatically attempt to extract the missing tslpatchdata folder from archives.
 
-----------------------------------------
-8. EXECUTE / RUN INSTRUCTIONS
-----------------------------------------
+### 8. Execute / Run Instructions
+
 Purpose: Executes an external program or script. Both "Execute" and "Run" are functionally identical.
 
 Properties:
+
 - Action: "Execute" or "Run" (both are equivalent)
 - Source: List of executable file paths to run
-  * Can be .exe, .bat, .cmd, .sh, or any executable
-  * Each executable in the list is run in sequence
-  * Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
+  - Can be .exe, .bat, .cmd, .sh, or any executable
+  - Each executable in the list is run in sequence
+  - Uses placeholders: `<<modDirectory>>` or `<<kotorDirectory>>`
 - Arguments: (Optional) Command-line arguments to pass to the executable
-  * Full argument string passed to the program
-  * Supports placeholder replacement via ReplaceCustomVariables
-  * Can include <<modDirectory>> and <<kotorDirectory>> in arguments
+  - Full argument string passed to the program
+  - Supports placeholder replacement via ReplaceCustomVariables
+  - Can include `<<modDirectory>>` and `<<kotorDirectory>>` in arguments
 - Destination: Not used by Execute/Run instructions
 
-Behavior:
+**Behavior:**
+
 - Executes each program in the Source list sequentially
 - Waits for each program to complete before moving to the next
 - Captures stdout and stderr output and logs it
 - SetRealPaths is called with skipExistenceCheck=true
 - If any executable returns non-zero exit code:
-  * Logs the output and error streams
-  * Returns ChildProcessError
-  * Stops processing remaining executables
+  - Logs the output and error streams
+  - Returns ChildProcessError
+  - Stops processing remaining executables
 - Returns FileNotFoundPost if executable doesn't exist
 - Not executed during dry-run validation (simulation mode)
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Execute"
@@ -416,33 +446,35 @@ Arguments = "/silent /norestart"
 Security Note:
 Execute instructions can run arbitrary code. Only use instruction files from trusted sources.
 
-----------------------------------------
-9. CHOOSE INSTRUCTION
-----------------------------------------
+### 9. Choose Instruction
+
 Purpose: Executes instructions conditionally based on which Options are selected by the user.
 
 Properties:
+
 - Action: "Choose"
 - Source: List of Option GUIDs (not file paths)
-  * Each GUID corresponds to an Option defined in the component
-  * When an Option is selected by the user, its instructions will be executed
-  * Multiple GUIDs can be specified
+  - Each GUID corresponds to an Option defined in the component
+  - When an Option is selected by the user, its instructions will be executed
+  - Multiple GUIDs can be specified
 - Destination: Not used (kept for serialization compatibility)
 - Dependencies: (Optional) List of GUIDs that must be selected for this Choose instruction to run
 - Restrictions: (Optional) List of GUIDs that must not be selected for this Choose instruction to run
 
-Behavior:
+**Behavior:**
+
 - SetRealPaths is called with sourceIsNotFilePath=true
 - Retrieves the list of selected Options whose GUIDs are in the Source list
 - For each selected Option:
-  * Executes all instructions defined in that Option
-  * Executes them in sequence using ExecuteInstructionsAsync
-  * If any Option's instructions fail, returns OptionalInstallFailed
+  - Executes all instructions defined in that Option
+  - Executes them in sequence using ExecuteInstructionsAsync
+  - If any Option's instructions fail, returns OptionalInstallFailed
 - Options are processed in the order their GUIDs appear in Source
 - Allows for conditional installation based on user choices
 - Commonly used for "which texture variant do you want?" scenarios
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "Choose"
@@ -452,50 +484,56 @@ Source = ["a1b2c3d4-e5f6-7890-abcd-ef1234567890", "f9e8d7c6-b5a4-3210-9876-54321
 How Options Work:
 Options are defined separately with their own Name, Description, and Instructions. The user sees these as selectable choices in the UI. When an Option is selected, its GUID should be included in a Choose instruction's Source list.
 
-----------------------------------------
-10. CLEANLIST INSTRUCTION
-----------------------------------------
+### 10. CleanList Instruction
+
 Purpose: Reads a CSV file that specifies files to delete based on which mods are selected. Used for compatibility cleanups.
 
 Properties:
+
 - Action: "CleanList"
 - Source: Path to the cleanlist CSV file
-  * Should be a single CSV file path
-  * Uses placeholders: <<modDirectory>> or <<kotorDirectory>>
-  * First file in Source list is used (if multiple specified)
+  - Should be a single CSV file path
+  - Uses placeholders: `<<modDirectory>>` or `<<kotorDirectory>>`
+  - First file in Source list is used (if multiple specified)
 - Destination: Directory where files should be deleted from
-  * Typically <<kotorDirectory>>/Override
-  * Files listed in the CSV are deleted from this directory
+  - Typically `<<kotorDirectory>>`/Override
+  - Files listed in the CSV are deleted from this directory
 
-CSV File Format:
+**CSV File Format:**
+
 Each line in the CSV: ModName,file1.ext,file2.ext,file3.ext,...
+
 - First field: Name of the mod (used for matching against selected components)
 - Remaining fields: Filenames to delete if that mod is selected
 
-Behavior:
+**Behavior:**
+
 - Reads the cleanlist CSV file
 - For each line in the file:
-  * Extracts mod name (first field)
-  * Extracts list of files to delete (remaining fields)
-  * Checks if a mod matching that name is selected using fuzzy matching:
+  - Extracts mod name (first field)
+  - Extracts list of files to delete (remaining fields)
+  - Checks if a mod matching that name is selected using fuzzy matching:
     - Exact match (case-insensitive)
     - Substring match
     - Token-based matching (requires 2+ shared tokens and 60% overlap)
-  * If mod is selected, deletes all specified files from Destination directory
+  - If mod is selected, deletes all specified files from Destination directory
 - Special case: Lines starting with "Mandatory Deletions" are always processed
 - SetRealPaths is called with skipExistenceCheck=true
 - Logs each file deleted and provides summary statistics
 - Files that don't exist are skipped with verbose logging
 
-Fuzzy Matching Details:
+**Fuzzy Matching Details:**
+
 The mod name matching uses tokenization that:
+
 - Converts to lowercase
 - Removes punctuation
 - Splits on whitespace
 - Removes stop words: "by", "for", "the", "and", "of", "mod", "pack", "k1", "k2", "hd", "kotor", "version", etc.
 - Applies crude singularization (removes trailing 's' from words longer than 3 chars)
 
-Example Usage:
+**Example Usage:**
+
 ```toml
 [[Instructions]]
 Action = "CleanList"
@@ -503,16 +541,17 @@ Source = ["<<modDirectory>>/compatlist.csv"]
 Destination = "<<kotorDirectory>>/Override"
 ```
 
-Example CSV Content:
-```
+**Example CSV Content:**
+
+```csv
 Mandatory Deletions,old_file1.tga,old_file2.tpc
 HD UI Rewrite,ui_old.tga,ui_old.tpc
 Weapon Model Overhaul,w_blaster_01.mdl,w_blaster_01.mdx
 ```
 
-----------------------------------------
-BACKWARDS COMPATIBILITY NOTES
-----------------------------------------
+---
+
+## Backwards Compatibility Notes
 
 1. Destination Field:
    - Serialized for Extract, Move, Copy, Rename, Patcher, Delete, and CleanList
@@ -536,8 +575,8 @@ BACKWARDS COMPATIBILITY NOTES
    - DelDuplicate uses it for compatible extensions list
 
 5. Path Placeholders:
-   - <<modDirectory>> replaced with MainConfig.SourcePath
-   - <<kotorDirectory>> replaced with MainConfig.DestinationPath
+   - `<<modDirectory>>` replaced with MainConfig.SourcePath
+   - `<<kotorDirectory>>` replaced with MainConfig.DestinationPath
    - Replacement happens in UtilityHelper.ReplaceCustomVariables()
    - Paths are only made absolute in Instruction.SetRealPaths() for security
 
@@ -556,7 +595,3 @@ BACKWARDS COMPATIBILITY NOTES
    - Tracks file state as instructions execute
    - Must be initialized with InitializeFromRealFileSystemAsync()
    - Simulates file operations without touching disk
-
-========================================
-END OF INSTRUCTION TYPE REFERENCE
-========================================

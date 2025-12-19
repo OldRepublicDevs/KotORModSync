@@ -203,7 +203,7 @@ namespace KOTORModSync.Tests
                 Destination = "<<kotorDirectory>>/Override"
             });
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, new RealFileSystemProvider());
+            var result = await component.ExecuteInstructionsAsync(component.Instructions, new List<ModComponent> { component }, System.Threading.CancellationToken.None, new RealFileSystemProvider());
 
             Assert.Multiple(() =>
             {
@@ -223,7 +223,7 @@ namespace KOTORModSync.Tests
                 Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>()
             };
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, new RealFileSystemProvider());
+            var result = await component.ExecuteInstructionsAsync(component.Instructions, new List<ModComponent> { component }, System.Threading.CancellationToken.None, new RealFileSystemProvider());
 
             Assert.Multiple(() =>
             {
@@ -246,7 +246,7 @@ namespace KOTORModSync.Tests
             // Should throw or handle gracefully
             Assert.ThrowsAsync<Exception>(async () =>
             {
-                await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, new RealFileSystemProvider());
+                await component.ExecuteInstructionsAsync(component.Instructions, new List<ModComponent> { component }, System.Threading.CancellationToken.None, new RealFileSystemProvider());
             }, "Should throw or handle null instructions");
         }
 

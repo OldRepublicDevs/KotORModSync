@@ -102,7 +102,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
+            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
 
             Assert.Multiple(() =>
             {
@@ -149,7 +149,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
+            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
 
             Assert.Multiple(() =>
             {
@@ -199,7 +199,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
+            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
 
             Assert.Multiple(() =>
             {
@@ -251,7 +251,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
+            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
 
             Assert.Multiple(() =>
             {
@@ -292,7 +292,7 @@ namespace KOTORModSync.Tests
             var components = new List<ModComponent> { component };
             var fileSystemProvider = new RealFileSystemProvider();
 
-            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
+            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
 
             Assert.Multiple(() =>
             {
@@ -360,7 +360,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
+            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
 
             Assert.Multiple(() =>
             {

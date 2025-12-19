@@ -201,7 +201,7 @@ namespace KOTORModSync.Tests
                 instruction.SetFileSystemProvider(fileSystemProvider);
                 instruction.SetParentComponent(component1);
             }
-            await component1.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
+            await component1.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider).ConfigureAwait(false);
 
             await manager.MarkComponentCompletedAsync(component1.Guid).ConfigureAwait(false);
             await manager.SaveSnapshotAsync(System.Threading.CancellationToken.None).ConfigureAwait(false);

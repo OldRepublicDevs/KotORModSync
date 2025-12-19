@@ -231,9 +231,9 @@ namespace KOTORModSync.Tests
             }
         }
 
-        private static async Task<Button?> ClickButtonWithContentAsync(Control root, string contentSubstring)
+        private static async Task<Button> ClickButtonWithContentAsync(Control root, string contentSubstring)
         {
-            Button? button = await Dispatcher.UIThread.InvokeAsync(
+            Button button = await Dispatcher.UIThread.InvokeAsync(
                 () => root.GetVisualDescendants()
                     .OfType<Button>()
                     .FirstOrDefault(b =>

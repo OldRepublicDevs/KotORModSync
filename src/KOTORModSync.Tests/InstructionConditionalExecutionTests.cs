@@ -518,7 +518,7 @@ namespace KOTORModSync.Tests
             }
 
             // Execute all instructions
-            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider);
+            var exitCode = await component.ExecuteInstructionsAsync(components, System.Threading.CancellationToken.None, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 
             Assert.Multiple(() =>
             {

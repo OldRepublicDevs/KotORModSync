@@ -531,7 +531,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, fileSystemProvider);
+            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 
             Assert.Multiple(() =>
             {
@@ -570,7 +570,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, fileSystemProvider);
+            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 
             Assert.Multiple(() =>
             {

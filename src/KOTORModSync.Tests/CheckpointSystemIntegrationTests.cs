@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -227,7 +227,7 @@ namespace KOTORModSync.Tests
 			var mod = CreateTestModComponent("Test Mod 1", 1);
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 
@@ -254,7 +254,7 @@ namespace KOTORModSync.Tests
 
 			int initialFileCount = Directory.GetFiles(_gameDirectory.FullName, "*", SearchOption.AllDirectories).Length;
 
-			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 
 			var checkpoint = (await _checkpointService.ListCheckpointsAsync(_currentSessionId))
@@ -284,7 +284,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= modCount; i++)
 			{
 				var mod = CreateTestModComponent($"Test Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -308,7 +308,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= modCount; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -338,7 +338,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				string cpId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 				checkpointIds.Add(cpId);
 			}
@@ -370,7 +370,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 25; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -402,7 +402,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 10; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -427,7 +427,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 15; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -467,7 +467,7 @@ namespace KOTORModSync.Tests
 			string audioFile = Path.Combine(_gameDirectory.FullName, "StreamVoice", "large_audio.wav");
 			string originalHash = await ComputeFileHashAsync(audioFile);
 
-			await largeFileMod.ExecuteInstructionsAsync(largeFileMod.Instructions, new List<ModComponent> { largeFileMod }, default, fileSystemProvider);
+			await largeFileMod.ExecuteInstructionsAsync(largeFileMod.Instructions, new List<ModComponent> { largeFileMod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(largeFileMod.Name, largeFileMod.Guid.ToString());
 
 			string modifiedHash = await ComputeFileHashAsync(audioFile);
@@ -533,10 +533,10 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, fileSystemProvider);
+			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			await _checkpointService.CreateCheckpointAsync(mod1.Name, mod1.Guid.ToString());
 
-			await mod2.ExecuteInstructionsAsync(mod2.Instructions, new List<ModComponent> { mod2 }, default, fileSystemProvider);
+			await mod2.ExecuteInstructionsAsync(mod2.Instructions, new List<ModComponent> { mod2 }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			await _checkpointService.CreateCheckpointAsync(mod2.Name, mod2.Guid.ToString());
 
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
@@ -558,7 +558,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 20; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -583,7 +583,7 @@ namespace KOTORModSync.Tests
 			var mod = CreateTestModComponent("Validation Test", 1);
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 
 			var (isValid, errors) = await _checkpointService.ValidateCheckpointAsync(checkpointId);
@@ -602,7 +602,7 @@ namespace KOTORModSync.Tests
 			var mod = CreateTestModComponent("Corruption Test", 1);
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+			await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 
 			string casObjectsDir = Path.Combine(CheckpointPaths.GetCheckpointsRoot(_gameDirectory.FullName), "objects");
@@ -630,7 +630,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -656,7 +656,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -683,13 +683,13 @@ namespace KOTORModSync.Tests
 		{
 			var session1Id = await _checkpointService.StartInstallationSessionAsync();
 			var mod1 = CreateTestModComponent("Session 1 Mod", 1);
-			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, new RealFileSystemProvider());
+			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, new RealFileSystemProvider(, System.Threading.CancellationToken.None, fileSystemProvider));
 			await _checkpointService.CreateCheckpointAsync(mod1.Name, mod1.Guid.ToString());
 			await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
 
 			var session2Id = await _checkpointService.StartInstallationSessionAsync();
 			var mod2 = CreateTestModComponent("Session 2 Mod", 2);
-			await mod2.ExecuteInstructionsAsync(mod2.Instructions, new List<ModComponent> { mod2 }, default, new RealFileSystemProvider());
+			await mod2.ExecuteInstructionsAsync(mod2.Instructions, new List<ModComponent> { mod2 }, default, new RealFileSystemProvider(, System.Threading.CancellationToken.None, fileSystemProvider));
 			await _checkpointService.CreateCheckpointAsync(mod2.Name, mod2.Guid.ToString());
 
 			var sessions = await _checkpointService.ListSessionsAsync();
@@ -707,13 +707,13 @@ namespace KOTORModSync.Tests
 		{
 			var session1Id = await _checkpointService.StartInstallationSessionAsync();
 			var mod1 = CreateTestModComponent("Session 1 Mod", 1);
-			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, new RealFileSystemProvider());
+			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, new RealFileSystemProvider(, System.Threading.CancellationToken.None, fileSystemProvider));
 			await _checkpointService.CreateCheckpointAsync(mod1.Name, mod1.Guid.ToString());
 			await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
 
 			var session2Id = await _checkpointService.StartInstallationSessionAsync();
 			var mod2 = CreateTestModComponent("Session 2 Mod", 2);
-			await mod2.ExecuteInstructionsAsync(mod2.Instructions, new List<ModComponent> { mod2 }, default, new RealFileSystemProvider());
+			await mod2.ExecuteInstructionsAsync(mod2.Instructions, new List<ModComponent> { mod2 }, default, new RealFileSystemProvider(, System.Threading.CancellationToken.None, fileSystemProvider));
 			await _checkpointService.CreateCheckpointAsync(mod2.Name, mod2.Guid.ToString());
 
 			await _checkpointService.DeleteSessionAsync(session1Id);
@@ -739,7 +739,7 @@ namespace KOTORModSync.Tests
 				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>()
 			};
 
-			await emptyMod.ExecuteInstructionsAsync(emptyMod.Instructions, new List<ModComponent> { emptyMod }, default, new RealFileSystemProvider());
+			await emptyMod.ExecuteInstructionsAsync(emptyMod.Instructions, new List<ModComponent> { emptyMod }, default, new RealFileSystemProvider(, System.Threading.CancellationToken.None, fileSystemProvider));
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(emptyMod.Name, emptyMod.Guid.ToString());
 
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
@@ -761,7 +761,7 @@ namespace KOTORModSync.Tests
 			var fileSystemProvider = new RealFileSystemProvider();
 
 			var mod1 = CreateTestModComponent("Add Files Mod", 1);
-			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, fileSystemProvider);
+			await mod1.ExecuteInstructionsAsync(mod1.Instructions, new List<ModComponent> { mod1 }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			await _checkpointService.CreateCheckpointAsync(mod1.Name, mod1.Guid.ToString());
 
 			string fileToDelete = Path.Combine(_gameDirectory.FullName, "Override", "texture_1.tga");
@@ -780,7 +780,7 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			await deleteMod.ExecuteInstructionsAsync(deleteMod.Instructions, new List<ModComponent> { deleteMod }, default, fileSystemProvider);
+			await deleteMod.ExecuteInstructionsAsync(deleteMod.Instructions, new List<ModComponent> { deleteMod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(deleteMod.Name, deleteMod.Guid.ToString());
 
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
@@ -807,7 +807,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 			}
 
@@ -845,7 +845,7 @@ namespace KOTORModSync.Tests
 			for (int i = 1; i <= modCount; i++)
 			{
 				var mod = CreateTestModComponent($"Performance Mod {i}", i);
-				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
+				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 
 				var sw = System.Diagnostics.Stopwatch.StartNew();
 				await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());

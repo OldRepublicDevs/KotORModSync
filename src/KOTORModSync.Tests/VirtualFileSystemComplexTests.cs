@@ -111,7 +111,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, vfs);
+            var result = await component.ExecuteInstructionsAsync(component.Instructions, new List<ModComponent> { component }, System.Threading.CancellationToken.None, vfs);
 
             Assert.Multiple(() =>
             {
@@ -359,8 +359,8 @@ namespace KOTORModSync.Tests
                 }
             }
 
-            var resultA = await modA.ExecuteInstructionsAsync(new List<ModComponent> { modA, modB }, vfs);
-            var resultB = await modB.ExecuteInstructionsAsync(new List<ModComponent> { modA, modB }, vfs);
+            var resultA = await modA.ExecuteInstructionsAsync(modA.Instructions, new List<ModComponent> { modA, modB }, System.Threading.CancellationToken.None, vfs);
+            var resultB = await modB.ExecuteInstructionsAsync(modB.Instructions, new List<ModComponent> { modA, modB }, System.Threading.CancellationToken.None, vfs);
 
             Assert.Multiple(() =>
             {

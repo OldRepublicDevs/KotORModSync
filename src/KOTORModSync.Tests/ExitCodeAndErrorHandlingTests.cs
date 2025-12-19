@@ -177,7 +177,7 @@ namespace KOTORModSync.Tests
                 File.Delete(archivePath);
             }
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, new RealFileSystemProvider());
+            var result = await component.ExecuteInstructionsAsync(component.Instructions, new List<ModComponent> { component }, System.Threading.CancellationToken.None, new RealFileSystemProvider());
 
             Assert.Multiple(() =>
             {
@@ -199,7 +199,7 @@ namespace KOTORModSync.Tests
                 Destination = "<<kotorDirectory>>/Override"
             });
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, new RealFileSystemProvider());
+            var result = await component.ExecuteInstructionsAsync(component.Instructions, new List<ModComponent> { component }, System.Threading.CancellationToken.None, new RealFileSystemProvider());
 
             Assert.Multiple(() =>
             {
@@ -265,7 +265,7 @@ namespace KOTORModSync.Tests
                 Destination = "<<kotorDirectory>>/Override"
             });
 
-            var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, new RealFileSystemProvider());
+            var result = await component.ExecuteInstructionsAsync(component.Instructions, new List<ModComponent> { component }, System.Threading.CancellationToken.None, new RealFileSystemProvider());
 
             Assert.Multiple(() =>
             {

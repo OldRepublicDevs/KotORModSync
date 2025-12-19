@@ -1,0 +1,6 @@
+[submodule "src/AvRichTextBox"]
+	path = src/AvRichTextBox
+	url = https://github.com/th3w1zard1/AvRichTextBox.git
+[submodule "src/RtfDomParserAvalonia"]
+	path = src/RtfDomParserAvalonia
+	url = https://github.com/th3w1zard1/RtfDomParserAvalonia.git

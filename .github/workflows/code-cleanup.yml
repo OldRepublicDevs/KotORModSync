@@ -28,7 +28,7 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore --framework net8.0
+      run: dotnet restore --framework net9.0
 
     - name: Build solution
       run: dotnet build --no-restore --configuration Release
@@ -81,7 +81,7 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore --framework net8.0
+      run: dotnet restore --framework net9.0
 
     - name: Auto-fix code style issues
       run: ./cleanup-code.sh --fix

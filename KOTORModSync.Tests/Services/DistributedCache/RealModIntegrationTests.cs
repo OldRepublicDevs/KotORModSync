@@ -265,8 +265,12 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             }
         }
 
+        /// <summary>
+        /// Long-running test for KOTOR1 ContentId computation.
+        /// This test may take longer than 2 minutes but is NOT intended for GitHub runners.
+        /// </summary>
         [Fact]
-        public async Task RealMods_KOTOR1_CanComputeContentIds()
+        public async Task RealMods_KOTOR1_CanComputeContentIds_LongRunning()
         {
             ResetDiagnostics();
 
@@ -310,8 +314,12 @@ namespace KOTORModSync.Tests.Services.DistributedCache
             }
         }
 
+        /// <summary>
+        /// Long-running test for KOTOR2 ContentId computation.
+        /// This test may take longer than 2 minutes but is NOT intended for GitHub runners.
+        /// </summary>
         [Fact]
-        public async Task RealMods_KOTOR2_CanComputeContentIds()
+        public async Task RealMods_KOTOR2_CanComputeContentIds_LongRunning()
         {
             ResetDiagnostics();
 
@@ -349,11 +357,12 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         /// <summary>
-        /// Long-running seeding test for KOTOR1 Full mod build.
+        /// GitHub Runner seeding test for KOTOR1 Full mod build.
         /// Seeds all available files for as long as possible to test P2P functionality.
+        /// This test is intended to run on GitHub Actions runners for continuous seeding.
         /// </summary>
         [Fact]
-        public async Task RealMods_KOTOR1Full_LongRunningSeeding()
+        public async Task RealMods_KOTOR1Full_GitHubRunnerSeeding()
         {
             ResetDiagnostics();
 
@@ -486,11 +495,12 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         }
 
         /// <summary>
-        /// Long-running seeding test for KOTOR2 Full mod build.
+        /// GitHub Runner seeding test for KOTOR2 Full mod build.
         /// Seeds all available files for as long as possible to test P2P functionality.
+        /// This test is intended to run on GitHub Actions runners for continuous seeding.
         /// </summary>
         [Fact]
-        public async Task RealMods_KOTOR2Full_LongRunningSeeding()
+        public async Task RealMods_KOTOR2Full_GitHubRunnerSeeding()
         {
             ResetDiagnostics();
 

@@ -27,14 +27,14 @@
   <!-- Release Configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <!-- Use latest .NET (8) + .NET Framework 4.8 fallback for Windows-only legacy support -->
-    <TargetFrameworks>net8.0;net48</TargetFrameworks>
+    <!-- Use latest .NET (9) + .NET Framework 4.8 fallback for Windows-only legacy support -->
+    <TargetFrameworks>net9.0;net48</TargetFrameworks>
   </PropertyGroup>
 
   <!-- Debug Configuration: Optimized for faster development builds -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <!-- Build only latest .NET (net8.0) for Debug to speed up development builds (unless TargetFramework is explicitly set) -->
-    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net8.0</TargetFrameworks>
+    <!-- Build only latest .NET (net9.0) for Debug to speed up development builds (unless TargetFramework is explicitly set) -->
+    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net9.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
     <!-- Disable analyzers in Debug builds for faster compilation -->
     <EnableNETAnalyzers>false</EnableNETAnalyzers>

@@ -2,41 +2,24 @@ name: Distributed Cache Tests
 
 on:
   schedule:
-    # Run every hour
-    - cron: "0 * * * *"
+    # Run hourly
+    - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
-      test_category:
-        description: "Test category to run"
+      run_seeding_tests:
+        description: 'Run GitHub Runner seeding tests'
         required: false
-        default: "All"
-        type: choice
-        options:
-          - All
-          - ContentId
-          - Seeding
-          - Port
-          - Engine
-          - Integration
-      include_docker:
-        description: "Include Docker-based tests"
-        required: false
-        default: false
+        default: true
         type: boolean
-      seed_duration_hours:
-        description: "Seeding duration (hours, max 5.5 for GitHub timeout)"
-        required: false
-        default: "5"
-        type: string
 
 jobs:
-  unit-tests:
-    name: Run Unit Tests
+  seeding-tests:
+    name: GitHub Runner Seeding Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-
+    timeout-minutes: 360  # 6 hours max
+    
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -44,179 +27,17 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: '9.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore --framework net8.0
+        run: dotnet restore
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build --no-restore
 
-      - name: Run ContentId Tests
-        if: ${{ github.event.inputs.test_category == 'All' || github.event.inputs.test_category == 'ContentId' || github.event_name == 'schedule' }}
-        run: dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj --no-build --configuration Release --filter "FullyQualifiedName~ContentIdTests" --logger "console;verbosity=detailed"
-
-      - name: Run Port Management Tests
-        if: ${{ github.event.inputs.test_category == 'All' || github.event.inputs.test_category == 'Port' || github.event_name == 'schedule' }}
-        run: dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj --no-build --configuration Release --filter "FullyQualifiedName~PortManagementTests" --logger "console;verbosity=detailed"
-
-      - name: Run Cache Engine Tests
-        if: ${{ github.event.inputs.test_category == 'All' || github.event.inputs.test_category == 'Engine' || github.event_name == 'schedule' }}
-        run: dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj --no-build --configuration Release --filter "FullyQualifiedName~CacheEngineTests" --logger "console;verbosity=detailed"
-
-      - name: Run Real Mod Integration Tests
-        if: ${{ github.event.inputs.test_category == 'All' || github.event.inputs.test_category == 'Integration' || github.event_name == 'schedule' }}
-        run: dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj --no-build --configuration Release --filter "FullyQualifiedName~RealModIntegrationTests" --logger "console;verbosity=detailed"
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-unit
-          path: "**/TestResults/**"
-
-  docker-tests:
-    name: Run Docker Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    if: ${{ github.event.inputs.include_docker == 'true' || github.event_name == 'schedule' }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Pull Docker images
-        run: |
-          docker pull linuxserver/qbittorrent:latest
-          docker pull linuxserver/transmission:latest
-          docker pull linuxserver/deluge:latest
-
-      - name: Restore dependencies
-        run: dotnet restore --framework net8.0
-
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Run Seeding Integration Tests
-        run: |
-          # Remove Skip attribute from tests
-          dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-            --no-build --configuration Release \
-            --filter "FullyQualifiedName~SeedingIntegrationTests" \
-            --logger "console;verbosity=detailed" \
-            -- RunConfiguration.TestSessionTimeout=7200000
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-docker
-          path: "**/TestResults/**"
-
-      - name: Cleanup Docker containers
-        if: always()
-        run: |
-          docker ps -aq --filter "name=qbt-test" --filter "name=transmission-test" --filter "name=deluge-test" | xargs -r docker rm -f
-
-  seed-kotor1:
-    name: Long-Running KOTOR1 Seeding Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 360 # 6 hours max for GitHub Actions
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Restore dependencies
-        run: dotnet restore --framework net8.0
-
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Run KOTOR1 Long-Running Seeding Test
+      - name: Run GitHub Runner Seeding Tests
         run: |
           dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-            --no-build --configuration Release \
-            --filter "FullyQualifiedName~RealMods_KOTOR1Full_LongRunningSeeding" \
-            --logger "console;verbosity=detailed" \
-            -- RunConfiguration.TestSessionTimeout=21600000
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kotor1-seeding-results
-          path: "**/TestResults/**"
-
-  seed-kotor2:
-    name: Long-Running KOTOR2 Seeding Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 360 # 6 hours max for GitHub Actions
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Restore dependencies
-        run: dotnet restore --framework net8.0
-
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Run KOTOR2 Long-Running Seeding Test
-        run: |
-          dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-            --no-build --configuration Release \
-            --filter "FullyQualifiedName~RealMods_KOTOR2Full_LongRunningSeeding" \
-            --logger "console;verbosity=detailed" \
-            -- RunConfiguration.TestSessionTimeout=21600000
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kotor2-seeding-results
-          path: "**/TestResults/**"
-
-  test-summary:
-    name: Test Summary
-    runs-on: ubuntu-latest
-    needs: [unit-tests, docker-tests, seed-kotor1, seed-kotor2]
-    if: always()
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Generate summary
-        run: |
-          echo "# Distributed Cache Test Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Docker Tests: ${{ needs.docker-tests.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- KOTOR1 Seeding: ${{ needs.seed-kotor1.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- KOTOR2 Seeding: ${{ needs.seed-kotor2.result }}" >> $GITHUB_STEP_SUMMARY
+            --filter "FullyQualifiedName~GitHubRunnerSeeding" \
+            --no-build \
+            --verbosity normal

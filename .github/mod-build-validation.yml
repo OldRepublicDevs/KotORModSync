@@ -118,7 +118,7 @@ jobs:
         run: |
           mkdir -p temp_output
           dotnet run --project KOTORModSync.Core/KOTORModSync.Core.csproj \
-            --framework net8.0 \
+            --framework net9.0 \
             --configuration Release \
             -- convert-to-toml \
             --input "../mod-builds/${{ matrix.build.source_path }}" \
@@ -131,7 +131,7 @@ jobs:
         working-directory: KOTORModSync
         run: |
           dotnet run --project KOTORModSync.Core/KOTORModSync.Core.csproj \
-            --framework net8.0 \
+            --framework net9.0 \
             --configuration Release \
             -- generate-docs \
             --input "../mod-builds/${{ matrix.build.source_path }}" \

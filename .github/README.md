@@ -65,14 +65,14 @@ The workflow uses the KOTORModSync Core library's CLI interface:
 ```bash
 # Convert markdown to TOML
 dotnet run --project KOTORModSync.Core/KOTORModSync.Core.csproj \
-  --framework net8.0 \
+  --framework net9.0 \
   -- convert-to-toml \
   --input <source.md> \
   --output <destination.toml>
 
 # Regenerate normalized markdown documentation
 dotnet run --project KOTORModSync.Core/KOTORModSync.Core.csproj \
-  --framework net8.0 \
+  --framework net9.0 \
   -- generate-docs \
   --input <source.md> \
   --output <destination.md>

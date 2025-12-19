@@ -56,7 +56,7 @@
   optimizations enabled.-->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <!-- Use latest .NET (9) + .NET Framework 4.8 fallback for Windows-only legacy support -->
-    <TargetFrameworks>net9.0;net8.0;net48</TargetFrameworks>
+    <TargetFrameworks>net9.0;net48</TargetFrameworks>
     <Optimize>true</Optimize>
     <AllowOptimize>true</AllowOptimize>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
@@ -79,8 +79,8 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <HotReloadEnabled>false</HotReloadEnabled>
-    <!-- Build only latest .NET (net8.0) for Debug to speed up builds (unless TargetFramework is explicitly set) -->
-    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net8.0</TargetFrameworks>
+    <!-- Build only latest .NET (net9.0) for Debug to speed up builds (unless TargetFramework is explicitly set) -->
+    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net9.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
     <!-- Disable analyzers in Debug builds for faster compilation -->
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
@@ -162,13 +162,13 @@
   <!-- Install Python dependencies at build time - DISABLED due to subprocess deadlock in MSBuild -->
   <!-- Python dependencies will be installed at runtime on first use instead -->
   <!-- To manually install: dotnet run (dash)(dash)project
-  KOTORModSync.Core\KOTORModSync.Core.csproj (dash)(dash)framework net8.0 (dash)(dash)
+  KOTORModSync.Core\KOTORModSync.Core.csproj (dash)(dash)framework net9.0 (dash)(dash)
   install-python-deps -->
   <!--
   <Target Name="InstallPythonDependencies" AfterTargets="Build" BeforeTargets="PostBuildEvent">
     <Message Importance="High" Text="Installing Python dependencies for HoloPatcher..." />
     <Exec Command="dotnet run (dash)(dash)project
-  &quot;$(SolutionDir)KOTORModSync.Core\KOTORModSync.Core.csproj&quot; (dash)(dash)framework net8.0
+  &quot;$(SolutionDir)KOTORModSync.Core\KOTORModSync.Core.csproj&quot; (dash)(dash)framework net9.0
   (dash)(dash) install-python-deps"
           ConsoleToMSBuild="true"
           IgnoreExitCode="true"

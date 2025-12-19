@@ -122,7 +122,7 @@ Tests run automatically on GitHub Actions:
 
 - Unit tests (no Docker)
 - Docker integration tests
-- Long-running seed operation (5-6 hours)
+- GitHub Runner seeding tests (5-6 hours) - runs tests with `GitHubRunnerSeeding` suffix
 
 ### Manual Triggers
 
@@ -176,14 +176,16 @@ Provides test infrastructure:
 
 ## Continuous Seeding
 
-The GitHub Actions workflow includes a long-running seed operation that:
+The GitHub Actions workflow includes long-running seed operations (tests with `GitHubRunnerSeeding` suffix) that:
 
-- Runs for 5-6 hours (GitHub Actions max timeout)
-- Seeds multiple files concurrently
-- Reports statistics every 5 minutes
-- Serves as a low-end seedbox for the distributed cache network
+- Run for 5-6 hours (GitHub Actions max timeout)
+- Seed multiple files concurrently
+- Report statistics every 5 minutes
+- Serve as a low-end seedbox for the distributed cache network
 
 This ensures the distributed cache network has active seeders for testing and development.
+
+**Note:** Tests with `GitHubRunnerSeeding` suffix are EXCLUSIVELY for GitHub Actions runners. Other long-running tests (>2 minutes) use the `LongRunning` suffix and are NOT run in GitHub workflows.
 
 ## Contributing
 

@@ -95,7 +95,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                TestContext.Progress.WriteLine("FindCaseInsensitiveDuplicates_FindsFileDuplicates_CaseInsensitive: Test is not possible on Windows.");
                 return;
             }
 
@@ -155,7 +155,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                TestContext.Progress.WriteLine("FindCaseInsensitiveDuplicates_IgnoresNonDuplicates: Test is not possible on Windows.");
                 return;
             }
 
@@ -182,7 +182,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                TestContext.Progress.WriteLine("FindCaseInsensitiveDuplicates_IgnoresExtensions: Test is not possible on Windows.");
                 return;
             }
 

@@ -326,7 +326,7 @@ csharp_style_pattern_matching_over_as_and_null_check = true:warning
 
 # IDE0021-IDE0022: Expression body for constructors, operators, etc.
 csharp_style_expression_bodied_constructors = false:silent
-csharp_style_expression_bodied_methods = false:silent
+csharp_style_expression_bodied_methods = when_on_single_line:silent
 csharp_style_expression_bodied_operators = false:silent
 
 # IDE0023-IDE0024-IDE0025: Expression body for properties/indexers/accessors

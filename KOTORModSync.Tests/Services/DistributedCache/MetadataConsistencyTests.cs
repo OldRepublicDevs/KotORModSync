@@ -66,10 +66,14 @@ namespace KOTORModSync.Tests.Services.DistributedCache
         public async Task Metadata_PayloadMatchesIntegrityData()
         {
             string testFile = _fixture.CreateTestFile("integrity_test.bin", 2 * 1024 * 1024);
+            
+            // Compute the piece length that ComputeFileIntegrityData would use
+            int expectedPieceLength = DownloadCacheOptimizer.DeterminePieceSize(new FileInfo(testFile).Length);
+            
             string descriptorPath = await _fixture.CreateDescriptorFileAsync(
                 testFile,
                 "integrity_test",
-                262144);
+                expectedPieceLength);
 
             DistributionPayload payload = _fixture.GetDescriptorPayload(descriptorPath);
             Assert.NotNull(payload);

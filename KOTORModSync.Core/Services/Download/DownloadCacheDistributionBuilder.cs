@@ -40,6 +40,11 @@ namespace KOTORModSync.Core.Services.Download
             bool includeDescriptor = true,
             CancellationToken cancellationToken = default)
         {
+            if (sourceFilePath is null)
+            {
+                throw new ArgumentNullException(nameof(sourceFilePath), "Source file path must be provided.");
+            }
+
             if (string.IsNullOrWhiteSpace(sourceFilePath))
             {
                 throw new ArgumentException("Source file path must be provided.", nameof(sourceFilePath));

@@ -207,7 +207,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                TestContext.Progress.WriteLine("TestDuplicatesWithDirectoryNameString: Test is not possible on Windows.");
                 return;
             }
 
@@ -231,7 +231,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                TestContext.Progress.WriteLine("TestDuplicateDirectories: Test is not possible on Windows.");
                 return;
             }
 
@@ -256,7 +256,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                TestContext.Progress.WriteLine("TestDuplicatesWithDifferentCasingFilesInNestedDirectories: Test is not possible on Windows.");
                 return;
             }
 
@@ -287,7 +287,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                TestContext.Progress.WriteLine("TestDuplicateNestedDirectories: Test is not possible on Windows.");
                 return;
             }
 

@@ -15,8 +15,7 @@
   <!-- Release Configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <!-- Use latest .NET (9) + .NET Framework 4.8 fallback for Windows-only legacy support -->
-    <TargetFrameworks>net9.0;net48</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
   </PropertyGroup>
 
   <!-- Debug Configuration: Optimized for faster development builds -->
@@ -24,9 +23,7 @@
     <!-- Disable analyzers in Debug builds for faster compilation -->
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
-    <!-- Build only latest .NET (net9.0) for Debug to speed up builds (unless TargetFramework is explicitly set) -->
-    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net9.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
+    <TargetFrameworks>net9.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

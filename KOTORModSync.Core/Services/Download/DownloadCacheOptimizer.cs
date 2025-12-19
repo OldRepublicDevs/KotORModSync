@@ -1365,7 +1365,17 @@ namespace KOTORModSync.Core.Services.Download
                         try
                         {
                             await manager.StopAsync().ConfigureAwait(false);
-                            await _client.Unregister(manager).ConfigureAwait(false);
+                            
+                            // Use reflection to safely call Unregister if it exists
+                            var unregisterMethod = _client.GetType().GetMethod("Unregister");
+                            if (unregisterMethod != null)
+                            {
+                                dynamic unregisterResult = unregisterMethod.Invoke(_client, new object[] { manager });
+                                if (unregisterResult is Task unregisterTask)
+                                {
+                                    await unregisterTask.ConfigureAwait(false);
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -1740,8 +1750,8 @@ namespace KOTORModSync.Core.Services.Download
 
             private sealed class SyntheticClient : IDisposable
             {
-                public Task Register() => Task.CompletedTask;
-                public Task Unregister() => Task.CompletedTask;
+                public Task Register(dynamic _) => Task.CompletedTask;
+                public Task Unregister(dynamic _) => Task.CompletedTask;
                 public Task StopAll() => Task.CompletedTask;
                 public void Dispose()
                 {

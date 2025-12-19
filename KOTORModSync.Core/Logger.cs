@@ -74,16 +74,20 @@ namespace KOTORModSync.Core
                 string logMessage = $"[{DateTime.Now}] {internalMessage}";
                 Logged?.Invoke(logMessage);
 
-                // Output to appropriate destination based on context
-                if (IsRunningInTestContext())
+                // Only output to console/error if not fileOnly
+                if (!fileOnly)
                 {
-                    await Console.Error.WriteLineAsync(logMessage).ConfigureAwait(false);
-                    await Console.Error.FlushAsync().ConfigureAwait(false);
-                }
-                else
-                {
-                    // Use Console.WriteLine for normal runtime
-                    Console.WriteLine(logMessage);
+                    // Output to appropriate destination based on context
+                    if (IsRunningInTestContext())
+                    {
+                        await Console.Error.WriteLineAsync(logMessage).ConfigureAwait(false);
+                        await Console.Error.FlushAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Use Console.WriteLine for normal runtime
+                        Console.WriteLine(logMessage);
+                    }
                 }
             }
             catch (Exception ex)
@@ -260,8 +264,16 @@ namespace KOTORModSync.Core
             _ = LogVerboseAsync(message, ex);
 
         [NotNull]
-        public static Task LogVerboseAsync([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
-            LogCoreAsync(message, LogLevel.Debug, ex);
+        public static Task LogVerboseAsync([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false)
+        {
+            // In test context, verbose logs should be file-only by default to avoid cluttering test output
+            // The test platform treats stderr output as warnings, so we suppress verbose logs from console/error
+            if (IsRunningInTestContext() && !fileOnly)
+            {
+                fileOnly = true;
+            }
+            return LogCoreAsync(message, LogLevel.Debug, ex, fileOnly);
+        }
 
         public static void LogWarning([CanBeNull] string message, [CanBeNull] Exception ex = null, bool fileOnly = false) =>
             _ = LogWarningAsync(message, ex);

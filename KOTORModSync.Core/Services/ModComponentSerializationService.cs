@@ -1267,8 +1267,8 @@ namespace KOTORModSync.Core.Services
 
                     Logger.LogVerbose($"GroupKeyValuePairsIntoInstructions: Processing {key} = {value}");
 
-                    // Check if this is a new instruction (GUID field only)
-                    if (!(key is null) && key.Equals("Guid", StringComparison.OrdinalIgnoreCase) && value != null)
+                    // Check if this is a new instruction (Action field marks the start of a new instruction)
+                    if (!(key is null) && key.Equals("Action", StringComparison.OrdinalIgnoreCase) && value != null)
                     {
                         // If we have a current instruction, save it before starting a new one
                         if (currentInstruction.Count > 0)
@@ -1276,7 +1276,6 @@ namespace KOTORModSync.Core.Services
                             instructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
                             currentInstruction.Clear();
                         }
-                        currentInstruction[key] = value;
                     }
                     currentInstruction[key] = value;
                 }

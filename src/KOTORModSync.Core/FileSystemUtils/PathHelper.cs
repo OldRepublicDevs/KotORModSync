@@ -18,6 +18,12 @@ namespace KOTORModSync.Core.FileSystemUtils
 {
     public static partial class PathHelper
     {
+        [NotNull]
+        public static List<string> EnumerateFilesWithWildcards([NotNull] string path, [NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider)
+        {
+            return EnumerateFilesWithWildcards(new[] { path }, fileSystemProvider);
+        }
+
         [CanBeNull]
         public static Tuple<FileInfo, DirectoryInfo> TryGetValidFileSystemInfos([CanBeNull] string folderPath)
         {

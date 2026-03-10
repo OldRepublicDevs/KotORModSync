@@ -899,5 +899,18 @@ Exception Type: {ex.GetType().FullName}";
             return exitCode;
         }
 
+        public static Task<ModComponent.InstallExitCode> InstallAllSelectedComponentsAsync(
+            [NotNull][ItemNotNull] IReadOnlyList<ModComponent> allComponents,
+            [CanBeNull] Action<int, int, string> progressCallback = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (allComponents is null)
+            {
+                throw new ArgumentNullException(nameof(allComponents));
+            }
+
+            return InstallAllSelectedComponentsAsync(allComponents.ToList(), progressCallback, cancellationToken);
+        }
+
     }
 }

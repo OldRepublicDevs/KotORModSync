@@ -1448,6 +1448,16 @@ namespace KOTORModSync.Core
         {
             return ExecuteInstructionsAsync(theseInstructions, componentsList, cancellationToken, fileSystemProvider);
         }
+
+        public Task<InstallExitCode> ExecuteInstructionsAsync(
+            [NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList,
+            CancellationToken cancellationToken,
+            [NotNull] Services.FileSystem.IFileSystemProvider _,
+            CancellationToken __,
+            [NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider)
+        {
+            return ExecuteInstructionsAsync(Instructions, componentsList, cancellationToken, fileSystemProvider);
+        }
         [NotNull]
         public static Dictionary<string, List<ModComponent>> GetConflictingComponents(
             [NotNull] List<Guid> dependencyGuids,
@@ -1885,6 +1895,28 @@ namespace KOTORModSync.Core
 
         /// <summary>Trust level for mapping verification</summary>
         public MappingTrustLevel TrustLevel { get; set; } = MappingTrustLevel.Unverified;
+    }
+
+
+    public sealed class ResourceFileInfo
+    {
+        public long Size { get; set; }
+    }
+
+    public sealed class ResourceRegistryEntry : ResourceMetadata
+    {
+        private Dictionary<string, ResourceFileInfo> _compatibilityFiles = new Dictionary<string, ResourceFileInfo>(StringComparer.OrdinalIgnoreCase);
+
+        public new Dictionary<string, ResourceFileInfo> Files
+        {
+            get => _compatibilityFiles;
+            set
+            {
+                _compatibilityFiles = value ?? new Dictionary<string, ResourceFileInfo>(StringComparer.OrdinalIgnoreCase);
+                base.Files = _compatibilityFiles.ToDictionary(kvp => kvp.Key, kvp => (bool?)true, StringComparer.OrdinalIgnoreCase);
+                FileSize = _compatibilityFiles.Values.Sum(file => file?.Size ?? 0L);
+            }
+        }
     }
 
     /// <summary>

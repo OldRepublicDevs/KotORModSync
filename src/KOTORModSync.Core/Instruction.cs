@@ -30,7 +30,8 @@ namespace KOTORModSync.Core
             InvalidSelfExtractingExecutable,
             InvalidArchive,
             ArchiveParseError,
-            FileNotFoundPost,
+            FileNotFoundPre = 4,
+            FileNotFoundPost = 4,
             IOException,
             RenameTargetAlreadyExists,
             PatcherError,
@@ -851,6 +852,11 @@ namespace KOTORModSync.Core
             }
             return exitCode;
         }
+
+        public Task<ActionExitCode> DeleteFileAsync([ItemNotNull][NotNull] IReadOnlyList<string> sourcePaths = null)
+        {
+            return Task.FromResult(DeleteFile(sourcePaths));
+        }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public ActionExitCode RenameFile(
             [ItemNotNull][NotNull] IReadOnlyList<string> sourcePaths = null
@@ -943,6 +949,11 @@ namespace KOTORModSync.Core
                 }
             }
             return exitCode;
+        }
+
+        public Task<ActionExitCode> RenameFileAsync([ItemNotNull][NotNull] IReadOnlyList<string> sourcePaths = null)
+        {
+            return Task.FromResult(RenameFile(sourcePaths));
         }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public async Task<ActionExitCode> CopyFileAsync(

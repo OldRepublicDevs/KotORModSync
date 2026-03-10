@@ -217,6 +217,19 @@ namespace KOTORModSync.Core.Services.Checkpoints
             await CreateSnapshotAsync(source, cancellationToken).ConfigureAwait(false);
         }
 
+        public Task SaveSnapshotAsync(CancellationToken cancellationToken)
+        {
+            return PromoteSnapshotAsync(new DirectoryInfo(_state.DestinationPath), cancellationToken);
+        }
+
+        public async Task MarkComponentCompletedAsync(Guid componentId)
+        {
+            ComponentSessionEntry entry = GetComponentEntry(componentId);
+            entry.State = ModComponent.ComponentInstallState.Completed;
+            entry.LastCompletedUtc = DateTimeOffset.UtcNow;
+            await SaveAsync().ConfigureAwait(false);
+        }
+
         public async Task RestoreSnapshotAsync([NotNull] DirectoryInfo destination, CancellationToken cancellationToken)
         {
             if (destination is null)

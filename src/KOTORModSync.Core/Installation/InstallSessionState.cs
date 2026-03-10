@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Newtonsoft.Json;
 
@@ -41,6 +42,12 @@ namespace KOTORModSync.Core.Installation
 
         [JsonProperty]
         public Dictionary<Guid, string> ComponentCheckpoints { get; set; } = new Dictionary<Guid, string>();
+
+        [JsonIgnore]
+        public List<Guid> CompletedComponents => Components
+            .Where(kvp => kvp.Value.State == ModComponent.ComponentInstallState.Completed)
+            .Select(kvp => kvp.Key)
+            .ToList();
     }
 
     [JsonObject(MemberSerialization.OptIn)]

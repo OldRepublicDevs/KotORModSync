@@ -515,10 +515,7 @@ namespace KOTORModSync.Tests
             {
                 foreach (var file in files)
                 {
-                    using (var entry = archive.AddEntry(file.Key, new MemoryStream(System.Text.Encoding.UTF8.GetBytes(file.Value))))
-                    {
-                        // Entry is added
-                    }
+                    _ = archive.AddEntry(file.Key, new MemoryStream(System.Text.Encoding.UTF8.GetBytes(file.Value)));
                 }
 
                 using (var stream = File.Create(path))

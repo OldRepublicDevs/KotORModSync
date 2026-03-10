@@ -94,7 +94,7 @@ namespace KOTORModSync.Tests
                 instruction.SetParentComponent(component);
             }
 
-            var vfsResult = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, vfs, System.Threading.CancellationToken.None, fileSystemProvider);
+            var vfsResult = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, vfs, System.Threading.CancellationToken.None, vfs);
 
             // Test with Real FS
             var realFs = new RealFileSystemProvider();
@@ -103,15 +103,15 @@ namespace KOTORModSync.Tests
                 instruction.SetFileSystemProvider(realFs);
             }
 
-            var realResult = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, realFs, System.Threading.CancellationToken.None, fileSystemProvider);
+            var realResult = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, realFs, System.Threading.CancellationToken.None, realFs);
 
             Assert.Multiple(() =>
             {
                 Assert.That(vfsResult, Is.EqualTo(ModComponent.InstallExitCode.Success), "VFS should succeed");
                 Assert.That(realResult, Is.EqualTo(ModComponent.InstallExitCode.Success), "Real FS should succeed");
                 // VFS should predict the same state as real FS
-                Assert.That(vfs.FileExists(Path.Combine(_kotorDirectory, "Override", "file1.txt")), 
-                    Is.EqualTo(File.Exists(Path.Combine(_kotorDirectory, "Override", "file1.txt"))), 
+                Assert.That(vfs.FileExists(Path.Combine(_kotorDirectory, "Override", "file1.txt")),
+                    Is.EqualTo(File.Exists(Path.Combine(_kotorDirectory, "Override", "file1.txt"))),
                     "VFS should match real FS state");
             });
         }
@@ -139,17 +139,17 @@ namespace KOTORModSync.Tests
             instruction.SetFileSystemProvider(vfs);
             instruction.SetParentComponent(component);
 
-            var vfsResult = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, vfs, System.Threading.CancellationToken.None, fileSystemProvider);
+            var vfsResult = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, vfs, System.Threading.CancellationToken.None, vfs);
 
             // Verify real filesystem is unchanged
             Assert.Multiple(() =>
             {
                 Assert.That(vfsResult, Is.EqualTo(ModComponent.InstallExitCode.Success), "VFS should succeed");
-                Assert.That(File.Exists(Path.Combine(_modDirectory, "file.txt")), Is.True, 
+                Assert.That(File.Exists(Path.Combine(_modDirectory, "file.txt")), Is.True,
                     "Real file should still exist (VFS is dry-run)");
-                Assert.That(File.Exists(Path.Combine(_kotorDirectory, "Override", "file.txt")), Is.False, 
+                Assert.That(File.Exists(Path.Combine(_kotorDirectory, "Override", "file.txt")), Is.False,
                     "Real destination should not have file (VFS is dry-run)");
-                Assert.That(vfs.FileExists(Path.Combine(_kotorDirectory, "Override", "file.txt")), Is.True, 
+                Assert.That(vfs.FileExists(Path.Combine(_kotorDirectory, "Override", "file.txt")), Is.True,
                     "VFS should track the file as moved");
             });
         }
@@ -210,7 +210,7 @@ namespace KOTORModSync.Tests
 
             var result = await component.ExecuteInstructionsAsync(new List<ModComponent> { component }, fileSystemProvider, System.Threading.CancellationToken.None, fileSystemProvider);
 
-            Assert.That(result, Is.EqualTo(ModComponent.InstallExitCode.Success), 
+            Assert.That(result, Is.EqualTo(ModComponent.InstallExitCode.Success),
                 "Component with no instructions should succeed");
         }
 
@@ -274,7 +274,7 @@ namespace KOTORModSync.Tests
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.EqualTo(ModComponent.InstallExitCode.Success), "Same source should work");
-                Assert.That(File.Exists(Path.Combine(_kotorDirectory, "Override", "file.txt")), Is.True, 
+                Assert.That(File.Exists(Path.Combine(_kotorDirectory, "Override", "file.txt")), Is.True,
                     "File should exist at destination");
             });
         }

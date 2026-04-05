@@ -1,0 +1,111 @@
+name: Push Integration Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  TEST_PROJECT: "src/KOTORModSync.Tests/KOTORModSync.Tests.csproj"
+
+jobs:
+  linux-headless-and-cli:
+    name: Linux headless + CLI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Provision external test repos
+        run: |
+          if [ ! -d mod-builds/.git ]; then
+            git clone https://github.com/th3w1zard1/mod-builds ./mod-builds
+          fi
+          if [ ! -d vendor/KPatcher/.git ]; then
+            git clone https://github.com/th3w1zard1/KPatcher ./vendor/KPatcher
+          fi
+
+      - name: Restore test project
+        run: dotnet restore "${{ env.TEST_PROJECT }}"
+
+      - name: Build test project
+        run: dotnet build "${{ env.TEST_PROJECT }}" --configuration Debug --no-restore
+
+      - name: Install coordinator regression tests
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~InstallCoordinatorTests"
+
+      - name: CLI install regression tests
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~CliInstallIntegrationTests"
+
+      - name: Download queue regression tests
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~DownloadQueueHeadlessTests"
+
+      - name: Install wizard headless regression tests
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~InstallingPageHeadlessTests|FullyQualifiedName~WizardFlowHeadlessTests"
+
+      - name: Markdown and TOML parity tests
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~MarkdownTomlParityTests"
+
+      - name: Auto-update service regression tests
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~AutoUpdateServiceTests"
+
+      - name: Self-update integration tests
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~SelfUpdateIntegrationTests"
+
+      - name: Telemetry regression tests
+        run: |
+          dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "Name~ComputeSignature_SameInputs_ReturnsDeterministicLowercaseHex"
+          dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "Name~ComputeSignature_DifferentInputs_ChangesSignature"
+          dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "Name~HasValidSecret_ReflectsPresenceOfSigningSecret"
+          dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "Name~GetUnixTimestamp_ReturnsRecentUnixTime"
+          dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "Name~SaveThenLoad_PreservesKeyConfigurationFields"
+          dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "Name~Load_UsesEnvironmentSigningSecretWhenPresent"
+          dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "Name~SetUserConsent_DisablesTelemetryAndUpdatesSummary"
+
+  windows-update-smoke:
+    name: Windows updater smoke
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Provision external test repos
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "mod-builds/.git")) {
+            git clone https://github.com/th3w1zard1/mod-builds ./mod-builds
+          }
+          if (-not (Test-Path "vendor/KPatcher/.git")) {
+            git clone https://github.com/th3w1zard1/KPatcher ./vendor/KPatcher
+          }
+
+      - name: Restore test project
+        run: dotnet restore "${{ env.TEST_PROJECT }}"
+
+      - name: Build test project
+        run: dotnet build "${{ env.TEST_PROJECT }}" --configuration Debug --no-restore
+
+      - name: Windows auto-update service coverage
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~AutoUpdateServiceTests"
+
+      - name: Windows self-update integration coverage
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~SelfUpdateIntegrationTests"

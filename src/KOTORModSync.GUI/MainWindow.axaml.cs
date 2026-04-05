@@ -62,7 +62,6 @@ namespace KOTORModSync
         private bool _mouseDownForWindowMoving;
         private PointerPoint _originalPoint;
         private OutputWindow _outputWindow;
-        private bool _progressWindowClosed;
         private string _searchText;
         private CancellationTokenSource _modSuggestCts;
         private CancellationTokenSource _installSuggestCts;
@@ -4485,68 +4484,52 @@ namespace KOTORModSync
                 }
 
                 var progressWindow = new ProgressWindow { ProgressBar = { Value = 0 }, Topmost = true };
-                DateTime installStartTime = DateTime.UtcNow;
-                int warningCount = 0;
-                int errorCount = 0;
-                void LogCounter(string message)
+                using (var installCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
                 {
-                    try
+                    CancellationToken installCancellationToken = installCancellationSource.Token;
+                    DateTime installStartTime = DateTime.UtcNow;
+                    int warningCount = 0;
+                    int errorCount = 0;
+                    void LogCounter(string message)
                     {
-                        if (string.IsNullOrEmpty(message))
+                        try
+                        {
+                            if (string.IsNullOrEmpty(message))
+                            {
+                                return;
+                            }
+
+                            if (message.IndexOf(value: "[Warning]", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                warningCount++;
+                            }
+
+                            if (message.IndexOf(value: "[Error]", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                errorCount++;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.LogException(e);
+                        }
+                    }
+                    void ExceptionCounter(Exception _)
+                    {
+                        try { errorCount++; }
+                        catch (Exception ex)
+                        {
+                            Logger.LogException(ex);
+                        }
+                    }
+                    Logger.Logged += LogCounter;
+                    Logger.ExceptionLogged += ExceptionCounter;
+                    progressWindow.CancelRequested += async (_, __) =>
+                    {
+                        if (installCancellationToken.IsCancellationRequested)
                         {
                             return;
                         }
-
-                        if (message.IndexOf(value: "[Warning]", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            warningCount++;
-                        }
-
-                        if (message.IndexOf(value: "[Error]", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            errorCount++;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogException(e);
-                    }
-                }
-                void ExceptionCounter(Exception _)
-                {
-                    try { errorCount++; }
-                    catch (Exception ex)
-                    {
-                        Logger.LogException(ex);
-                    }
-                }
-                Logger.Logged += LogCounter;
-                Logger.ExceptionLogged += ExceptionCounter;
-                progressWindow.CancelRequested += (_, __) =>
-
-                    progressWindow.Close();
-                _isClosingProgressWindow = false;
-                if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
-                {
-                    await Logger.LogVerboseAsync("[StartInstallationProcess] Disabling the close button on the console window, to prevent an install from being interrupted...");
-                    ConsoleConfig.DisableConsoleCloseButton();
-                }
-
-                try
-                {
-                    await Logger.LogAsync("[StartInstallationProcess] Start installing all mods...");
-                    _installRunning = true;
-
-                    progressWindow.Closed += ProgressWindowClosed;
-                    progressWindow.Closing += async (sender2, e2) =>
-                    {
-
-                        if (_isClosingProgressWindow)
-                        {
-                            return;
-                        }
-
-                        e2.Cancel = true;
 
                         bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
                             this,
@@ -4559,130 +4542,155 @@ namespace KOTORModSync
                             return;
                         }
 
-                        _isClosingProgressWindow = true;
-
-                        progressWindow.Close();
+                        installCancellationSource.Cancel();
+                        await Logger.LogAsync(message: "[StartInstallationProcess] User requested install cancellation from the progress window.");
                     };
-                    progressWindow.Show();
-                    _progressWindowClosed = false;
-                    ModComponent.InstallExitCode exitCode = ModComponent.InstallExitCode.UnknownError;
-                    var selectedMods = MainConfig.AllComponents.Where(thisComponent => thisComponent.IsSelected).ToList();
-                    for (int index = 0; index < selectedMods.Count; index++)
+                    _isClosingProgressWindow = false;
+                    if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
                     {
-                        if (_progressWindowClosed)
+                        await Logger.LogVerboseAsync("[StartInstallationProcess] Disabling the close button on the console window, to prevent an install from being interrupted...");
+                        ConsoleConfig.DisableConsoleCloseButton();
+                    }
+
+                    try
+                    {
+                        await Logger.LogAsync("[StartInstallationProcess] Start installing all mods...");
+                        _installRunning = true;
+
+                        progressWindow.Closed += ProgressWindowClosed;
+                        progressWindow.Closing += async (sender2, e2) =>
                         {
-                            _installRunning = false;
-                            await Logger.LogAsync(message: "[StartInstallationProcess] User cancelled install by closing the progress window.");
-                            return;
-                        }
-                        ModComponent component = selectedMods[index];
-                        await Dispatcher.UIThread.InvokeAsync(
-                            async () =>
+                            if (_isClosingProgressWindow)
                             {
-                                progressWindow.ProgressTextBlock.Text = $"Installing '{component.Name}'..."
-                                                                        + Environment.NewLine
-                                                                        + Environment.NewLine
-                                                                        + "Executing the provided directions..."
-                                                                        + Environment.NewLine
-                                                                        + Environment.NewLine
-                                                                        + component.Directions;
-                                double percentComplete = selectedMods.Count == 0 ? 0 : (double)index / selectedMods.Count;
-                                progressWindow.Topmost = true;
-                                int installedCount = index;
-                                progressWindow.UpdateMetrics(
-                                    percentComplete,
-                                    installedCount,
-                                    selectedMods.Count,
-                                    installStartTime,
-                                    warningCount,
-                                    errorCount,
-                                    component.Name
-                                );
-
-                                await Task.Delay(millisecondsDelay: 100, _installSuggestCts.Token);
-                                await Dispatcher.UIThread.InvokeAsync(() => { });
-                                await Task.Delay(millisecondsDelay: 50, _installSuggestCts.Token);
+                                return;
                             }
-                        );
 
-                        await Task.Yield();
-                        await Task.Delay(millisecondsDelay: 200, _installSuggestCts.Token);
-                        if (!component.IsSelected)
-                        {
-                            await Logger.LogAsync($"Skipping install of '{component.Name}' (unchecked)");
-                            continue;
-                        }
-                        await Logger.LogAsync($"Start Install of '{component.Name}'...");
+                            e2.Cancel = true;
 
-                        if (component.WidescreenOnly && !string.IsNullOrWhiteSpace(MainConfig.WidescreenWarningContent))
+                            bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
+                                this,
+                                confirmText:
+                                "Closing the progress window will stop the install after the current instruction completes. Really cancel the install?"
+                            );
+
+                            if (!(result is true))
+                            {
+                                return;
+                            }
+
+                            installCancellationSource.Cancel();
+                            await Logger.LogAsync(message: "[StartInstallationProcess] User requested install cancellation by attempting to close the progress window.");
+                        };
+                        progressWindow.Show();
+                        ModComponent.InstallExitCode exitCode = ModComponent.InstallExitCode.UnknownError;
+                        var selectedMods = MainConfig.AllComponents.Where(thisComponent => thisComponent.IsSelected).ToList();
+
+                        if (selectedMods.Any(component => component.WidescreenOnly) && !string.IsNullOrWhiteSpace(MainConfig.WidescreenWarningContent))
                         {
                             bool shouldContinue = await ShowWidescreenNotificationAsync();
                             if (!shouldContinue)
                             {
                                 await Logger.LogAsync(message: "[StartInstallationProcess] Install cancelled by user at widescreen notification");
-                                exitCode = ModComponent.InstallExitCode.UserCancelledInstall;
-                                break;
+                                return;
                             }
                         }
 
-                        exitCode = await InstallationService.InstallSingleComponentAsync(component,
-                            MainConfig.AllComponents,
-                            _installSuggestCts.Token
+                        void ProgressCallback(int currentIndex, int total, string componentName)
+                        {
+                            if (installCancellationToken.IsCancellationRequested)
+                            {
+                                return;
+                            }
+
+                            Dispatcher.UIThread.Post(() =>
+                            {
+                                ModComponent component = selectedMods.FirstOrDefault(
+                                    thisComponent => string.Equals(thisComponent.Name, componentName, StringComparison.Ordinal));
+
+                                progressWindow.ProgressTextBlock.Text = $"Installing '{componentName}'..."
+                                                                        + Environment.NewLine
+                                                                        + Environment.NewLine
+                                                                        + "Executing the provided directions..."
+                                                                        + Environment.NewLine
+                                                                        + Environment.NewLine
+                                                                        + component?.Directions;
+
+                                double percentComplete = total == 0 ? 0 : (double)currentIndex / total;
+                                progressWindow.Topmost = true;
+                                progressWindow.UpdateMetrics(
+                                    percentComplete,
+                                    currentIndex,
+                                    total,
+                                    installStartTime,
+                                    warningCount,
+                                    errorCount,
+                                    componentName
+                                );
+                            }, DispatcherPriority.Normal);
+                        }
+
+                        try
+                        {
+                            exitCode = await InstallationService.InstallAllSelectedComponentsAsync(
+                                MainConfig.AllComponents,
+                                ProgressCallback,
+                                installCancellationToken
+                            );
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            exitCode = ModComponent.InstallExitCode.UserCancelledInstall;
+                            await Logger.LogAsync(message: "[StartInstallationProcess] Install cancelled by user.");
+                        }
+
+                        progressWindow.Topmost = true;
+                        progressWindow.UpdateMetrics(
+                            exitCode == ModComponent.InstallExitCode.Success ? 1 : 0,
+                            exitCode == ModComponent.InstallExitCode.Success ? selectedMods.Count : 0,
+                            selectedMods.Count,
+                            installStartTime,
+                            warningCount,
+                            errorCount,
+                            exitCode == ModComponent.InstallExitCode.Success ? "Install Complete" : "Install Cancelled"
                         );
 
-                        await Logger.LogAsync($"Install of '{component.Name}' finished with exit code {UtilityHelper.GetEnumDescription(exitCode)}");
+                        if (exitCode == ModComponent.InstallExitCode.UserCancelledInstall)
+                        {
+                            await Logger.LogAsync("Install cancelled");
+                            return;
+                        }
 
                         if (exitCode != ModComponent.InstallExitCode.Success)
                         {
-                            bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
+                            await InformationDialog.ShowInformationDialogAsync(
                                 this,
-                                $"There was a problem installing '{component.Name}':"
-                                + Environment.NewLine
-                                + UtilityHelper.GetEnumDescription(exitCode)
-                                + Environment.NewLine
-                                + Environment.NewLine
-                                + " Check the output window for details."
-                                + Environment.NewLine
-                                + Environment.NewLine
-                                + $"Skip '{component.Name}' and install the next mod anyway? (NOT RECOMMENDED!)"
+                                message: $"Install failed with exit code {UtilityHelper.GetEnumDescription(exitCode)}. Check the output window for more information."
                             );
-                            if (confirm is true)
-                            {
-                                continue;
-                            }
-
-                            await Logger.LogAsync("Install cancelled");
-                            break;
+                            return;
                         }
-                        await Logger.LogAsync($"Finished installing '{component.Name}'");
 
+                        await InformationDialog.ShowInformationDialogAsync(
+                            this,
+                            message: "Install Completed. Check the output window for information."
+                        );
+                        await Logger.LogAsync("Install completed.");
+                        await UpdateStepProgressAsync();
                     }
-                    if (exitCode != ModComponent.InstallExitCode.Success)
+                    catch (Exception)
                     {
-                        return;
+                        await Logger.LogErrorAsync("[StartInstall_Click] Terminating install due to unhandled exception:");
+                        throw;
                     }
+                    finally
+                    {
 
-                    await InformationDialog.ShowInformationDialogAsync(
-                        this,
-                        message: "Install Completed. Check the output window for information."
-                    );
-                    await Logger.LogAsync("Install completed.");
-                    await UpdateStepProgressAsync();
-                }
-                catch (Exception)
-                {
-                    await Logger.LogErrorAsync("[StartInstall_Click] Terminating install due to unhandled exception:");
-                    throw;
-                }
-                finally
-                {
+                        _installRunning = false;
+                        _isClosingProgressWindow = true;
+                        progressWindow.Close();
 
-                    _installRunning = false;
-                    _isClosingProgressWindow = true;
-                    progressWindow.Close();
-
-                    Logger.Logged -= LogCounter;
-                    Logger.ExceptionLogged -= ExceptionCounter;
+                        Logger.Logged -= LogCounter;
+                        Logger.ExceptionLogged -= ExceptionCounter;
+                    }
                 }
             }
             catch (Exception ex)
@@ -4705,7 +4713,6 @@ namespace KOTORModSync
                 progressWindow.ProgressBar.Value = 0;
                 progressWindow.Closed -= ProgressWindowClosed;
                 progressWindow.Dispose();
-                _progressWindowClosed = true;
                 if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
                 {
                     return;

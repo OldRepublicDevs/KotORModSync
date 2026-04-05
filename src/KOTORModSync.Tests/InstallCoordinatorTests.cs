@@ -106,5 +106,30 @@ namespace KOTORModSync.Tests
                 Assert.That(component2.InstallState, Is.EqualTo(ModComponent.ComponentInstallState.Completed));
             });
         }
+
+        [Test]
+        public async Task InstallationService_InvokesSharedProgressCallbackInInstallOrder()
+        {
+            ModComponent firstComponent = TestComponentFactory.CreateComponent("FirstComponent", _workingDirectory);
+            ModComponent secondComponent = TestComponentFactory.CreateComponent("SecondComponent", _workingDirectory);
+            _mainConfigInstance.allComponents = new List<ModComponent> { firstComponent, secondComponent };
+
+            var progressEvents = new List<(int index, int total, string name)>();
+
+            ModComponent.InstallExitCode exitCode = await InstallationService.InstallAllSelectedComponentsAsync(
+                MainConfig.AllComponents,
+                (currentIndex, total, componentName) => progressEvents.Add((currentIndex, total, componentName)),
+                CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exitCode, Is.EqualTo(ModComponent.InstallExitCode.Success));
+                Assert.That(progressEvents, Has.Count.EqualTo(2), "Progress callback should be invoked once per selected component");
+                Assert.That(progressEvents[0], Is.EqualTo((0, 2, "FirstComponent")));
+                Assert.That(progressEvents[1], Is.EqualTo((1, 2, "SecondComponent")));
+                Assert.That(firstComponent.InstallState, Is.EqualTo(ModComponent.ComponentInstallState.Completed));
+                Assert.That(secondComponent.InstallState, Is.EqualTo(ModComponent.ComponentInstallState.Completed));
+            });
+        }
     }
 }

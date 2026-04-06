@@ -25,23 +25,34 @@ namespace KOTORModSync.Core.Utility
                     throw new ArgumentException(message: "Value cannot be null or empty.", nameof(url));
                 }
 
-                if (!Uri.TryCreate(url, UriKind.Absolute, out Uri _))
+                if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
                 {
                     throw new InvalidOperationException($"Invalid URL: '{url}'");
                 }
 
+                string scheme = uri.Scheme;
+                if (!string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(scheme, "mailto", StringComparison.OrdinalIgnoreCase))
+                {
+                    Logger.LogWarning($"Refusing to open URL with disallowed scheme '{scheme}'.");
+                    return;
+                }
+
+                string safeUrl = uri.GetComponents(UriComponents.AbsoluteUri, UriFormat.UriEscaped);
+
                 OSPlatform runningOs = UtilityHelper.GetOperatingSystem();
                 if (runningOs == OSPlatform.Windows)
                 {
-                    _ = Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+                    _ = Process.Start(new ProcessStartInfo { FileName = safeUrl, UseShellExecute = true });
                 }
                 else if (runningOs == OSPlatform.OSX)
                 {
-                    _ = Process.Start(fileName: "open", url);
+                    _ = Process.Start(fileName: "open", safeUrl);
                 }
                 else if (runningOs == OSPlatform.Linux)
                 {
-                    _ = Process.Start(fileName: "xdg-open", url);
+                    _ = Process.Start(fileName: "xdg-open", safeUrl);
                 }
             }
             catch (Exception e)

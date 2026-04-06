@@ -192,7 +192,11 @@ namespace KOTORModSync.Core.Services.Download
 
         private static RemoteCacheSession AuthenticateRelay(Uri baseUri)
         {
-            string token = Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:adminadmin"));
+            // Credential is read from an environment variable so no secret is baked into the binary.
+            // For local test Docker containers the variable defaults to the well-known test value.
+            string credential = Environment.GetEnvironmentVariable("KOTORMODSYNC_RELAY_CREDENTIAL")
+                ?? "admin:adminadmin";
+            string token = Convert.ToBase64String(Encoding.ASCII.GetBytes(credential));
             return new RemoteCacheSession(GatewayFlavor.Relay, baseUri, cookie: null, authorization: token);
         }
 

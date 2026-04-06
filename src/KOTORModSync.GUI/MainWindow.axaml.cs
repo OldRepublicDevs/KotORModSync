@@ -469,17 +469,33 @@ namespace KOTORModSync
             {
                 var config = TelemetryConfiguration.Load();
 
-                if (config.IsEnabled)
+                // On first run, ask the user whether they consent before doing anything else.
+                if (config.IsFirstRun)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        var dialog = new TelemetryConsentDialog();
+                        _ = dialog.ShowDialog(this);
+                    });
+                    // Reload after the dialog saves its choice.
+                    config = TelemetryConfiguration.Load();
+                }
+
+                // Only initialize telemetry when the user has explicitly opted in.
+                if (config.IsEnabled && config.UserConsented)
                 {
                     _telemetryService.Initialize();
                     await Logger.LogVerboseAsync("[Telemetry] Telemetry initialized from configuration");
+                }
+                else
+                {
+                    await Logger.LogVerboseAsync("[Telemetry] Telemetry not initialized (disabled or no user consent)");
                 }
             }
             catch (Exception ex)
             {
                 await Logger.LogExceptionAsync(ex, "[Telemetry] Error initializing telemetry");
             }
-            await Task.CompletedTask;
         }
         private static void UpdatePathDisplays(TextBlock modPathDisplay, TextBlock kotorPathDisplay)
         {

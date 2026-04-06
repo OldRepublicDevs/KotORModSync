@@ -25,10 +25,10 @@ namespace KOTORModSync.Core.Services
         };
 
         [JsonPropertyName("enabled")]
-        public bool IsEnabled { get; set; } = true;
+        public bool IsEnabled { get; set; } = false;
 
         [JsonPropertyName("user_consented")]
-        public bool UserConsented { get; set; } = true;
+        public bool UserConsented { get; set; } = false;
 
         [JsonPropertyName("consent_date")]
         public DateTime? ConsentDate { get; set; }
@@ -133,8 +133,8 @@ namespace KOTORModSync.Core.Services
 
             var newConfig = new TelemetryConfiguration
             {
-                IsEnabled = true,
-                UserConsented = true,
+                IsEnabled = false,
+                UserConsented = false,
                 IsFirstRun = true,
                 EnableOtlpExporter = true,
                 EnablePrometheusExporter = false,

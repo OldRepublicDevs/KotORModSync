@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -296,9 +297,25 @@ namespace KOTORModSync.Models
                 }
 
                 string json = JsonSerializer.Serialize(settings, JsonOptions);
-                Logger.LogVerbose($"[SettingsManager.SaveSettings] Serialized JSON: {json}");
+                Logger.LogVerbose($"[SettingsManager.SaveSettings] Serialized JSON length: {json.Length} chars");
 
                 File.WriteAllText(SettingsFilePath, json);
+
+                // Restrict the settings file to owner-only on Unix so the Nexus Mods API key
+                // and other secrets cannot be read by other local users.
+#if NET7_0_OR_GREATER
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    try
+                    {
+                        File.SetUnixFileMode(SettingsFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                    }
+                    catch (Exception permEx)
+                    {
+                        Logger.LogWarning($"[SettingsManager.SaveSettings] Could not restrict file permissions on '{SettingsFilePath}': {permEx.Message}");
+                    }
+                }
+#endif
 
                 Logger.LogVerbose($"[SettingsManager.SaveSettings] Successfully saved settings to '{SettingsFilePath}'");
             }

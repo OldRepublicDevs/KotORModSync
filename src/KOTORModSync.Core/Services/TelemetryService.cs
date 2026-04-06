@@ -60,7 +60,7 @@ namespace KOTORModSync.Core.Services
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public void Initialize()
         {
-            if (_isInitialized || !_config.IsEnabled)
+            if (_isInitialized || !_config.IsEnabled || !_config.UserConsented)
             {
                 return;
             }

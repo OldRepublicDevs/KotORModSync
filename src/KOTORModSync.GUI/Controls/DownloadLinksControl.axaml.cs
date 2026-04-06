@@ -197,30 +197,46 @@ namespace KOTORModSync.Controls
 
         private void OpenLink_Click(object sender, RoutedEventArgs e)
         {
-            if (!(sender is Button button) || !(button.Tag is string url) || string.IsNullOrWhiteSpace(url))
+            if (!(sender is Button button) || !(button.Tag is string rawUrl) || string.IsNullOrWhiteSpace(rawUrl))
             {
                 return;
             }
 
             try
             {
+                string url = rawUrl.Trim();
 
+                // Prepend https:// only when there is no scheme at all (bare hostname/path)
                 if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
                     !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 {
                     url = "https://" + url;
                 }
 
+                if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+                {
+                    Logger.LogWarning($"[DownloadLinksControl] Refusing to open invalid URL: '{rawUrl}'");
+                    return;
+                }
+
+                string scheme = uri.Scheme;
+                if (!string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
+                {
+                    Logger.LogWarning($"[DownloadLinksControl] Refusing to open URL with disallowed scheme '{scheme}'.");
+                    return;
+                }
+
+                string safeUrl = uri.GetComponents(UriComponents.AbsoluteUri, UriFormat.UriEscaped);
                 var processInfo = new ProcessStartInfo
                 {
-                    FileName = url,
+                    FileName = safeUrl,
                     UseShellExecute = true,
                 };
                 _ = Process.Start(processInfo);
             }
             catch (Exception ex)
             {
-
                 Logger.LogException(ex, $"Failed to open URL: {ex.Message}");
             }
         }

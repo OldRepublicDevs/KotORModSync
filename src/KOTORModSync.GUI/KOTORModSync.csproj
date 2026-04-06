@@ -169,6 +169,7 @@
   <PropertyGroup>
     <LegacyHoloPatcherBinDir>$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)</LegacyHoloPatcherBinDir>
     <VendorHoloPatcherProject>$(SolutionDir)vendor$(DirectorySeparatorChar)HoloPatcher.NET$(DirectorySeparatorChar)src$(DirectorySeparatorChar)HoloPatcher$(DirectorySeparatorChar)HoloPatcher.csproj</VendorHoloPatcherProject>
+    <VendorHoloPatcherAssetsFile>$(SolutionDir)vendor$(DirectorySeparatorChar)HoloPatcher.NET$(DirectorySeparatorChar)src$(DirectorySeparatorChar)HoloPatcher$(DirectorySeparatorChar)obj$(DirectorySeparatorChar)project.assets.json</VendorHoloPatcherAssetsFile>
     <VendorHoloPatcherOutputDir>$(SolutionDir)vendor$(DirectorySeparatorChar)HoloPatcher.NET$(DirectorySeparatorChar)src$(DirectorySeparatorChar)HoloPatcher$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)$(Configuration)$(DirectorySeparatorChar)$(TargetFramework)$(DirectorySeparatorChar)</VendorHoloPatcherOutputDir>
     <MacLegacyHoloPatcherSource>$(LegacyHoloPatcherBinDir)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher</MacLegacyHoloPatcherSource>
     <MacVendorHoloPatcherSource>$(VendorHoloPatcherOutputDir)HoloPatcher</MacVendorHoloPatcherSource>
@@ -179,7 +180,7 @@
   </PropertyGroup>
 
   <Target Name="BuildVendorHoloPatcher" BeforeTargets="PostBuild"
-    Condition="'$(DesignTimeBuild)' != 'true' AND Exists('$(VendorHoloPatcherProject)') AND !Exists('$(WindowsVendorHoloPatcherSource)') AND !Exists('$(MacVendorHoloPatcherSource)') AND !Exists('$(LinuxVendorHoloPatcherSource)')">
+    Condition="'$(DesignTimeBuild)' != 'true' AND Exists('$(VendorHoloPatcherProject)') AND Exists('$(VendorHoloPatcherAssetsFile)') AND !Exists('$(WindowsVendorHoloPatcherSource)') AND !Exists('$(MacVendorHoloPatcherSource)') AND !Exists('$(LinuxVendorHoloPatcherSource)')">
     <Message Importance="High" Text="Building vendor HoloPatcher from $(VendorHoloPatcherProject) for $(Configuration)|$(TargetFramework)..." />
     <MSBuild Projects="$(VendorHoloPatcherProject)"
       Targets="Build"

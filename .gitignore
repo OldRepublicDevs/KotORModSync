@@ -378,6 +378,7 @@ mod-builds/
 chrome/
 *.nettrace
 *.ps1
+!cleanup-code.ps1
 
 # Telemetry signing secrets (NEVER commit these!)
 **/telemetry.key

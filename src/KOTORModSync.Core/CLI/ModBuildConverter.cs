@@ -594,6 +594,9 @@ namespace KOTORModSync.Core.CLI
             [Option("continue-on-mod-failure", Required = false, Default = false, HelpText = "If a mod install fails (e.g. patcher error), log and continue with the rest instead of aborting")]
             public bool ContinueOnModFailure { get; set; }
 
+            [Option("best-effort", Required = false, Default = false, HelpText = "Install everything possible: same as --continue-on-missing-sources --continue-on-mod-failure -y (skips missing archives and failed mods, exits 0 with warnings)")]
+            public bool BestEffort { get; set; }
+
             [Option("nexus-api-key", Required = false, HelpText = "Nexus Mods API key for automated Nexus downloads (or set KOTOR_MODSYNC_NEXUS_API_KEY / NEXUS_MODS_API_KEY)")]
             public string NexusApiKey { get; set; }
 
@@ -2845,6 +2848,14 @@ exception: null);
                 s_config.sourcePath = new DirectoryInfo(sourceDir);
                 s_config.destinationPath = new DirectoryInfo(opts.GameDirectory);
 
+                if (opts.BestEffort)
+                {
+                    opts.ContinueOnMissingSources = true;
+                    opts.ContinueOnModFailure = true;
+                    opts.AutoConfirm = true;
+                    await Logger.LogAsync("Best-effort mode: continuing past missing files and per-mod failures; auto-confirming prompts.").ConfigureAwait(false);
+                }
+
                 if (!string.IsNullOrWhiteSpace(opts.PatcherEngine))
                 {
                     s_config.patcherEngine = opts.PatcherEngine.Trim();
@@ -2995,7 +3006,8 @@ exception: null);
                     return 0;
                 }
 
-                if (exitCode == ModComponent.InstallExitCode.MissingSourceFiles && opts.ContinueOnMissingSources)
+                if (exitCode == ModComponent.InstallExitCode.MissingSourceFiles &&
+                    (opts.ContinueOnMissingSources || opts.BestEffort))
                 {
                     await Logger.LogWarningAsync(
                         "Installation finished with one or more mods skipped (missing archives). Add downloads and re-run for those mods."
@@ -3003,7 +3015,8 @@ exception: null);
                     return 0;
                 }
 
-                if (exitCode == ModComponent.InstallExitCode.CompletedWithFailures && opts.ContinueOnModFailure)
+                if (exitCode == ModComponent.InstallExitCode.CompletedWithFailures &&
+                    (opts.ContinueOnModFailure || opts.BestEffort))
                 {
                     await Logger.LogWarningAsync(
                         "Installation finished with one or more mod failures; review logs and re-run or fix failed mods."

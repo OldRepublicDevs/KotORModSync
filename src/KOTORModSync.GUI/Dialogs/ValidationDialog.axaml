@@ -205,7 +205,7 @@
                 <Button
                     x:Name="OpenOutputButton"
                     Click="OpenOutput_Click"
-                    Content="📊 View Detailed Logs"
+                    Content="📊 View output log"
                     IsVisible="False" />
                 <Button
                     x:Name="OkButton"

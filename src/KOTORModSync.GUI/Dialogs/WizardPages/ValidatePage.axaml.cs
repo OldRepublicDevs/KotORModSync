@@ -384,7 +384,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                         _allComponents,
                         skipDependencyCheck: false,
                         CancellationToken.None
-                    ).ConfigureAwait(false);
+                    );
 
                     if (dryRunResult.IsValid && !dryRunResult.HasWarnings)
                     {

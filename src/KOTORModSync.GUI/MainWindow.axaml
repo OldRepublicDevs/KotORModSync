@@ -48,7 +48,7 @@
     <Window.Styles />
 
     <Panel>
-        <Grid RowDefinitions="Auto,Auto,*">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
             <!--  Header row: menu, toggles, title, toggles, theme switcher, window controls  -->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
@@ -369,6 +369,12 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
                 IsVisible="{Binding LandingPageVisible}" />
+
+            <controls:EmbeddedLogPanel
+                x:Name="EmbeddedLogPanel"
+                Grid.Row="3"
+                MaxHeight="280"
+                VerticalAlignment="Bottom" />
 
             <!--  Drag & Drop Overlay  -->
             <Border

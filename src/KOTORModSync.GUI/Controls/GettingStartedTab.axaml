@@ -481,9 +481,9 @@
                         FontWeight="Bold"
                         Text="💡 Need Help?" />
                     <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap">
-                        <Run Text="• Check the " />
-                        <Run FontWeight="Bold" Text="Output Window" />
-                        <Run Text=" for detailed logs and error messages" />
+                        <Run Text="• Use the " />
+                        <Run FontWeight="Bold" Text="Output" />
+                        <Run Text=" panel at the bottom of the window for detailed logs and error messages" />
                         <LineBreak />
                         <Run Text="• Use the " />
                         <Run FontWeight="Bold" Text="Validate" />
@@ -501,8 +501,8 @@
                             x:Name="GettingStartedOpenOutputButton"
                             Margin="0,0,10,0"
                             Click="OpenOutputWindow_Click"
-                            Content="📊 Open Output Window"
-                            ToolTip.Tip="Open the output window to view detailed logs" />
+                            Content="📊 Show Output Log"
+                            ToolTip.Tip="Expand the output log at the bottom of the window" />
                         <Button
                             x:Name="GettingStartedHelpSettingsButton"
                             Margin="0,0,10,0"

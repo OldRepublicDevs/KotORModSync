@@ -102,8 +102,8 @@ namespace KOTORModSync.Tests
 				await Task.Delay(50);
 			}
 
-			// Test 3: Click the Output Window button
-			var outputButton = window.FindControl<Button>("OutputWindowButton");
+			// Test 3: Click the output log button on Getting Started
+			var outputButton = window.FindControl<Button>("GettingStartedOpenOutputButton");
 			if (outputButton != null && outputButton.IsVisible)
 			{
 				Assert.That(outputButton, Is.Not.Null);

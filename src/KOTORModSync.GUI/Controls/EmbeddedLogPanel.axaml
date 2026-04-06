@@ -1,0 +1,151 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
+<!-- See LICENSE.txt file in the project root for full license information. -->
+<UserControl
+    x:Class="KOTORModSync.Controls.EmbeddedLogPanel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="220"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <Grid RowDefinitions="Auto,*">
+        <Border
+            Grid.Row="0"
+            Padding="8,6"
+            BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+                <Button
+                    x:Name="ToggleExpandButton"
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    Padding="10,4"
+                    Click="ToggleExpandButton_Click"
+                    ToolTip.Tip="Show or hide the log list" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Text="Output" />
+                <TextBlock
+                    x:Name="LineCountText"
+                    Grid.Column="2"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    Text="0 lines" />
+                <CheckBox
+                    x:Name="AutoScrollCheckBox"
+                    Grid.Column="3"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    Content="Auto-scroll"
+                    IsChecked="True" />
+                <Button
+                    Grid.Column="4"
+                    Margin="8,0,0,0"
+                    Padding="10,4"
+                    Click="ClearLog_Click"
+                    Content="Clear"
+                    ToolTip.Tip="Clear the output" />
+                <Button
+                    Grid.Column="5"
+                    Margin="8,0,0,0"
+                    Padding="10,4"
+                    Click="SaveLog_Click"
+                    Content="Save…"
+                    ToolTip.Tip="Save log to a file" />
+            </Grid>
+        </Border>
+
+        <Border
+            Grid.Row="1"
+            x:Name="LogBodyBorder"
+            BorderThickness="0,1,0,0">
+            <ScrollViewer
+                x:Name="LogScrollViewer"
+                Padding="8,6"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Auto">
+                <ListBox
+                    x:Name="LogListBox"
+                    ItemsSource="{Binding LogLines}"
+                    KeyDown="LogListBox_KeyDown"
+                    SelectionMode="Multiple">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Click="CopySelected_Click" Header="Copy selected" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Margin="0,1"
+                                Padding="4,1"
+                                CornerRadius="4"
+                                DataContext="{Binding .}"
+                                Tag="{Binding IsHighlighted}">
+                                <Border.Styles>
+                                    <Style Selector="Border[Tag=True]">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource Log.HighlightBorderBrush}" />
+                                        <Setter Property="BorderThickness" Value="2" />
+                                    </Style>
+                                </Border.Styles>
+                                <Border
+                                    Padding="2"
+                                    CornerRadius="3"
+                                    Tag="{Binding Level}">
+                                    <Border.Styles>
+                                        <Style Selector="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                        </Style>
+                                        <Style Selector="Border[Tag=Error]">
+                                            <Setter Property="Background" Value="{DynamicResource Log.ErrorBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource Log.ErrorBorderBrush}" />
+                                            <Setter Property="BorderThickness" Value="1" />
+                                        </Style>
+                                        <Style Selector="Border[Tag=Warning]">
+                                            <Setter Property="Background" Value="{DynamicResource Log.WarningBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource Log.WarningBorderBrush}" />
+                                            <Setter Property="BorderThickness" Value="1" />
+                                        </Style>
+                                        <Style Selector="Border[Tag=Info]">
+                                            <Setter Property="Background" Value="{DynamicResource Log.InfoBackgroundBrush}" />
+                                        </Style>
+                                    </Border.Styles>
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            Margin="0,0,8,0"
+                                            VerticalAlignment="Center"
+                                            FontFamily="Consolas,Monaco,monospace"
+                                            FontSize="11"
+                                            Text="{Binding Timestamp}" />
+                                        <SelectableTextBlock
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            FontFamily="Consolas,Monaco,monospace"
+                                            FontSize="12"
+                                            LineHeight="14"
+                                            Text="{Binding Message}"
+                                            TextWrapping="Wrap" />
+                                        <Border
+                                            Grid.Column="2"
+                                            Margin="8,0,0,0"
+                                            Padding="6,2"
+                                            Background="{Binding LevelColor}"
+                                            CornerRadius="3">
+                                            <TextBlock
+                                                FontSize="9"
+                                                FontWeight="Bold"
+                                                Text="{Binding Level}" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

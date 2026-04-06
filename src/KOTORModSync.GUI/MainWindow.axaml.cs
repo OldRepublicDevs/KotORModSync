@@ -61,7 +61,6 @@ namespace KOTORModSync
         private bool _autoGenerateRunning;
         private bool _mouseDownForWindowMoving;
         private PointerPoint _originalPoint;
-        private OutputWindow _outputWindow;
         private bool _progressWindowClosed;
         private string _searchText;
         private CancellationTokenSource _modSuggestCts;
@@ -1062,7 +1061,7 @@ namespace KOTORModSync
                 },
                 new MenuItem
                 {
-                    Header = "Open Output Window",
+                    Header = "Show Output Log",
                     Command = ReactiveCommand.Create( () => OpenOutputWindow_Click(new object(), new RoutedEventArgs()) ),
                 },
             };
@@ -6464,16 +6463,10 @@ namespace KOTORModSync
         [UsedImplicitly]
         private void OpenOutputWindow_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e)
         {
-            Dispatcher.UIThread.Post((async () =>
+            Dispatcher.UIThread.Post(() =>
             {
-                if (_outputWindow?.IsVisible == true)
-                {
-                    _outputWindow.Close();
-                }
-
-                _outputWindow = new OutputWindow();
-                _outputWindow.Show();
-            }));
+                EmbeddedLogPanel?.ExpandAndFocus();
+            });
         }
         [UsedImplicitly]
         [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]

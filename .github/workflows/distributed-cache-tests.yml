@@ -21,8 +21,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -37,7 +35,7 @@ jobs:
 
       - name: Run GitHub Runner Seeding Tests
         run: |
-          dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj \
+          dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
             --filter "FullyQualifiedName~GitHubRunnerSeeding" \
             --no-build \
             --verbosity normal

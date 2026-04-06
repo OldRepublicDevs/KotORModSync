@@ -55,16 +55,47 @@ namespace KOTORModSync.Services
             {
                 if (_currentDownloadWindow != null)
                 {
-                    if (!_currentDownloadWindow.IsVisible)
+                    if (!IsDownloadInProgress &&
+                        _currentDownloadWindow.IsSessionCompleted &&
+                        !_currentDownloadWindow.HasPendingOrActiveDownloads)
                     {
-                        _currentDownloadWindow.Show();
+                        await Logger.LogVerboseAsync("[DownloadOrchestration] Completed download session detected; resetting window for the new selection").ConfigureAwait(false);
+
+                        try
+                        {
+                            _currentDownloadManager?.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            await Logger.LogWarningAsync($"[DownloadOrchestration] Error disposing completed DownloadManager: {ex.Message}").ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            _currentDownloadManager = null;
+                        }
+
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            _currentDownloadWindow.ResetForNewSession();
+                            if (!_currentDownloadWindow.IsVisible)
+                            {
+                                _currentDownloadWindow.Show();
+                            }
+                        });
                     }
+                    else
+                    {
+                        if (!_currentDownloadWindow.IsVisible)
+                        {
+                            _currentDownloadWindow.Show();
+                        }
 
-                    _currentDownloadWindow.Activate();
-                    _ = _currentDownloadWindow.Focus();
+                        _currentDownloadWindow.Activate();
+                        _ = _currentDownloadWindow.Focus();
 
-                    await Logger.LogVerboseAsync("[DownloadOrchestration] Download window already exists, reusing existing window");
-                    return;
+                        await Logger.LogVerboseAsync("[DownloadOrchestration] Download window already exists, reusing existing window");
+                        return;
+                    }
                 }
 
                 if (IsDownloadInProgress)

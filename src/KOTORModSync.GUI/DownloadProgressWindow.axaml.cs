@@ -507,6 +507,63 @@ namespace KOTORModSync
             });
         }
 
+        public bool IsSessionCompleted => _isCompleted;
+
+        public bool HasPendingOrActiveDownloads => HasActiveOrPendingDownloads();
+
+        public void ResetForNewSession()
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                _allDownloadItems.Clear();
+                _activeDownloads.Clear();
+                _pendingDownloads.Clear();
+                _completedDownloads.Clear();
+                _activeDirectDownloads.Clear();
+                _completedDirectDownloads.Clear();
+                _activeOptimizedDownloads.Clear();
+                _completedOptimizedDownloads.Clear();
+
+                _isCompleted = false;
+                _forceCloseRequested = false;
+
+                ResetCancellationToken();
+
+                Button closeButton = this.FindControl<Button>("CloseButton");
+                if (closeButton != null)
+                {
+                    closeButton.IsEnabled = false;
+                }
+
+                Button cancelButton = this.FindControl<Button>("CancelButton");
+                if (cancelButton != null)
+                {
+                    cancelButton.IsEnabled = true;
+                    cancelButton.Content = "Cancel";
+                }
+
+                TextBlock summaryText = this.FindControl<TextBlock>("SummaryText");
+                if (summaryText != null)
+                {
+                    summaryText.Text = "Initializing downloads...";
+                }
+
+                TextBlock overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
+                if (overallProgressText != null)
+                {
+                    overallProgressText.Text = "Overall Progress: 0 / 0 URLs";
+                }
+
+                ProgressBar overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
+                if (overallProgressBar != null)
+                {
+                    overallProgressBar.Value = 0;
+                }
+
+                UpdateSummary();
+            });
+        }
+
         private void UpdateSummary()
         {
             if (!Dispatcher.UIThread.CheckAccess())

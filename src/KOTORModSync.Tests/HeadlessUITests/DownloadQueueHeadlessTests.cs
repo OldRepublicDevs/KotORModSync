@@ -112,6 +112,45 @@ namespace KOTORModSync.Tests.HeadlessUITests
             }
         }
 
+        [AvaloniaFact(DisplayName = "Download window can reset a completed session for a new fetch")]
+        public async Task DownloadWindow_ResetForNewSession_ClearsCompletedStateAndItems()
+        {
+            DownloadProgressWindow window = await CreateWindowAsync();
+
+            try
+            {
+                window.AddDownload(new DownloadProgress
+                {
+                    ModName = "Completed Mod",
+                    Url = "https://example.com/completed.zip",
+                    ComponentGuid = Guid.NewGuid(),
+                    Status = DownloadStatus.Completed,
+                    StatusMessage = "Already cached"
+                });
+
+                window.MarkCompleted();
+                await PumpEventsAsync();
+
+                Assert.True(window.IsSessionCompleted);
+                Assert.False(window.HasPendingOrActiveDownloads);
+                Assert.Equal(1, GetItemsCount(window, "CompletedDownloadsControl"));
+
+                window.ResetForNewSession();
+                await PumpEventsAsync();
+
+                Assert.False(window.IsSessionCompleted);
+                Assert.False(window.HasPendingOrActiveDownloads);
+                Assert.Equal(0, GetItemsCount(window, "ActiveDownloadsControl"));
+                Assert.Equal(0, GetItemsCount(window, "PendingDownloadsControl"));
+                Assert.Equal(0, GetItemsCount(window, "CompletedDownloadsControl"));
+                Assert.Equal(0, GetTotalTrackedItems(window));
+            }
+            finally
+            {
+                await CloseWindowAsync(window);
+            }
+        }
+
         private static async Task<DownloadProgressWindow> CreateWindowAsync()
         {
             DownloadProgressWindow window = await Dispatcher.UIThread.InvokeAsync(

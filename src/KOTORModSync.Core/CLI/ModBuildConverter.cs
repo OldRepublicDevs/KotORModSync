@@ -564,6 +564,18 @@ namespace KOTORModSync.Core.CLI
             [Option('y', "yes", Required = false, Default = false, HelpText = "Automatically answer 'yes' to all prompts")]
             public bool AutoConfirm { get; set; }
 
+            [Option('d', "download", Required = false, Default = false, HelpText = "Download mod archives to --source-dir before installing (same as convert --download)")]
+            public bool Download { get; set; }
+
+            [Option("concurrent", Required = false, Default = false, HelpText = "Run downloads concurrently (faster; harder to debug)")]
+            public bool Concurrent { get; set; }
+
+            [Option("patcher-engine", Required = false, HelpText = "Override TSLPatcher backend: Holopatcher or KPatcher (else use settings.json default)")]
+            public string PatcherEngine { get; set; }
+
+            [Option("kpatcher-path", Required = false, HelpText = "Full path to KPatcher executable when patcher-engine=KPatcher")]
+            public string KPatcherPath { get; set; }
+
             [Option("ignore-errors", Required = false, Default = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
             public bool IgnoreErrors { get; set; }
         }
@@ -2803,6 +2815,18 @@ exception: null);
                 s_config.sourcePath = new DirectoryInfo(sourceDir);
                 s_config.destinationPath = new DirectoryInfo(opts.GameDirectory);
 
+                if (!string.IsNullOrWhiteSpace(opts.PatcherEngine))
+                {
+                    s_config.patcherEngine = opts.PatcherEngine.Trim();
+                    await Logger.LogAsync($"Patcher engine override: {MainConfig.PatcherEngine}").ConfigureAwait(false);
+                }
+
+                if (!string.IsNullOrWhiteSpace(opts.KPatcherPath))
+                {
+                    s_config.kpatcherExecutablePath = opts.KPatcherPath.Trim();
+                    await Logger.LogVerboseAsync($"KPatcher path override: {opts.KPatcherPath.Trim()}").ConfigureAwait(false);
+                }
+
                 await Logger.LogAsync($"Loading instruction file: {opts.InputPath}").ConfigureAwait(false);
 
                 List<ModComponent> components = await FileLoadingService.LoadFromFileAsync(opts.InputPath).ConfigureAwait(false);
@@ -2819,10 +2843,30 @@ exception: null);
                 s_config.allComponents = components;
                 await Logger.LogAsync($"Loaded {components.Count} component(s) from instruction file.").ConfigureAwait(false);
 
-                if (opts.Select != null && opts.Select.Any())
+                // Match GUI behavior: without --select, treat as "select all" (TOML often has IsSelected = false).
+                await Logger.LogAsync("Applying component selection...").ConfigureAwait(false);
+                ApplySelectionFilters(components, opts.Select);
+
+                if (opts.Download)
                 {
-                    await Logger.LogAsync("Applying selection filters...").ConfigureAwait(false);
-                    ApplySelectionFilters(components, opts.Select);
+                    if (string.IsNullOrWhiteSpace(opts.SourceDirectory))
+                    {
+                        await Logger.LogErrorAsync("--download requires --source-dir pointing at your mod download/workspace folder.").ConfigureAwait(false);
+                        return 1;
+                    }
+
+                    await Logger.LogAsync("Downloading mod archives before install...").ConfigureAwait(false);
+                    using (var downloadCts = new CancellationTokenSource(TimeSpan.FromHours(6)))
+                    {
+                        _ = await DownloadAllModFilesAsync(
+                            components,
+                            sourceDir,
+                            opts.Verbose,
+                            sequential: !opts.Concurrent,
+                            downloadCts.Token).ConfigureAwait(false);
+                    }
+
+                    LogAllErrors(s_globalDownloadCache, forceConsoleOutput: true);
                 }
 
                 int selectedCount = components.Count(c => c.IsSelected);

@@ -1611,7 +1611,9 @@ namespace KOTORModSync.Core.Services
                                 }
                             }
 
-                            if (filenameDict.Count > 0)
+                            // Always record the URL: TOML often uses ModLinkFilenames = { "https://..." = { } } with no
+                            // filenames yet; skipping empty tables dropped every download link from ResourceRegistry.
+                            if (!string.IsNullOrWhiteSpace(url))
                             {
                                 deserializedFilenames[url] = filenameDict;
                             }
@@ -1661,7 +1663,7 @@ namespace KOTORModSync.Core.Services
                                 }
                             }
 
-                            if (filenameDict.Count > 0)
+                            if (!string.IsNullOrWhiteSpace(url))
                             {
                                 deserializedFilenames[url] = filenameDict;
                             }
@@ -1688,7 +1690,9 @@ namespace KOTORModSync.Core.Services
                     // Check if ResourceRegistry already has an entry for this URL (keyed by URL directly)
                     bool urlExistsInRegistry = registryDict.ContainsKey(url);
 
-                    if (!urlExistsInRegistry && filenames != null && filenames.Count > 0)
+                    // Empty ModLinkFilenames tables ({ }) still denote a download source; populate registry so
+                    // download/cache and FileValidation see the URL.
+                    if (!urlExistsInRegistry && filenames != null)
                     {
                         // Create minimal ResourceMetadata entry from ModLinkFilenames
                         string normalizedUrl = UrlNormalizer.Normalize(url);

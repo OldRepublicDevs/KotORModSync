@@ -1,5 +1,7 @@
 # KOTORModSync agent guide
 
+This file is the short entry point for agents working on the Avalonia desktop GUI, the install wizard, or full-build flows against `mod-builds`. For step-by-step commands and tooling, read `docs/local_desktop_agent_runbook.md` next.
+
 ## Purpose
 
 Use this repository's local-agent assets whenever a task touches:
@@ -40,6 +42,14 @@ Prefer these scripts over ad hoc shell commands:
 - `scripts/agents/ensure_linux_holopatcher.sh`
 - `scripts/agents/launch_gui_desktop.sh`
 
+Example launch (after `mod-builds` exists at repo root and template dirs are created or will be auto-created):
+
+`./scripts/agents/launch_gui_desktop.sh --instruction-file ./mod-builds/TOMLs/KOTOR1_Full.toml --kotor-dir ./tmp/kotor_template --mod-dir ./tmp/mod_downloads`
+
+Clone `mod-builds` at the repo root if missing:
+
+`git clone https://github.com/th3w1zard1/mod-builds ./mod-builds`
+
 Typical local desktop flow:
 
 1. Clone `mod-builds` into the repo root if missing.
@@ -66,6 +76,7 @@ Typical local desktop flow:
   - `Step1KotorDirectoryPicker`
   - `Step2Button` (`📄 Load Instruction File`)
   - `ScrapeDownloadsButton` (`Fetch Downloads`)
+  - `OpenModDirectoryButton`
   - `DownloadStatusButton`
   - `StopDownloadsButton`
   - `ValidateButton` (`🔍 Validate`)
@@ -105,9 +116,11 @@ Widescreen-only pages are added dynamically after the base install when needed.
 - `ValidatePage`
   - `ValidateButton` (`🔍 Run Validation`)
   - `ValidationProgress`
+  - `StatusText`
   - `LogExpander`
   - `LogText`
   - `SummaryText`
+  - `SummaryDetails`
   - `ErrorCountBadge`
   - `WarningCountBadge`
   - `PassedCountBadge`

@@ -360,9 +360,8 @@ namespace KOTORModSync.Core.Services.Download
                 }
                 catch (HttpRequestException)
                 {
-                    await
-                                        // HEAD not supported, try Range request
-                                        Logger.LogVerboseAsync("[DirectDownload] HEAD not supported, trying Range request").ConfigureAwait(false);
+                    // HEAD not supported, try Range request
+                    await Logger.LogVerboseAsync("[DirectDownload] HEAD not supported, trying Range request").ConfigureAwait(false);
                     await TryRangeRequestForMetadata(url, metadata, cancellationToken).ConfigureAwait(false);
                 }
 

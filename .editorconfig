@@ -6,7 +6,7 @@ root = true
 # All files
 [*]
 charset = utf-8
-end_of_line = crlf
+end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
@@ -84,7 +84,7 @@ indent_style = space
 tab_width = 4
 
 # New line preferences
-end_of_line = crlf
+end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 

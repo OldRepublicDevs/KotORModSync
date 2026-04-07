@@ -178,6 +178,13 @@ namespace KOTORModSync.Core.Services.FileSystem
                             throw new InvalidOperationException($"Failed to extract '{sourceRelDirPath}': Not a valid 7z SFX or 7z CLI not available. On Linux/macOS, install 7z package (e.g., 'apt install p7zip-full' or 'brew install p7zip').");
                         }
 
+                        // Only execute a Windows SFX when the file begins with the MZ PE header,
+                        // preventing arbitrary .exe files in the mod directory from being run.
+                        if (!ArchiveHelper.IsPotentialSevenZipSFX(archive.FullName))
+                        {
+                            throw new InvalidOperationException($"'{sourceRelDirPath}' does not appear to be a self-extracting executable (missing MZ header). Cannot extract.");
+                        }
+
                         await Logger.LogAsync($"Managed SFX extraction failed, attempting to execute SFX for '{sourceRelDirPath}'").ConfigureAwait(false);
                         (int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(archive.FullName, $" -o\"{archive.DirectoryName}\" -y").ConfigureAwait(false);
 

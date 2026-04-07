@@ -21,10 +21,9 @@ namespace KOTORModSync
                 // Parse command-line arguments
                 CLIArguments.Parse(args);
 
-                // Initialize telemetry
-                Core.Services.TelemetryService.Instance.Initialize();
-
-                // Record session start
+                // Telemetry is initialized lazily inside MainWindow.InitializeTelemetryIfEnabled
+                // (called on window open) so that consent can be obtained from the user first.
+                // Record session start only if telemetry is actually enabled after that check.
                 Core.Services.TelemetryService.Instance.RecordSessionStart(
                     componentCount: 0,
                     selectedCount: 0

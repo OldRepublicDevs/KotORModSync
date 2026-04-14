@@ -100,7 +100,6 @@ pwsh -Command '& {
 Rules:
 - NEVER use `GitHubRunnerSeeding` unless the test is exclusively for GitHub Actions runners.
 - NEVER combine `LongRunning` with "Seeding" in a test name.
-- GitHub workflow `.github/workflows/distributed-cache-tests.yml` filters on `FullyQualifiedName~GitHubRunnerSeeding`.
 
 ## Verified local desktop baseline
 
@@ -263,8 +262,7 @@ KOTORModSync is a cross-platform multi-mod installer for Star Wars: KOTOR, built
 - **Build**: `dotnet build KOTORModSync.sln --configuration Debug` from repo root
 - **Run GUI**: `dotnet run --project src/KOTORModSync.GUI/KOTORModSync.csproj --configuration Debug --framework net9.0` (must specify `--framework net9.0` since Debug can multi-target)
 - **Lint**: `dotnet format KOTORModSync.sln --verify-no-changes` (pre-existing formatting diffs exist)
-- **Tests**: See `.cursorrules` for the required PowerShell-based test runner pattern. Quick non-long-running test run: `dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "FullyQualifiedName!~LongRunning&FullyQualifiedName!~GitHubRunnerSeeding&FullyQualifiedName!~DistributedCache" --configuration Debug`
-- **Distributed cache tests**: `dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "FullyQualifiedName~DistributedCache&FullyQualifiedName!~LongRunning&FullyQualifiedName!~GitHubRunnerSeeding"` (run from `src/` dir or adjust path)
+- **Tests**: See `.cursorrules` for the required PowerShell-based test runner pattern. Quick non-long-running test run: `dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "FullyQualifiedName!~LongRunning&FullyQualifiedName!~GitHubRunnerSeeding" --configuration Debug`
 
 ### Non-obvious gotchas
 

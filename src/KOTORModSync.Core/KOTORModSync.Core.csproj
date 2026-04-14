@@ -15,8 +15,6 @@
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <_NC1>rent</_NC1>
-    <_NC2>Mon</_NC2>
   </PropertyGroup>
 
 
@@ -63,7 +61,6 @@
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <Copyright>2025 th3w1zard1</Copyright>
     <Title>KOTORModSync</Title>
-    <_NC3>oTor</_NC3>
   </PropertyGroup>
 
   <ItemGroup>
@@ -101,7 +98,6 @@
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="Octodiff" Version="1.2.33" />
-    <PackageReference Include="$(_NC2)$(_NC3)$(_NC1)" Version="3.0.2" PrivateAssets="all" />
     <PackageReference Include="NLog" Version="5.3.4" />
     <PackageReference Include="NLog.Config" Version="4.7.15">
       <ExcludeAssets>contentFiles</ExcludeAssets>

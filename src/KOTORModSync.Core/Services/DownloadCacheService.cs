@@ -355,20 +355,8 @@ namespace KOTORModSync.Core.Services
                             string metadataHash = CanonicalJson.ComputeHash(metadata);
                             await Logger.LogVerboseAsync($"[Cache] Computed MetadataHash for {url}: {metadataHash}...").ConfigureAwait(false);
 
-                            // Compute ContentId from metadata (PRE-DOWNLOAD)
+                            // ContentId computation removed (distributed cache feature)
                             string contentId = null;
-                            try
-                            {
-                                contentId = DownloadCacheOptimizer.ComputeContentIdFromMetadata(metadata, url);
-                                await Logger.LogVerboseAsync($"[Cache] Computed ContentId from metadata: {contentId}...").ConfigureAwait(false);
-
-                                // Record telemetry
-                                TelemetryService.Instance.RecordContentIdGenerated(handler.GetProviderKey(), fromMetadata: true);
-                            }
-                            catch (Exception ex)
-                            {
-                                await Logger.LogWarningAsync($"[Cache] Failed to compute ContentId for {url}: {ex.Message}").ConfigureAwait(false);
-                            }
 
                             // Check if we already have a ContentId mapping
                             string existingContentId = null;
@@ -807,20 +795,6 @@ namespace KOTORModSync.Core.Services
                 if (allFilesExist && firstExistingFile != null)
                 {
                     string existingFilePath = ResolveSourceFilePath(firstExistingFile, modSourceDirectory, destinationDirectory);
-
-                    // VERIFY INTEGRITY: Check if existing file matches cached integrity data
-                    bool integrityValid = true;
-                    if (cachedMeta.ContentHashSHA256 != null || (cachedMeta.PieceHashes != null && cachedMeta.PieceLength > 0))
-                    {
-                        integrityValid = await DownloadCacheOptimizer.VerifyContentIntegrity(existingFilePath, cachedMeta).ConfigureAwait(false);
-                        if (!integrityValid)
-                        {
-                            await Logger.LogWarningAsync($"[DownloadCacheService] Existing file failed integrity check: {firstExistingFile}").ConfigureAwait(false);
-                            await Logger.LogWarningAsync($"[DownloadCacheService] File may be corrupted - will re-download").ConfigureAwait(false);
-                            // Force re-download by returning needsDownload: true
-                            return (url, fileName: firstExistingFile, needsDownload: true);
-                        }
-                    }
 
                     bool shouldValidate = MainConfig.ValidateAndReplaceInvalidArchives;
 
@@ -1314,35 +1288,17 @@ namespace KOTORModSync.Core.Services
                         await Logger.LogVerboseAsync($"[DownloadCacheService] No ContentId available for URL, optimizer will use URL hash").ConfigureAwait(false);
                     }
 
-                    // Create traditional download function as fallback
-                    Func<Task<DownloadResult>> traditionalDownload = async () =>
+                    // Run download via DownloadManager
+                    var singleUrlMap = new Dictionary<string, DownloadProgress>(StringComparer.Ordinal)
                     {
-                        var singleUrlMap = new Dictionary<string, DownloadProgress>(StringComparer.Ordinal)
-                        {
-                            [url] = progressEntry,
-                        };
-                        List<DownloadResult> results = await DownloadManager.DownloadAllWithProgressAsync(
-                            singleUrlMap,
-                            destinationDirectory,
-                            progressForwarder,
-                            cancellationToken).ConfigureAwait(false);
-                        return results.FirstOrDefault() ?? DownloadResult.Failed("No result returned");
+                        [url] = progressEntry,
                     };
-
-                    // Try optimized download (uses distributed cache if available, falls back to traditional)
-                    DownloadResult result = await DownloadCacheOptimizer.TryOptimizedDownload(
-                        url,
+                    List<DownloadResult> downloadResultList = await DownloadManager.DownloadAllWithProgressAsync(
+                        singleUrlMap,
                         destinationDirectory,
-                        traditionalDownload,
                         progressForwarder,
-                        cancellationToken,
-                        contentId).ConfigureAwait(false);
-
-                    // Set DownloadSource on the progress entry
-                    if (result.Success && progressEntry != null)
-                    {
-                        progressEntry.DownloadSource = result.DownloadSource;
-                    }
+                        cancellationToken).ConfigureAwait(false);
+                    DownloadResult result = downloadResultList.FirstOrDefault() ?? DownloadResult.Failed("No result returned");
 
                     downloadResults.Add(result);
                 }
@@ -1413,77 +1369,25 @@ namespace KOTORModSync.Core.Services
                     cachedResults.Add(newEntry);
                     successCount++;
 
-                    // Post-download: Compute INTEGRITY hashes (ContentId already exists from PreResolve!)
+                    // Update ResourceRegistry with downloaded filename
                     try
                     {
                         if (File.Exists(result.FilePath))
                         {
-                            await Logger.LogVerboseAsync($"[Cache] Computing file integrity data for: {result.FilePath}").ConfigureAwait(false);
-
-                            (string contentHashSHA256, int pieceLength, string pieceHashes) =
-                                await DownloadCacheOptimizer.ComputeFileIntegrityData(result.FilePath).ConfigureAwait(false);
-
-                            await Logger.LogVerboseAsync($"[Cache] ContentHashSHA256: {contentHashSHA256}...").ConfigureAwait(false);
-                            await Logger.LogVerboseAsync($"[Cache] PieceLength: {pieceLength}, Pieces: {pieceHashes.Length / 40}").ConfigureAwait(false);
-
-                            // Find existing ResourceMetadata by URL (should already have ContentId from PreResolve)
-                            ResourceMetadata resourceMeta = null;
-                            string metadataHash = null;
-
-                            // Try to find metadata from component's ResourceRegistry
                             foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
                             {
                                 if (string.Equals(kvp.Key, originalUrl, StringComparison.Ordinal))
                                 {
-                                    resourceMeta = kvp.Value;
-                                    metadataHash = kvp.Key;
-                                    // Update with integrity data (ContentId should already exist!)
-                                    resourceMeta.ContentHashSHA256 = contentHashSHA256;
-                                    resourceMeta.PieceLength = pieceLength;
-                                    resourceMeta.PieceHashes = pieceHashes;
+                                    ResourceMetadata resourceMeta = kvp.Value;
                                     resourceMeta.FileSize = new FileInfo(result.FilePath).Length;
                                     resourceMeta.LastVerified = DateTime.UtcNow;
 
-                                    // VERIFY INTEGRITY: Actually use the integrity data we computed!
-                                    bool integrityValid = await DownloadCacheOptimizer.VerifyContentIntegrity(result.FilePath, resourceMeta).ConfigureAwait(false);
-                                    if (!integrityValid)
-                                    {
-                                        await Logger.LogErrorAsync($"[Cache] INTEGRITY VERIFICATION FAILED for downloaded file: {fileName}").ConfigureAwait(false);
-                                        await Logger.LogErrorAsync($"[Cache] File may be corrupted - download may need to be retried").ConfigureAwait(false);
-                                        // Continue anyway - the file exists and might be usable, but log the warning
-                                    }
-                                    else
-                                    {
-                                        await Logger.LogVerboseAsync($"[Cache] ✓ Integrity verification passed for: {fileName}").ConfigureAwait(false);
-                                    }
-
-                                    // Add filename to Files dictionary
                                     if (!resourceMeta.Files.ContainsKey(fileName))
                                     {
                                         resourceMeta.Files[fileName] = true;
                                     }
 
-                                    // Log ContentId if available
-                                    if (!string.IsNullOrEmpty(resourceMeta.ContentId))
-                                    {
-                                        await Logger.LogVerboseAsync($"[Cache] ContentId: {resourceMeta.ContentId}...").ConfigureAwait(false);
-
-                                        // Update mapping with verification (ContentId should already exist)
-                                        bool updated = await UpdateMappingWithVerification(metadataHash, resourceMeta.ContentId, resourceMeta).ConfigureAwait(false);
-
-                                        if (updated)
-                                        {
-                                            await Logger.LogVerboseAsync($"[Cache] Updated mapping: {metadataHash}... → {resourceMeta.ContentId}...").ConfigureAwait(false);
-
-                                            // Save updated resource index
-                                            await SaveResourceIndexAsync().ConfigureAwait(false);
-                                            await Logger.LogVerboseAsync("[Cache] Saved updated resource index").ConfigureAwait(false);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        await Logger.LogWarningAsync($"[Cache] ContentId missing for URL (PreResolve may have failed): {originalUrl}").ConfigureAwait(false);
-                                    }
+                                    break;
                                 }
                             }
                         }
@@ -1492,7 +1396,7 @@ namespace KOTORModSync.Core.Services
                     }
                     catch (Exception ex)
                     {
-                        await Logger.LogWarningAsync($"[Cache] Failed to compute file integrity data: {ex.Message}").ConfigureAwait(false);
+                        await Logger.LogWarningAsync($"[Cache] Failed to update resource metadata: {ex.Message}").ConfigureAwait(false);
                     }
                 }
 
@@ -3270,7 +3174,7 @@ namespace KOTORModSync.Core.Services
 
                 foreach (string key in entries.Select(entry => entry.Key))
                 {
-                    // This requires access to GetCachePath from DownloadCacheOptimizer
+                    // Construct cache file path
                     // TODO - STUB: For now, construct path manually
                     string datPath = Path.Combine(cacheDir, $"{key}.dat");
 
@@ -3347,7 +3251,7 @@ namespace KOTORModSync.Core.Services
         /// </summary>
         public static int GetBlockedContentIdCount()
         {
-            return DownloadCacheOptimizer.GetBlockedContentIdCount();
+            return 0;
         }
 
         /// <summary>

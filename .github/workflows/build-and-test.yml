@@ -46,6 +46,9 @@ jobs:
       - name: Restore test project
         run: dotnet restore "${{ env.TEST_PROJECT }}"
 
+      - name: Restore Core release dependency surface
+        run: dotnet restore "${{ env.CORE_PROJECT }}" -p:Configuration=Release
+
       - name: Build test project
         run: dotnet build "${{ env.TEST_PROJECT }}" --configuration Debug --no-restore
 

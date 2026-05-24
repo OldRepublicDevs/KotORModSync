@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.1](https://github.com/th3w1zard1/ModSync/compare/KOTORModSync-v2.1.0...KOTORModSync-v2.1.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* **release:** align MainConfig.CurrentVersion with manifest 2.1.0 ([#84](https://github.com/th3w1zard1/ModSync/issues/84)) ([9d5bcf1](https://github.com/th3w1zard1/ModSync/commit/9d5bcf195fa0e1b248eaddfc1667459b60f0d028))
+
+
+### Documentation
+
+* **plan:** mark PR [#84](https://github.com/th3w1zard1/ModSync/issues/84) version alignment merge shipped ([6e79ef0](https://github.com/th3w1zard1/ModSync/commit/6e79ef055fca9517143e76e59819a5de96bca494))
+* **plan:** mark release 2.1.0 shipped after PR [#81](https://github.com/th3w1zard1/ModSync/issues/81) ([1940e4b](https://github.com/th3w1zard1/ModSync/commit/1940e4bc8a697f001f158d988a44fa42c23b658b))
+* **plan:** set plan 009 status to shipped ([b3fd09e](https://github.com/th3w1zard1/ModSync/commit/b3fd09ee6bf07a801b2a2acee8a206f97dabc136))
+
 ## [2.1.0](https://github.com/th3w1zard1/ModSync/compare/KOTORModSync-v2.0.0...KOTORModSync-v2.1.0) (2026-05-24)
 
 

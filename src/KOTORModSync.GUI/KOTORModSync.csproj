@@ -121,7 +121,9 @@
     <PackageReference Include="Avalonia" Version="11.3.16" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.16" />
     <PackageReference Include="Avalonia.LinuxFramebuffer" Version="11.3.16" />
+    <!-- Latest stable 11.x ItemsRepeater; verified against Avalonia 11.3.16 restore graph -->
     <PackageReference Include="Avalonia.Controls.ItemsRepeater" Version="11.1.5" />
+    <!-- Latest published Avalonia.ReactiveUI patch (no 11.3.16 package on NuGet) -->
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.16" />
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics"

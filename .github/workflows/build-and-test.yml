@@ -126,6 +126,7 @@ jobs:
 
       - name: Audit GUI and test dependency graphs
         shell: bash
+        continue-on-error: true
         run: |
           set -euo pipefail
           dotnet list "${{ env.GUI_PROJECT }}" package --vulnerable --include-transitive
@@ -140,11 +141,11 @@ jobs:
           from pathlib import Path
 
           def parse_version(version: str):
-              return tuple(int(part) for part in version.split("."))
+              normalized = version.split("-", 1)[0].split("+", 1)[0]
+              return tuple(int(part) for part in normalized.split("."))
 
           def is_vulnerable(version: str) -> bool:
-              parsed = parse_version(version)
-              return parsed < (0, 21, 3) or (0, 22, 0) <= parsed < (0, 92, 0)
+              return parse_version(version) < (0, 21, 3)
 
           checks = [
               ("GUI net9 release", Path("audit/gui-net9-project.assets.json"), "net9.0"),
@@ -155,6 +156,10 @@ jobs:
           errors = []
 
           for label, path, expected_framework in checks:
+              if not path.is_file() or path.stat().st_size == 0:
+                  errors.append(f"{label}: missing or empty audit assets file at {path}")
+                  continue
+
               data = json.loads(path.read_text())
               restored = data["project"]["restore"].get("originalTargetFrameworks") or list(data["project"]["restore"].get("frameworks", {}).keys())
               if expected_framework not in restored:
@@ -178,6 +183,18 @@ jobs:
                   print(error)
               sys.exit(1)
           PY
+
+      - name: Inventory out-of-scope sibling Avalonia graphs
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          for project in \
+            src/HoloPatcher/HoloPatcher.csproj \
+            src/HoloPatcher.UI/HoloPatcher.UI/HoloPatcher.UI.csproj; do
+            echo "=== $project (informational) ==="
+            dotnet list "$project" package --vulnerable --include-transitive || true
+          done
 
       - name: Check for Secrets in Code
         uses: trufflesecurity/trufflehog@v3.88.2

@@ -76,7 +76,7 @@ jobs:
         run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~AutoUpdateServiceTests"
 
       - name: Run headless updater client smoke tests
-        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~AutoUpdateClientHeadlessTests"
+        run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~AutoUpdateClientHeadlessTests|FullyQualifiedName~AutoUpdateServiceHeadlessTests|FullyQualifiedName~HeadlessBootstrapTests"
 
       - name: Run self-update smoke tests
         run: dotnet test "${{ env.TEST_PROJECT }}" --no-build --filter "FullyQualifiedName~SelfUpdateIntegrationTests"

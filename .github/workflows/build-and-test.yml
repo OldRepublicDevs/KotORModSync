@@ -193,16 +193,16 @@ jobs:
               sys.exit(1)
           PY
 
-      - name: Inventory out-of-scope sibling Avalonia graphs
+      - name: Audit HoloPatcher sibling Avalonia graphs
         shell: bash
-        continue-on-error: true
         run: |
           set -euo pipefail
           for project in \
             src/HoloPatcher/HoloPatcher.csproj \
             src/HoloPatcher.UI/HoloPatcher.UI/HoloPatcher.UI.csproj; do
-            echo "=== $project (informational) ==="
-            dotnet list "$project" package --vulnerable --include-transitive || true
+            echo "=== $project ==="
+            dotnet restore "$project" -p:Configuration=Release
+            dotnet list "$project" package --vulnerable --include-transitive
           done
 
       - name: Check for Secrets in Code

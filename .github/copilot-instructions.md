@@ -21,6 +21,7 @@ Debug builds and test runs assume the .NET 9 toolchain described in `AGENTS.md`.
 ## Default inference path
 
 - Treat `.github/copilot-instructions.md`, `AGENTS.md`, and `.cursorrules` as the source-of-truth trio for initial routing. Read those before asking broad "where should I start?" questions.
+- For task routing, audits, and Core CLI verbs, start at [docs/knowledgebase/README.md](../docs/knowledgebase/README.md). Headless helpers: `./scripts/agents/run_headless_tests.sh`, `./scripts/agents/cli_validate.sh`.
 - If the task touches `src/KOTORModSync.Core`, `src/KOTORModSync.Tests`, repo-root config/docs, or build/test/lint behavior, default to the headless .NET workflow and start from the repo-root commands above.
 - If the task touches `src/KOTORModSync.GUI`, wizard pages, `scripts/agents/`, or full-build/manual validation, default to the GUI workflow in `AGENTS.md` and `docs/local_desktop_agent_runbook.md`. Prefer helper scripts and CLI preload args before trying file-picker automation.
 - If the task touches `telemetry-auth/`, treat it as the Python/Docker sidecar with its own README, CONTRIBUTING, deployment docs, and GitHub workflows instead of routing through the Avalonia app workflow.

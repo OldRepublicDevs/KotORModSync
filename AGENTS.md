@@ -13,8 +13,11 @@ Use this repository's local-agent assets whenever a task touches:
 
 For broad repo tasks, start with `.github/copilot-instructions.md` for the short Copilot/autopilot brief, then use this file as the routing layer into the deeper runbooks and skills.
 
+**Knowledgebase (canonical index):** [docs/knowledgebase/README.md](docs/knowledgebase/README.md) — agent-native audit, CLI reference, action parity, and links to runbooks/scripts.
+
 Start with:
 
+- `docs/knowledgebase/README.md`
 - `docs/local_desktop_agent_runbook.md`
 - `.cursor/skills/local_desktop_gui_testing/SKILL.md`
 - `.cursor/skills/full_build_install_validation/SKILL.md`

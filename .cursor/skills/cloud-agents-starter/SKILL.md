@@ -7,6 +7,10 @@ description: Minimal runbook for Cloud agents - how to run, test, and configure 
 
 A minimal runbook for Cloud agents covering practical setup, execution, and testing. Organized by codebase area.
 
+**Knowledgebase:** [docs/knowledgebase/README.md](../../../docs/knowledgebase/README.md) — index, [core-cli-reference.md](../../../docs/knowledgebase/core-cli-reference.md), [agent-action-parity.md](../../../docs/knowledgebase/agent-action-parity.md).
+
+**Quick scripts:** `./scripts/agents/run_headless_tests.sh`, `./scripts/agents/cli_validate.sh` (see [scripts/agents/README.md](../../../scripts/agents/README.md)).
+
 ---
 
 ## 1. Initial Setup
@@ -55,11 +59,11 @@ Set `DISPLAY=` to avoid X11 waits in headless or CI environments.
 dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj --framework net9.0 -- <verb> [options]
 ```
 
-**Common verbs:** `convert`, `merge`, `validate`, `install`, `set-nexus-api-key`, `install-python-deps`, `holopatcher`, `cache-stats`, `cache-clear`, `cache-block`, `cache-test`, `cache-seed`.
+**Common verbs:** `convert`, `merge`, `validate`, `install`, `set-nexus-api-key`, `install-python-deps`, `holopatcher`.
 
 **Example:**
 ```bash
-dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -- validate -i path/to/instructions.toml
+dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -f net9.0 -- validate -i path/to/instructions.toml
 ```
 
 ---
@@ -96,7 +100,6 @@ TEST_FILE_PATH=test_modbuild_current.md dotnet test src/KOTORModSync.Tests/KOTOR
 
 | Suffix | Purpose |
 |--------|---------|
-
 | `LongRunning` | >2 min, excluded from normal runs |
 | (none) | Regular tests, <2 min |
 
@@ -169,7 +172,7 @@ Omit for PRs and dev builds.
 | Init submodules | `git submodule update --init --recursive` |
 | Build GUI | `dotnet build src/KOTORModSync.GUI/KOTORModSync.csproj` |
 | Run GUI | `dotnet run --project src/KOTORModSync.GUI/KOTORModSync.csproj` |
-| Run Core CLI | `dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -- <verb> [options]` |
+| Run Core CLI | `dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -f net9.0 -- <verb> [options]` |
 | Run all tests | `dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj -c Release` |
 | Release build (with telemetry) | `dotnet build -c Release /p:DefineConstants="OFFICIAL_BUILD"` |
 

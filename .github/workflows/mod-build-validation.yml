@@ -114,14 +114,14 @@ jobs:
       - name: Copy test file
         if: steps.hash.outputs.changed == 'true'
         run: |
-          cp "${{ steps.download.outputs.md_path }}" "KOTORModSync.Tests/test_modbuild_current.md"
+          cp "${{ steps.download.outputs.md_path }}" "src/KOTORModSync.Tests/test_modbuild_current.md"
 
       - name: Run validation tests
         if: steps.hash.outputs.changed == 'true'
         id: test
         continue-on-error: true
         run: |
-          dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj \
+          dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
             --configuration Release \
             --no-build \
             --filter "FullyQualifiedName~DocumentationRoundTripTests" \
@@ -134,7 +134,7 @@ jobs:
         if: steps.hash.outputs.changed == 'true'
         id: convert
         run: |
-          dotnet run --project KOTORModSync.Tests/KOTORModSync.Tests.csproj \
+          dotnet run --project src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
             -- convert-to-toml \
             --input "${{ steps.download.outputs.md_path }}" \
             --output "temp_output/${{ matrix.build.filename }}.toml"
@@ -143,7 +143,7 @@ jobs:
       - name: Generate documentation
         if: steps.hash.outputs.changed == 'true'
         run: |
-          dotnet run --project KOTORModSync.Tests/KOTORModSync.Tests.csproj \
+          dotnet run --project src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
             -- generate-docs \
             --input "${{ steps.download.outputs.md_path }}" \
             --output "temp_output/${{ matrix.build.filename }}_regenerated.md"

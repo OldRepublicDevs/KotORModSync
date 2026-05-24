@@ -91,7 +91,7 @@ The canonical KPatcher source now lives under `vendor/KPatcher`. The legacy loca
 
 ### NuGet sources
 
-Package restore sources are defined in `NuGet.config` at the repository root. This includes `nuget.org` and the GitHub Packages feed for `th3w1zard1`, which is the intended remote source for package-based HoloPatcher integration.
+Package restore sources are defined in `NuGet.config` at the repository root. Only `nuget.org` is configured (public restore; no GitHub Packages feed).
 
 All you need to do is build `src/KOTORModSync.GUI/KOTORModSync.csproj`. This builds the app into `src/KOTORModSync.GUI/bin`. From the repo root, use `dotnet build KOTORModSync.sln --configuration Debug`, or run `dotnet build` / `dotnet run --framework net9.0` inside `src/KOTORModSync.GUI`.
 You may alternatively run my publish scripts in the solution directory if you like.

@@ -23,7 +23,7 @@ Use these when citing findings in plans, PRs, or audits:
 | GUI / install wizard / full-build | `docs/local_desktop_agent_runbook.md` | `agent-action-parity.md` |
 | Release or versioning | `docs/manual-release.md` | `docs/solutions/manual-release-workflow.md` |
 | Agent capability gaps | `agent-native-audit.md` | `agent-action-parity.md` |
-| telemetry-auth sidecar | `telemetry-auth/README.md` | Do not use Avalonia runbooks |
+| telemetry-auth sidecar | [telemetry-auth-routing.md](telemetry-auth-routing.md) → `telemetry-auth/README.md` | Do not use Avalonia runbooks |
 
 ## Topic index
 
@@ -33,6 +33,14 @@ Use these when citing findings in plans, PRs, or audits:
 - [Agent-native architecture audit](agent-native-audit.md) — scored review of eight agent-native principles
 - [Agent action parity](agent-action-parity.md) — user/GUI flows vs CLI, scripts, and tests
 - [Core CLI reference](core-cli-reference.md) — `ModBuildConverter` verbs (`validate`, `install`, `convert`, …)
+- [CLI selection semantics](cli-selection-semantics.md) — install/validate vs TOML `IsSelected`, `--best-effort`
+- [CI test matrix](ci-test-matrix.md) — GitHub Actions filters vs local `run_headless_tests.sh`
+- [VFS vs real FS](vfs-vs-real-fs.md) — dry-run validation vs real install
+- [HoloPatcher resources](holopatcher-resources.md) — Linux symlink and `Resources/` layout
+- [mod-builds sources](mod-builds-sources.md) — agent clone vs community validation workflow
+- [Removed features](removed-features.md) — distributed cache, stale test filters, deprecated skills
+- [Drift audit 2026-05-24](drift-audit-2026-05-24.md) — research snapshot and fixes applied
+- [telemetry-auth routing](telemetry-auth-routing.md) — sidecar scope and env vars
 
 ### Runbooks (procedural)
 

@@ -552,6 +552,9 @@ namespace KOTORModSync.Core.CLI
 
             [Option("ignore-errors", Required = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
             public bool IgnoreErrors { get; set; }
+
+            [Option("use-file-selection", Required = false, Default = false, HelpText = "Only validate components with IsSelected=true in the file (matches GUI after Mod Selection). Without this flag and without --select, all components are validated.")]
+            public bool UseFileSelection { get; set; }
         }
 
         [Verb("install", HelpText = "Install mods from an instruction file")]
@@ -566,8 +569,11 @@ namespace KOTORModSync.Core.CLI
             [Option('s', "source-dir", Required = false, HelpText = "Source directory containing mod files (defaults to input file directory)")]
             public string SourceDirectory { get; set; }
 
-            [Option("select", Required = false, HelpText = "Select components to install (format: 'category:Name' or 'tier:Name'). Can be specified multiple times. If not specified, all selected mods in the file will be installed.")]
+            [Option("select", Required = false, HelpText = "Select components to install (format: 'category:Name' or 'tier:Name'). Can be specified multiple times.")]
             public IEnumerable<string> Select { get; set; }
+
+            [Option("use-file-selection", Required = false, Default = false, HelpText = "Only install components with IsSelected=true in the file. Default (without this flag and without --select): select all components (full-build style).")]
+            public bool UseFileSelection { get; set; }
 
             [Option("no-checkpoint", Required = false, Default = false, HelpText = "Disable checkpoint system (not recommended)")]
             public bool NoCheckpoint { get; set; }
@@ -2614,7 +2620,8 @@ componentName: null,
                 }
 
                 List<ModComponent> componentsToValidate = components;
-                if (opts.Select != null && opts.Select.Any())
+                bool hasExplicitSelect = opts.Select != null && opts.Select.Any();
+                if (hasExplicitSelect)
                 {
                     if (!opts.ErrorsOnly)
                     {
@@ -2634,6 +2641,20 @@ componentName: null,
                     if (!opts.ErrorsOnly)
                     {
                         await Logger.LogAsync($"{componentsToValidate.Count} component(s) selected for validation.").ConfigureAwait(false);
+                    }
+                }
+                else if (opts.UseFileSelection)
+                {
+                    componentsToValidate = components.Where(c => c.IsSelected).ToList();
+                    if (componentsToValidate.Count == 0)
+                    {
+                        await Logger.LogErrorAsync("Error: No components are marked IsSelected in the instruction file.").ConfigureAwait(false);
+                        return 1;
+                    }
+
+                    if (!opts.ErrorsOnly)
+                    {
+                        await Logger.LogAsync($"{componentsToValidate.Count} component(s) marked selected in file will be validated.").ConfigureAwait(false);
                     }
                 }
 
@@ -2888,9 +2909,16 @@ exception: null);
                 s_config.allComponents = components;
                 await Logger.LogAsync($"Loaded {components.Count} component(s) from instruction file.").ConfigureAwait(false);
 
-                // Match GUI behavior: without --select, treat as "select all" (TOML often has IsSelected = false).
-                await Logger.LogAsync("Applying component selection...").ConfigureAwait(false);
-                ApplySelectionFilters(components, opts.Select);
+                bool hasExplicitSelect = opts.Select != null && opts.Select.Any();
+                if (opts.UseFileSelection && !hasExplicitSelect)
+                {
+                    await Logger.LogAsync("Using IsSelected flags from the instruction file.").ConfigureAwait(false);
+                }
+                else
+                {
+                    await Logger.LogAsync("Applying component selection...").ConfigureAwait(false);
+                    ApplySelectionFilters(components, opts.Select);
+                }
 
                 if (opts.BestEffort && string.IsNullOrWhiteSpace(MainConfig.NexusModsApiKey))
                 {

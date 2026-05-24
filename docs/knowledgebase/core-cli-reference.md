@@ -28,7 +28,8 @@ Validate an instruction file. Structural checks work with `-i` alone; environmen
 | `-i` / `--input` | Yes | Instruction file path |
 | `-g` / `--game-dir` | For `--full` | KOTOR install directory |
 | `-s` / `--source-dir` | For `--full` | Mod download workspace |
-| `--select` | No | Filter components (`category:Name` or `tier:Name`; repeatable) |
+| `--select` | No | Filter by `category:Name` or `tier:Name` |
+| `--use-file-selection` | No | Only components with `IsSelected=true` in the file; default without `--select` validates **all** components |
 | `--full` | No | Full validation (requires game + source dirs) |
 | `--errors-only` | No | Suppress warnings/info |
 | `--ignore-errors` | No | Best-effort dependency order |
@@ -53,12 +54,13 @@ Install selected mods from an instruction file.
 | `-g` / `--game-dir` | Yes | Game install directory |
 | `-s` / `--source-dir` | No | Mod workspace (defaults near input file) |
 | `--select` | No | Subset by category/tier |
+| `--use-file-selection` | No | Only `IsSelected=true` in file; default without `--select` selects **all** (full-build / Select All) |
 | `-d` / `--download` | No | Download archives to source dir first |
 | `--concurrent` | No | Parallel downloads |
 | `-y` / `--yes` | No | Auto-confirm prompts |
 | `--skip-validation` | No | Skip pre-install checks (not recommended) |
 | `--no-checkpoint` | No | Disable checkpointing |
-| `--best-effort` | No | Continue on missing sources and mod failures; implies `-y` |
+| `--best-effort` | No | Continue on missing sources and mod failures; implies `-y`; without Nexus key, **deselects Nexus-only mods** |
 | `--continue-on-missing-sources` | No | Partial install when archives missing |
 | `--continue-on-mod-failure` | No | Continue after per-mod failure |
 | `--nexus-api-key` | No | Nexus API key (or env `KOTOR_MODSYNC_NEXUS_API_KEY` / `NEXUS_MODS_API_KEY`) |
@@ -67,7 +69,9 @@ Install selected mods from an instruction file.
 | `--kpatcher-path` | No | KPatcher executable when using KPatcher |
 | `--ignore-errors` | No | Best-effort dependency resolution |
 
-**Example (best-effort full list):** see `scripts/agents/install_best_effort.sh`.
+**Example (best-effort full list):** see `scripts/agents/install_best_effort.sh` (also passes `--skip-validation`).
+
+See [cli-selection-semantics.md](cli-selection-semantics.md) for install vs validate selection behavior.
 
 ---
 
@@ -88,6 +92,7 @@ Convert format, autogenerate links, download, or merge (with `-m`).
 | `-e` / `--existing`, `-n` / `--incoming` | Merge inputs |
 | Merge preference flags | `--prefer-existing-*`, `--prefer-incoming-*`, `--exclude-*-only`, `--use-existing-order` |
 | `--concurrent`, `--ignore-errors`, `--spoiler-free` | As labeled in `--help` |
+| `--nexus-mods-api-key` | No | Nexus key for `convert` / merge downloads (name differs from `install --nexus-api-key`) |
 
 ---
 
@@ -146,6 +151,8 @@ Used by `scripts/agents/launch_gui_desktop.sh`. See `agent-action-parity.md`.
 
 ## Related docs
 
+- [CLI selection semantics](cli-selection-semantics.md)
 - [Agent action parity](agent-action-parity.md)
+- [HoloPatcher resources](holopatcher-resources.md)
 - [scripts/agents/README.md](../../scripts/agents/README.md)
 - `.cursor/skills/cloud-agents-starter/SKILL.md` — quick headless examples

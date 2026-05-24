@@ -1,7 +1,7 @@
 name: .NET Format
 on:
   pull_request:
-    branches: [main]
+    branches: [main, master]
 jobs:
   format:
     runs-on: ubuntu-latest

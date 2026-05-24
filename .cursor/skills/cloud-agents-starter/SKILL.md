@@ -109,23 +109,18 @@ See [core-cli-reference.md](../../../docs/knowledgebase/core-cli-reference.md) f
 Or explicitly:
 ```bash
 dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-  --filter "FullyQualifiedName!~LongRunning&FullyQualifiedName!~GitHubRunnerSeeding&FullyQualifiedName!~DistributedCache" \
+  --filter "FullyQualifiedName!~LongRunning" \
   --configuration Debug
 ```
 
-### Distributed cache tests (separate filter required)
-
-```bash
-dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-  --filter "FullyQualifiedName~DistributedCache&FullyQualifiedName!~LongRunning&FullyQualifiedName!~GitHubRunnerSeeding"
-```
+**CI vs local:** GitHub Actions runs **named test subsets**, not the full project. See [docs/knowledgebase/ci-test-matrix.md](../../../docs/knowledgebase/ci-test-matrix.md). Distributed cache / MonoTorrent was removed from `master` — see [removed-features.md](../../../docs/knowledgebase/removed-features.md). `DownloadCacheService` is unrelated.
 
 ### Single test with 120-second timeout (PowerShell — required by .cursorrules)
 
 ```pwsh
 pwsh -Command '& {
   $proj = "src/KOTORModSync.Tests/KOTORModSync.Tests.csproj"
-  $args = "test {0} --filter ""FullyQualifiedName~<TestName>"" --list-tests" -f $proj
+  $args = "test {0} --filter ""FullyQualifiedName~<TestName>""" -f $proj
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = "dotnet"
   $psi.Arguments = $args
@@ -156,8 +151,7 @@ pwsh -Command '& {
 
 | Suffix | Purpose | Max duration |
 |--------|---------|--------------|
-| `GitHubRunnerSeeding` | GitHub Actions seeding only | 5–6 hours |
-| `LongRunning` | Local long tests, not for GitHub runners | >2 minutes |
+| `LongRunning` | Convention for tests >2 min; excluded from default filter | >2 minutes |
 | (none) | Regular tests | <2 minutes |
 
 ### Known expected failures on Cloud VMs
@@ -256,8 +250,8 @@ When modifying auth, settings, or telemetry code, keep these invariants:
 | Build solution | `dotnet build KOTORModSync.sln --configuration Debug` |
 | Run Core CLI | `dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -f net9.0 -- <verb>` |
 | Headless tests (wrapper) | `./scripts/agents/run_headless_tests.sh` |
-| Run standard tests | `dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "FullyQualifiedName!~LongRunning&FullyQualifiedName!~GitHubRunnerSeeding&FullyQualifiedName!~DistributedCache"` |
-| Run DistCache tests | `dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "FullyQualifiedName~DistributedCache&FullyQualifiedName!~LongRunning&FullyQualifiedName!~GitHubRunnerSeeding"` |
+| Run standard tests | `dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "FullyQualifiedName!~LongRunning"` |
+| CI test subsets | See [ci-test-matrix.md](../../../docs/knowledgebase/ci-test-matrix.md) |
 | Release build (with telemetry) | `dotnet build -c Release /p:DefineConstants="OFFICIAL_BUILD"` |
 
 ---

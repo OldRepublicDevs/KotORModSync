@@ -14,13 +14,13 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 | 4 | `ModDirectoryPage` | Pick mod dir | `-s` / `--modDirectory=` | Full |
 | 5 | `GameDirectoryPage` | Pick game dir | `-g` / `--kotorPath=` | Full |
 | 6 | `AspyrNoticePage` | Acknowledge (K2) | No CLI equivalent | UI |
-| 7 | `ModSelectionPage` | Select mods, filters | `validate`/`install --select category:X` or `tier:X` | Partial |
+| 7 | `ModSelectionPage` | Select mods, filters | `install` without `--select` = select all; `install --select category:X` / `tier:X` | Full (install); Partial (subset only with `--select`) |
 | 8 | `DownloadsExplainPage` | Continue (downloads may run) | `install -d` or `convert -d` | Partial |
-| 9 | `ValidatePage` | Run validation | `validate --full` | Full |
+| 9 | `ValidatePage` | Run validation | `validate --full` (selected mods only in GUI); CLI: `validate --full --use-file-selection` | Full |
 | 10 | `InstallStartPage` | Confirm install | `install -y` | Full |
 | 11 | `InstallingPage` | Watch progress | `install` (console progress) | Full |
 | 12 | `BaseInstallCompletePage` | Continue | N/A | Full |
-| 13+ | Widescreen pages | Widescreen install | No dedicated CLI | UI |
+| 13+ | Widescreen pages | `WidescreenNoticePage`, `WidescreenModSelectionPage`, `WidescreenInstallingPage`, `WidescreenCompletePage` (dynamic) | No dedicated CLI | UI |
 | 14 | `FinishedPage` | Done | N/A | Full |
 
 ## Legacy Getting Started tab
@@ -44,7 +44,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 | Full validation | `cli_validate.sh` with `--game-dir`, `--source-dir`, `--full` |
 | Template dirs | `./scripts/agents/create_template_kotor_install.sh ./tmp/kotor_template ./tmp/mod_downloads` |
 | GUI full-build check | `./scripts/agents/launch_gui_desktop.sh` + runbook wizard clicks `[UI]` |
-| Long headless install | `./scripts/agents/install_best_effort.sh` |
+| Long headless install | `./scripts/agents/install_best_effort.sh` (uses `--best-effort` + `--skip-validation`; see [cli-selection-semantics.md](cli-selection-semantics.md)) |
 | Linux HoloPatcher for GUI | `./scripts/agents/ensure_linux_holopatcher.sh` |
 
 ## Headless tests as parity proxies
@@ -62,5 +62,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 2. **Download UX** — CLI can download; no equivalent to live download status UI.
 3. **Rich text / spoilers** — GUI rendering; agents edit source TOML/markdown instead.
 4. **File pickers** — never automate in cloud agents; always use preload args or CLI paths.
+5. **Validate vs install selection** — GUI validates **selected** mods only; CLI defaults differ unless `--use-file-selection`. `install` without flags selects all (full-build). See [cli-selection-semantics.md](cli-selection-semantics.md).
+6. **CI test coverage** — green CI runs subsets only; local `run_headless_tests.sh` is broader. See [ci-test-matrix.md](ci-test-matrix.md).
 
 See [agent-native-audit.md](agent-native-audit.md) for scored principles and [core-cli-reference.md](core-cli-reference.md) for flags.

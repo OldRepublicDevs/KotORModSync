@@ -83,5 +83,14 @@ if [[ ${#extra_args[@]} -gt 0 ]]; then
   cmd+=("${extra_args[@]}")
 fi
 
+if [[ "$full_validation" == true ]]; then
+  # shellcheck source=common.sh
+  source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+  ensure_core_resources_symlink "$repo_root"
+  if [[ -x "$repo_root/scripts/agents/ensure_linux_holopatcher.sh" ]]; then
+    "$repo_root/scripts/agents/ensure_linux_holopatcher.sh" || true
+  fi
+fi
+
 dotnet run --project "$repo_root/src/KOTORModSync.Core/KOTORModSync.Core.csproj" \
   -f net9.0 -- "${cmd[@]}"

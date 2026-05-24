@@ -1,7 +1,7 @@
 name: Format and Fix
 on:
   pull_request:
-    branches: [main]
+    branches: [main, master]
 jobs:
   fix:
     runs-on: ubuntu-latest

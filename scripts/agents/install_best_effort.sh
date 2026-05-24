@@ -19,11 +19,9 @@ fi
 mkdir -p "$MOD_DIR"
 "$ROOT/scripts/agents/create_template_kotor_install.sh" "$GAME_DIR" "$MOD_DIR"
 
-GUI_RES="$ROOT/src/KOTORModSync.GUI/bin/Debug/net9.0/Resources"
-CORE_OUT="$ROOT/src/KOTORModSync.Core/bin/Debug/net9.0"
-if [[ -d "$GUI_RES" ]]; then
-  ln -sfn "$GUI_RES" "$CORE_OUT/Resources"
-fi
+# shellcheck source=common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+ensure_core_resources_symlink "$ROOT"
 
 dotnet build "$ROOT/src/KOTORModSync.Core/KOTORModSync.Core.csproj" -c Debug -f net9.0 -v q
 

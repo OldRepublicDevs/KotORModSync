@@ -24,7 +24,7 @@ This product is a **desktop mod installer**, not a web agent host. Scores reflec
 | 5 | **Improvement over time** | 6/10 (60%) | `docs/solutions/` and knowledgebase improve routing; no in-app agent learning loop. |
 | 6 | **Context injection** | 11/15 (73%) | `AGENTS.md`, copilot instructions, and KB index inject routing; runtime app state is not exposed to agents. |
 | 7 | **Shared workspace** | 14/15 (93%) | Repo files, TOMLs, `tmp/` template dirs, and CLI paths are the shared workspace. |
-| 8 | **Agent-native testing** | 14/20 (70%) | Rich headless tests; GUI/full-build still need desktop; `LongRunning` tests excluded from CI defaults. |
+| 8 | **Agent-native testing** | 14/20 (70%) | Rich headless tests; GUI/full-build still need desktop; CI runs **named subsets** only (see [ci-test-matrix.md](ci-test-matrix.md)), not full `!~LongRunning` suite. |
 
 **Total: 97 / 155 ≈ 62%**
 

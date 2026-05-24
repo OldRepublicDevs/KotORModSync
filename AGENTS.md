@@ -282,5 +282,5 @@ KOTORModSync is a cross-platform multi-mod installer for Star Wars: KOTOR, built
 - The `DISPLAY=:1` environment variable must be set for the AvaloniaUI GUI to render on the VM's virtual display.
 - `CrossPlatformFileWatcherTests` fail in the cloud VM due to container filesystem inotify limitations; this is expected.
 - Some xUnit-based UI tests may fail headlessly depending on Avalonia headless support; these are pre-existing.
-- The NuGet config (`NuGet.config`) includes a GitHub Packages feed (`github-th3w1zard1`). Public packages restore without auth; if private packages are added, a GitHub PAT may be needed.
+- The NuGet config (`NuGet.config`) uses **nuget.org only** (GitHub Packages feed removed in PR #65). Public packages restore without auth.
 - `vendor/KPatcher` contains the vendored patcher source. The build can proceed without it for most workflows, but it is used by optional PostBuild copy targets.

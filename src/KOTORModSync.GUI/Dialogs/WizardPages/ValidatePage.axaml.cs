@@ -71,8 +71,41 @@ namespace KOTORModSync.Dialogs.WizardPages
 
         public override string Subtitle => "Validating your mod selection and installation environment";
 
+        public override Task OnNavigatedToAsync(CancellationToken cancellationToken)
+        {
+            int selected = _allComponents.Count(c => c.IsSelected);
+            int total = _allComponents.Count;
+
+            if (_summaryDetails != null)
+            {
+                _summaryDetails.Text = selected == 0
+                    ? "No mods are selected. Go back to Mod Selection and choose mods to install."
+                    : $"Ready to validate {selected} of {total} mod(s). Click Run Validation to check your setup.";
+            }
+
+            if (_summaryText != null)
+            {
+                _summaryText.Text = selected == 0
+                    ? "Select mods before validating"
+                    : "Click 'Run Validation' to begin";
+            }
+
+            if (_validateButton != null)
+            {
+                _validateButton.IsEnabled = selected > 0;
+            }
+
+            return Task.CompletedTask;
+        }
+
         public override Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
         {
+            int selectedCount = _allComponents.Count(c => c.IsSelected);
+            if (selectedCount == 0)
+            {
+                return Task.FromResult((false, "No mods are selected. Go back to Mod Selection and choose mods to install."));
+            }
+
             if (!_hasValidated)
             {
                 return Task.FromResult((false, "Please run validation before continuing."));
@@ -230,6 +263,20 @@ namespace KOTORModSync.Dialogs.WizardPages
 
         private async Task RunValidation()
         {
+            int selectedCount = _allComponents.Count(c => c.IsSelected);
+            if (selectedCount == 0)
+            {
+                if (_summaryText != null)
+                {
+                    _summaryText.Text = "No mods selected";
+                }
+                if (_summaryDetails != null)
+                {
+                    _summaryDetails.Text = "Go back to Mod Selection and choose at least one mod.";
+                }
+                return;
+            }
+
             if (_validateButton != null)
             {
                 _validateButton.IsEnabled = false;

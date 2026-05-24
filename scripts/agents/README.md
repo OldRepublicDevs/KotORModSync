@@ -14,8 +14,9 @@
 | `create_template_kotor_install.sh` | Create minimal KOTOR tree + empty mod workspace |
 | `ensure_linux_holopatcher.sh` | Link Linux HoloPatcher into GUI `Resources/` |
 | `launch_gui_desktop.sh` | Build and launch Avalonia with preload args `[UI]` |
-| `install_best_effort.sh` | Headless full-list install with download + best-effort flags |
-| `cli_validate.sh` | Wrapper around Core `validate` verb |
+| `install_best_effort.sh` | Headless full-list install: `-d`, `--best-effort`, **`--skip-validation`** (see [cli-selection-semantics.md](../../docs/knowledgebase/cli-selection-semantics.md)) |
+| `cli_validate.sh` | Wrapper around Core `validate` verb; `--full` links HoloPatcher Resources via `common.sh` |
+| `common.sh` | `ensure_core_resources_symlink` helper (sourced by other scripts) |
 | `run_headless_tests.sh` | `dotnet test` excluding `LongRunning` |
 | `mcp_filesystem.sh` | MCP filesystem server scoped to repo |
 | `mcp_playwright.sh` | MCP Playwright server |

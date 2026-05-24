@@ -259,7 +259,7 @@ Prefer targeted tests:
 - `MainWindowHeadlessTests`
 - `ValidatePageHeadlessTests`
 - markdown import tests that read from `mod-builds`
-- real TOML loading tests in `RealModIntegrationTests`
+- real TOML loading tests in `DocumentationRoundTripTests` (scheduled in `mod-build-validation.yml`)
 
 ## When this runbook must be updated
 

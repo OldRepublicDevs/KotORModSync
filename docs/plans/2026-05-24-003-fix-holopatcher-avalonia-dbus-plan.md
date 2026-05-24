@@ -44,3 +44,16 @@ Clear the deferred `Tmds.DBus.Protocol 0.21.2` finding on sibling HoloPatcher pr
 
 - `dotnet list src/HoloPatcher/HoloPatcher.csproj package --vulnerable --include-transitive` — no findings on net9
 - `dotnet list src/HoloPatcher.UI/HoloPatcher.UI/HoloPatcher.UI.csproj package --vulnerable --include-transitive` — no findings on net9
+
+---
+
+## Verification Log (2026-05-24)
+
+| Check | Result |
+|-------|--------|
+| `dotnet list KOTORModSync.sln package --vulnerable --include-transitive` | No vulnerable packages on Core, GUI, or Tests |
+| HoloPatcher sibling restore + `dotnet list --vulnerable --include-transitive` | Clean on `HoloPatcher` and `HoloPatcher.UI` |
+| `dotnet nuget why` | `Tmds.DBus.Protocol 0.21.3` via Avalonia.FreeDesktop (patched line) |
+| PR #76 CI | All checks green before merge |
+| Merge | Squash merged to `master` as `7b81c80` via PR #76 |
+| Master CI post-merge | Verified green on merge push |

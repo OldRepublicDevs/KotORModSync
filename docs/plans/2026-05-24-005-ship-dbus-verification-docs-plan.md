@@ -1,7 +1,7 @@
 ---
 title: Ship D-Bus verification documentation to master
 type: fix
-status: active
+status: shipped
 date: 2026-05-24
 ---
 

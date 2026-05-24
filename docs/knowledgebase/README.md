@@ -69,6 +69,10 @@ Use these when citing findings in plans, PRs, or audits:
 ./scripts/agents/cli_validate.sh --input ./mod-builds/TOMLs/KOTOR1_Full.toml \
   --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads --full
 
+# Best-effort headless full-list install (long-running; needs Nexus key for many mods)
+./scripts/agents/install_best_effort.sh \
+  ./mod-builds/TOMLs/KOTOR1_Full.toml ./tmp/kotor_template ./tmp/mod_downloads
+
 # Launch GUI with preload args (desktop session required)
 ./scripts/agents/launch_gui_desktop.sh \
   --instruction-file ./mod-builds/TOMLs/KOTOR1_Full.toml \

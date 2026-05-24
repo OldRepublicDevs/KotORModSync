@@ -40,12 +40,19 @@ Optional filter:
 ```bash
 ./scripts/agents/create_template_kotor_install.sh ./tmp/kotor_template ./tmp/mod_downloads
 
+# Linux: full validation needs HoloPatcher in Core output Resources (see ensure_linux_holopatcher.sh)
+./scripts/agents/ensure_linux_holopatcher.sh
+ln -sfn "$PWD/src/KOTORModSync.GUI/bin/Debug/net9.0/Resources" \
+  "$PWD/src/KOTORModSync.Core/bin/Debug/net9.0/Resources"
+
 ./scripts/agents/cli_validate.sh \
   --input ./mod-builds/TOMLs/KOTOR1_Full.toml \
   --game-dir ./tmp/kotor_template \
   --source-dir ./tmp/mod_downloads \
   --full
 ```
+
+`--full` without HoloPatcher may exit non-zero after loading components; that still confirms the wrapper invokes Core correctly.
 
 ### Desktop GUI (full-build style)
 

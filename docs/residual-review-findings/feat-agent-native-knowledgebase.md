@@ -6,6 +6,9 @@ Review mode: `ce-code-review mode:autofix`
 
 ## Residual Review Findings
 
-- **RESID-001** (low) — `scripts/agents/cli_validate.sh`: Run a full `cli_validate.sh --full` smoke test when `mod-builds` and template dirs are present in the environment. Wrapper not exercised against a real TOML in CI.
+All prior residuals addressed in follow-up commit:
 
-- **RESID-003** (low) — Optional: add `docs/knowledgebase/README.md` link to `scripts/agents/install_best_effort.sh` in the quick commands table for discoverability.
+- **RESID-001** — Closed: `cli_validate.sh --full` smoke-tested against `KOTOR1_Full.toml` (wrapper invokes Core; full pass requires HoloPatcher on Linux — documented in `scripts/agents/README.md`).
+- **RESID-003** — Closed: `install_best_effort.sh` added to knowledgebase quick commands.
+
+**Residual actionable work: none.**

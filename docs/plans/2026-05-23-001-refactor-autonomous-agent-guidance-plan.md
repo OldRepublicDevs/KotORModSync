@@ -1,7 +1,7 @@
 ---
 title: Refactor autonomous agent guidance
 type: refactor
-status: active
+status: shipped
 date: 2026-05-23
 ---
 
@@ -217,3 +217,15 @@ The repo already documents the right workflows for headless work, GUI/manual val
 - `docs/local_desktop_agent_runbook.md`
 - `.cursor/mcp.json`
 - `mcp.json`
+
+---
+
+## Verification log
+
+| Check | Result |
+|-------|--------|
+| U1 Copilot defaults | `Default inference path` section in `.github/copilot-instructions.md` (PR #71, `25d72a9`) |
+| U2 AGENTS.md alignment | `Autonomous defaults` section mirrors same routing (PR #71) |
+| U3 .cursorrules constraints | `AUTONOMOUS EXECUTION DEFAULTS` block encodes hard rules (PR #71) |
+| R1–R5 | Satisfied — layered model preserved; stop conditions aligned across trio |
+| Merge | Shipped on `master` via PR #71; plan closed on LFG pipeline pass |

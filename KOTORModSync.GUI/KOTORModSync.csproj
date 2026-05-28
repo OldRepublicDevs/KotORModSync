@@ -1,0 +1,187 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- ensure this is defined, sometimes is ignored in cli -->
+  <PropertyGroup>
+    <SolutionDir Condition="'$(SolutionDir)'=='' or '$(SolutionDir)'=='*Undefined*'">..\</SolutionDir>
+  </PropertyGroup>
+
+  <!-- Main KOTORModSync.GUI Project Settings -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Nullable>disable</Nullable>
+    <LangVersion>7.3</LangVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <ApplicationIcon>icon53.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- Target Platforms/Frameworks -->
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net462</TargetFrameworks>
+    <RuntimeIdentifiers>win7-x86;win7-x64;win10-x86;win10-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <Platforms>x86;x64</Platforms>
+    <UseAppHost>true</UseAppHost>
+  </PropertyGroup>
+
+  <!-- Release Configuration: Additional error handling, at the slight cost of performance. All optimizations enabled.-->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <AllowOptimize>true</AllowOptimize>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <AllowEditAndContinue>false</AllowEditAndContinue>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+
+  <!-- Debug Configuration: No error handling/optimizations, this provides the means to find more problems before release. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <Optimize>false</Optimize>
+    <AllowOptimize>false</AllowOptimize>
+    <RemoveIntegerChecks>true</RemoveIntegerChecks>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowEditAndContinue>true</AllowEditAndContinue>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
+  <!-- Customization -->
+  <ItemGroup>
+    <Content Include="icon53.ico" />
+    <None Include="Info.plist" Pack="true" PackagePath="Contents\" /> <!-- For .app packaging on mac os -->
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KOTORModSync.Core\KOTORModSync.Core.csproj" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+  </ItemGroup>
+
+  <!-- AvaloniaUI defs -->
+  <PropertyGroup>
+    <AvaloniaCopyWin32Dll>false</AvaloniaCopyWin32Dll>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <NoWin32Manifest>true</NoWin32Manifest> <!-- Only relevant for xp/vista which we don't target -->
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectCapability Include="Avalonia" />
+    <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia" Version="11.0.7" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.0.7" />
+    <PackageReference Include="Avalonia.LinuxFramebuffer" Version="11.0.7" />
+    <PackageReference Include="Avalonia.Controls.ItemsRepeater" Version="11.0.7" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.7" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.7" />
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.7" />
+    <PackageReference Include="Dotnet.Bundle" Version="*" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaXaml Update="Styles\LegacyStyle.axaml">
+        <Generator>MSBuild:Compile</Generator>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Styles\Kotor2Style.axaml">
+        <Generator>MSBuild:Compile</Generator>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Styles\KotorStyle.axaml">
+        <Generator>MSBuild:Compile</Generator>
+    </AvaloniaXaml>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="ConfirmationDialog.axaml.cs">
+      <DependentUpon>ConfirmationDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="InformationDialog.axaml.cs">
+      <DependentUpon>InformationDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="ProgressWindow.axaml.cs">
+      <DependentUpon>ProgressWindow.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="OptionsDialog.axaml.cs">
+      <DependentUpon>OptionsDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\DependencyControl.axaml.cs">
+      <DependentUpon>DependencyControl.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' ">
+    <AppFiles Include="$(SolutionDir)vendor\bin\holopatcher.app\**\*.*" />
+  </ItemGroup>
+
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <IsUnix>false</IsUnix>
+    <DirectorySeparatorChar>\</DirectorySeparatorChar>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <IsUnix>true</IsUnix>
+    <DirectorySeparatorChar>/</DirectorySeparatorChar>
+  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+
+    <!-- For Mac -->
+    <!-- TODO: .app's are having problems with command-line arguments -->
+    <!-- <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="@(AppFiles)" DestinationFolder="$(PublishDir)Resources\holopatcher.app\%(RecursiveDir)" /> -->
+    <!-- <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="@(AppFiles)" DestinationFolder="$(PublishDir)Resources\holopatcher.app\%(RecursiveDir)" /> -->
+    <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
+    <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+    <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
+    <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)HoloPatcher" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher" />
+
+    <!-- For Linux -->
+    <Copy Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)holopatcher_linux" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
+    <Copy Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)holopatcher_linux" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+    <Move Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher_linux" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
+    <Move Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher_linux" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher" />
+
+    <!-- For Windows -->
+    <Copy Condition=" '$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)holopatcher.exe" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
+    <Copy Condition=" '$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)holopatcher.exe" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+
+    <!-- For x64 Platform -->
+    <Copy Condition=" '$(Platform)' == 'x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
+    <Copy Condition=" '$(Platform)' == 'x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+    <Move Condition=" '$(Platform)' == 'x64' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Move Condition=" '$(Platform)' == 'x64' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
+
+    <!-- For x86 Platform -->
+    <Copy Condition=" '$(Platform)' == 'x86' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
+    <Copy Condition=" '$(Platform)' == 'x86' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+    <Move Condition=" '$(Platform)' == 'x86' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x86.dll" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Move Condition=" '$(Platform)' == 'x86' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
+  </Target>
+
+  <!-- Delete logs and other temp output -->
+  <ItemGroup>
+    <TextFiles Include="$(TargetDir)*.txt" />
+    <TmlFiles Include="$(TargetDir)*.tml" />
+    <TomlFiles Include="$(TargetDir)*.toml" />
+    <LogFiles Include="$(TargetDir)*.log" />
+    <AvaloniaXaml Remove="Controls\LogViewer\**" />
+    <Compile Remove="Controls\LogViewer\**" />
+    <EmbeddedResource Remove="Controls\LogViewer\**" />
+    <None Remove="Controls\LogViewer\**" />
+    <BackupFolder Include="$(SolutionDir)/logs_and_data_saved_from_dotnet_clean" />
+  </ItemGroup>
+  <Target Name="MyDistClean" AfterTargets="Clean">
+    <Message Importance="High" Text=" ## Running custom Clean target..." />
+    <Exec Condition=" '$(OS)' == 'Windows_NT' " Command="if not exist &quot;$(SolutionDir)logs_and_data_saved_from_dotnet_clean&quot; mkdir &quot;$(SolutionDir)logs_and_data_saved_from_dotnet_clean&quot;" />
+    <Move SourceFiles="@(TextFiles)" DestinationFolder="@(BackupFolder)" />
+    <Move SourceFiles="@(TmlFiles)" DestinationFolder="@(BackupFolder)" />
+    <Move SourceFiles="@(TomlFiles)" DestinationFolder="@(BackupFolder)" />
+    <Move SourceFiles="@(LogFiles)" DestinationFolder="@(BackupFolder)" />
+  </Target>
+
+  <!-- Licensing -->
+  <PropertyGroup>
+    <Copyright>2023 th3w1zard1</Copyright>
+    <Title>KOTORModSync</Title>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>http://github.com/th3w1zard1/KOTORModSync</PackageProjectUrl>
+    <RepositoryUrl>http://github.com/th3w1zard1/KOTORModSync</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

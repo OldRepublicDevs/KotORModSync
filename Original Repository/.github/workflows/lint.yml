@@ -1,0 +1,43 @@
+name: lint
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  GITHUB_USER: th3w1zard1
+  GITHUB_REPOSITORY: KOTORModSync
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  lint_csharp:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set remote URL
+      run: git remote set-url origin "https://github.com/${{ env.GITHUB_REPOSITORY }}.git"
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '9.0.x'
+
+    # Format the output of dotnet format
+    - name: Add dotnet-format problem matcher
+      uses: xt0rted/dotnet-format-problem-matcher@v1
+
+    # Install dotnet format as a global tool
+    - name: Install dotnet format
+      run: dotnet tool update --global dotnet-format
+
+    # Whitespace + line endings only (analyzer output is not a formatting gate)
+    - name: Run dotnet format (whitespace)
+      run: dotnet format whitespace --verify-no-changes KOTORModSync.sln

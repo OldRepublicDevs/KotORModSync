@@ -3,18 +3,6 @@
 ###############################################################################
 * text=auto
 
-# Force LF line endings for source files to match .editorconfig (end_of_line = lf)
-*.cs text eol=lf
-*.csproj text eol=lf
-*.sln text eol=lf
-*.props text eol=lf
-*.targets text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
-*.json text eol=lf
-*.md text eol=lf
-*.sh text eol=lf
-
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        SizeToContent="Height"
+        Title="Progress Window" Width="600" Height="400"
+        x:Class="KOTORModSync.ProgressWindow">
+    <StackPanel>
+        <TextBlock x:Name="ProgressTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   TextAlignment="Center" FontSize="16" TextWrapping="Wrap"
+                   Margin="10" />
+        <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="1" Value="0" HorizontalAlignment="Center"
+                     VerticalAlignment="Bottom" Width="200" Margin="10" />
+        <DockPanel Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock x:Name="PercentCompleted" Text="0%" Margin="10" TextAlignment="Center" />
+            <TextBlock x:Name="InstalledRemaining" Text="0/0 Components Installed" Margin="10" TextAlignment="Center" />
+        </DockPanel>
+    </StackPanel>
+</Window>

@@ -19,10 +19,12 @@ using SharpCompress.Writers.Zip;
 namespace KOTORModSync.Tests
 {
     [TestFixture]
+    [Category("Integration")]
     public sealed class AutoGenerateLocalCliIntegrationTests
     {
         private string _testDirectory;
         private MainConfig _mainConfig;
+        private MainConfig _previousMainConfig;
 
         [SetUp]
         public void SetUp()
@@ -30,15 +32,19 @@ namespace KOTORModSync.Tests
             _testDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_AutoGenCli_" + Guid.NewGuid());
             Directory.CreateDirectory(_testDirectory);
 
+            _previousMainConfig = MainConfig.Instance;
             _mainConfig = new MainConfig();
             _mainConfig.sourcePath = new DirectoryInfo(_testDirectory);
             _mainConfig.destinationPath = new DirectoryInfo(Path.Combine(_testDirectory, "KOTOR"));
             Directory.CreateDirectory(_mainConfig.destinationPath.FullName);
+            MainConfig.Instance = _mainConfig;
         }
 
         [TearDown]
         public void TearDown()
         {
+            MainConfig.Instance = _previousMainConfig;
+
             try
             {
                 if (Directory.Exists(_testDirectory))

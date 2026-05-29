@@ -15,6 +15,7 @@ using NUnit.Framework;
 namespace KOTORModSync.Tests
 {
     [TestFixture]
+    [Category("Integration")]
     public sealed class FullBuildMarkdownMergeRoundTripTests
     {
         private static readonly string[] Formats = { "TOML", "JSON", "YAML", "XML" };

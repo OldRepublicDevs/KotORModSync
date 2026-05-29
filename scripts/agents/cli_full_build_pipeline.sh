@@ -108,6 +108,10 @@ if [[ -z "$game" ]]; then
   exit 1
 fi
 
+if [[ "$validate_only" == true && "$dry_run" != true && "$dry_run_only" != true ]]; then
+  dry_run_only=true
+fi
+
 case "$game" in
   k1|K1|kotor1)
     md_path="$repo_root/mod-builds/content/k1/full.md"

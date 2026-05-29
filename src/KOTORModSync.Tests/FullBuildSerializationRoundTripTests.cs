@@ -15,6 +15,7 @@ using NUnit.Framework;
 namespace KOTORModSync.Tests
 {
     [TestFixture]
+    [Category("Integration")]
     public sealed class FullBuildSerializationRoundTripTests
     {
         private static readonly string[] Formats = { "TOML", "JSON", "YAML", "XML" };
@@ -22,7 +23,7 @@ namespace KOTORModSync.Tests
         private static readonly (string Label, string RelativePath, int ExpectedCount)[] FullBuilds =
         {
             ("KOTOR1", Path.Combine("mod-builds", "TOMLs", "KOTOR1_Full.toml"), 189),
-            ("KOTOR2", Path.Combine("mod-builds", "TOMLs", "KOTOR2_Full.toml"), 0),
+            ("KOTOR2", Path.Combine("mod-builds", "TOMLs", "KOTOR2_Full.toml"), 145),
         };
 
         private static string ResolveRepoRoot()

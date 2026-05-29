@@ -19,6 +19,7 @@ using NUnit.Framework;
 namespace KOTORModSync.Tests
 {
     [TestFixture]
+    [Category("Integration")]
     public sealed class FullBuildMergedDryRunTests
     {
         private static readonly (string Label, string MarkdownRelative, string TomlRelative, int ExpectedTomlCount)[] FullBuilds =

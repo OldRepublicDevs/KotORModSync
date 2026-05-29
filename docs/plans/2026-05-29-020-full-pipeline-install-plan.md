@@ -48,7 +48,7 @@ Agents can merge and dry-run without archives, but cannot run a single script th
 
 ```bash
 dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-  --filter "FullyQualifiedName~AutoGenerateLocalCliIntegrationTests|FullyQualifiedName~FullBuildMergedDryRunTests"
+  --filter "Name~AutoGenerateLocalCliIntegrationTests|Name~FullBuildMergedDryRunTests"
 
 ./scripts/agents/cli_full_build_pipeline.sh --game k1 \
   --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads \

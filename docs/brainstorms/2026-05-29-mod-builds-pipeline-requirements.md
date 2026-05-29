@@ -38,6 +38,18 @@ Agents and CI can load canonical KOTOR full builds from `mod-builds`, round-trip
 | KOTOR1 full TOML | `mod-builds/TOMLs/KOTOR1_Full.toml` |
 | KOTOR2 full TOML | `mod-builds/TOMLs/KOTOR2_Full.toml` |
 
+**Markdown aliases** (resolved by `cli_full_build_pipeline.sh` when present): `KOTOR1_FULL.md`, `KOTOR1_Full.md`, `k1/KOTOR1_FULL.md` (and K2 equivalents). Upstream mod-builds uses `content/k*/full.md`; aliases are for user/docs naming only.
+
+## Full agent run sequence
+
+```bash
+./scripts/agents/cli_full_build_pipeline.sh --game k1 \
+  --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads \
+  --auto-generate-local --export-all-formats --dry-run-only
+
+# With archives present, add --dry-run then --install (or install_best_effort.sh)
+```
+
 Machine instructions and GUIDs live in TOML; markdown carries human metadata. **Two-source merge** (TOML existing + markdown incoming, `--use-existing-order`) is required for lossless instruction fidelity; markdown-only import is metadata-only.
 
 ## Assumptions

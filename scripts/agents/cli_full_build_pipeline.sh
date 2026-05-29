@@ -167,8 +167,8 @@ if [[ -z "$md_path" || ! -f "$md_path" || ! -f "$toml_path" ]]; then
 fi
 
 if [[ "$dry_run" == true && "$dry_run_only" == true ]]; then
-  echo "warning: both --dry-run and --dry-run-only set; using --dry-run (archive checks + VFS simulation)" >&2
-  dry_run_only=false
+  echo "warning: both --dry-run and --dry-run-only set; using --dry-run-only (VFS only, skip archive checks)" >&2
+  dry_run=false
 fi
 
 mkdir -p "$(dirname "$output_path")"

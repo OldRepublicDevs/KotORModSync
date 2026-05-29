@@ -609,11 +609,14 @@ namespace KOTORModSync.Core.Services
             {
                 target.Guid = source.Guid;
             }
-            // If both have GUIDs but they're different (heuristic match), prefer existing GUID
-            // This ensures consistency and prevents overwriting stable GUIDs with auto-generated ones
+            // Heuristic match with different GUIDs: keep the existing-file component's GUID.
+            // With UseExistingOrder, target is the existing (TOML) row; without it, source is existing.
             else if (target.Guid != Guid.Empty && source.Guid != Guid.Empty && target.Guid != source.Guid)
             {
-                target.Guid = source.Guid;
+                if (!mergeOptions.UseExistingOrder)
+                {
+                    target.Guid = source.Guid;
+                }
             }
 
             // Update text fields based on preferences and heuristicsOptions.SkipBlankUpdates

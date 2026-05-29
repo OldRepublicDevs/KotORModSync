@@ -46,6 +46,12 @@ namespace KOTORModSync.Dialogs.WizardPages
 
         public override Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
         {
+            int selectedCount = _allComponents.Count(c => c.IsSelected && !c.WidescreenOnly);
+            if (selectedCount == 0)
+            {
+                return Task.FromResult((false, "No mods are selected. Go back to Mod Selection and choose mods to install."));
+            }
+
             return Task.FromResult((true, (string)null));
         }
 
@@ -62,7 +68,9 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             if (_selectedModsText != null)
             {
-                _selectedModsText.Text = $"📦 {selectedMods.Count} mods selected for installation";
+                _selectedModsText.Text = selectedMods.Count == 0
+                    ? "No mods selected — go back to Mod Selection before continuing."
+                    : $"📦 {selectedMods.Count} mods selected for installation";
             }
 
             if (_modListPanel == null)
@@ -71,6 +79,17 @@ namespace KOTORModSync.Dialogs.WizardPages
             }
 
             _modListPanel.Children.Clear();
+
+            if (selectedMods.Count == 0)
+            {
+                _modListPanel.Children.Add(new TextBlock
+                {
+                    Text = "Use Mod Selection to choose at least one mod, then return here to review.",
+                    TextWrapping = TextWrapping.Wrap,
+                    Opacity = 0.85,
+                });
+                return;
+            }
 
             foreach (ModComponent mod in selectedMods)
             {

@@ -107,7 +107,7 @@ namespace KOTORModSync.Dialogs
             _pages.Add(new ModSelectionPage(_allComponents));
 
             // 8. DownloadsExplain
-            _pages.Add(new DownloadsExplainPage());
+            _pages.Add(new DownloadsExplainPage(_allComponents));
 
             // 9. Validate
             _pages.Add(new ValidatePage(_allComponents, _mainConfig));

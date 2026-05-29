@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services
 {
@@ -164,7 +165,7 @@ namespace KOTORModSync.Core.Services
                 Directory.CreateDirectory(outputDir);
             }
 
-            File.WriteAllText(filePath, content);
+            File.WriteAllText(filePath, content, NetFrameworkCompatibility.Utf8WithoutBom);
         }
 
         public static async Task SaveToFileAsync([NotNull] List<ModComponent> components, [NotNull] string filePath)
@@ -194,7 +195,7 @@ namespace KOTORModSync.Core.Services
                 Directory.CreateDirectory(outputDir);
             }
 
-            await Task.Run(() => File.WriteAllText(filePath, content)).ConfigureAwait(false);
+            await Task.Run(() => File.WriteAllText(filePath, content, NetFrameworkCompatibility.Utf8WithoutBom)).ConfigureAwait(false);
         }
 
         private static string ReadFileWithEncodingFallback(string filePath)

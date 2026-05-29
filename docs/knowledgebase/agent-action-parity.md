@@ -42,6 +42,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 | Smoke-test repo | `./scripts/agents/run_headless_tests.sh` |
 | Validate TOML structure only | `./scripts/agents/cli_validate.sh --input path.toml` |
 | Full validation | `cli_validate.sh` with `--game-dir`, `--source-dir`, `--full` |
+| Validate only TOML-selected mods | `cli_validate.sh` … `--use-file-selection` (matches GUI Mod Selection) |
 | Template dirs | `./scripts/agents/create_template_kotor_install.sh ./tmp/kotor_template ./tmp/mod_downloads` |
 | GUI full-build check | `./scripts/agents/launch_gui_desktop.sh` + runbook wizard clicks `[UI]` |
 | Long headless install | `./scripts/agents/install_best_effort.sh` (uses `--best-effort` + `--skip-validation`; see [cli-selection-semantics.md](cli-selection-semantics.md)) |

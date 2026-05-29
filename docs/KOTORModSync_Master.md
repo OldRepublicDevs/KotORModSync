@@ -1,5 +1,7 @@
 ﻿# KOTORModSync — Complete Reference Documentation
 
+> **STALE SNAPSHOT — do not use for agent routing or current setup.** Prefer `AGENTS.md`, `docs/local_desktop_agent_runbook.md`, and `docs/knowledgebase/README.md`. This file may contain outdated NuGet, test, and workflow claims from 2026-04-14.
+
 > **Auto-generated** 2026-04-14.
 > Authoritative single-file merge of every companion documentation artifact.
 >

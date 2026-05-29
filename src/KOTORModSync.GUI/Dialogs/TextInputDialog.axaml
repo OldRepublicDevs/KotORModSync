@@ -1,0 +1,71 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
+<!-- See LICENSE.txt file in the project root for full license information. -->
+<Window
+    x:Class="KOTORModSync.Dialogs.TextInputDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Input"
+    Width="480"
+    MinWidth="400"
+    MinHeight="180"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="-1"
+    ExtendClientAreaToDecorationsHint="True"
+    SizeToContent="Height"
+    SystemDecorations="BorderOnly"
+    WindowStartupLocation="CenterOwner">
+    <Grid RowDefinitions="Auto,*">
+        <Border
+            Grid.Row="1"
+            Margin="16,0,16,16"
+            Padding="16"
+            CornerRadius="8">
+            <Grid RowDefinitions="Auto,Auto,Auto">
+                <TextBlock
+                    x:Name="PromptTextBlock"
+                    Grid.Row="0"
+                    Margin="0,0,0,12"
+                    Text="{Binding PromptText, RelativeSource={RelativeSource AncestorType=Window}}"
+                    TextWrapping="Wrap" />
+                <TextBox
+                    x:Name="InputTextBox"
+                    Grid.Row="1"
+                    MinHeight="32"
+                    Watermark="Enter value" />
+                <StackPanel
+                    Grid.Row="2"
+                    Margin="0,16,0,0"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        MinWidth="90"
+                        Click="CancelButton_Click"
+                        Content="Cancel" />
+                    <Button
+                        MinWidth="90"
+                        Click="OkButton_Click"
+                        Content="OK" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <StackPanel
+            Grid.Row="0"
+            Margin="8,8,8,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Orientation="Horizontal"
+            Spacing="8">
+            <TextBlock
+                Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                VerticalAlignment="Center" />
+            <Button
+                Width="40"
+                Height="40"
+                Click="CloseButton_Click"
+                Content="X" />
+        </StackPanel>
+    </Grid>
+</Window>

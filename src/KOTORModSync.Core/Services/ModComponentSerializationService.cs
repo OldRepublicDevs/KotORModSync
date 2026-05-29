@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml;
 
 using JetBrains.Annotations;
 
@@ -778,6 +779,9 @@ namespace KOTORModSync.Core.Services
                     case "json":
                         components = DeserializeModComponentFromJsonString(content);
                         break;
+                    case "xml":
+                        components = DeserializeModComponentFromXmlString(content);
+                        break;
                     case "yaml":
                     case "yml":
                         components = DeserializeModComponentFromYamlString(content);
@@ -830,8 +834,14 @@ namespace KOTORModSync.Core.Services
                             {
                                 Logger.LogVerbose($"TOML (second attempt) parsing failed: {tomlSecondEx.Message}");
 
-                                components = DeserializeModComponentFromJsonString(content);
-
+                                if (content.TrimStart().StartsWith("<", StringComparison.Ordinal))
+                                {
+                                    components = DeserializeModComponentFromXmlString(content);
+                                }
+                                else
+                                {
+                                    components = DeserializeModComponentFromJsonString(content);
+                                }
                             }
                         }
                     }
@@ -942,6 +952,8 @@ namespace KOTORModSync.Core.Services
                     return SerializeModComponentAsMarkdownString(components, validationContext);
                 case "json":
                     return SerializeModComponentAsJsonString(components, validationContext);
+                case "xml":
+                    return SerializeModComponentAsXmlString(components, validationContext);
                 default:
                     throw new NotSupportedException($"Unsupported format: {format}");
             }
@@ -3117,6 +3129,21 @@ namespace KOTORModSync.Core.Services
                         var list = (T)Activator.CreateInstance(listType);
                         System.Reflection.MethodInfo addMethod = list?.GetType().GetMethod(name: "Add");
 
+                        // XML round-trip collapses single-element arrays to objects; do not enumerate dictionary entries.
+                        if (listElementType == typeof(object)
+                            && value is IDictionary<string, object> dictionaryAsSingleItem
+                            && !(value is TomlTable))
+                        {
+                            _ = addMethod?.Invoke(
+                                list,
+                                new[]
+                                {
+                                    (object)dictionaryAsSingleItem,
+                                }
+                            );
+                            return list;
+                        }
+
                         // Handle any IEnumerable (not just IEnumerable<object>)
                         if (value is System.Collections.IEnumerable collectionValue && !(value is string))
                         {
@@ -4430,8 +4457,128 @@ namespace KOTORModSync.Core.Services
 
             _ = validationContext;
 
-            string json = JsonConvert.SerializeObject(components, Formatting.Indented, DirectJsonSerializerSettings);
+            string json = JsonConvert.SerializeObject(components, Newtonsoft.Json.Formatting.Indented, DirectJsonSerializerSettings);
             return SanitizeUtf8(json);
+        }
+
+        [NotNull]
+        public static string SerializeModComponentAsXmlString(
+            IReadOnlyList<ModComponent> components,
+            ComponentValidationContext validationContext = null)
+        {
+            PopulateResourceRegistryFromCache(components);
+
+            Logger.LogVerbose("Saving to XML string");
+
+            _ = validationContext;
+
+            string jsonArray = SerializeModComponentAsJsonString(components);
+            var wrapper = new JObject
+            {
+                ["ModComponents"] = JArray.Parse(jsonArray),
+            };
+
+            XmlDocument document = JsonConvert.DeserializeXmlNode(wrapper.ToString(Newtonsoft.Json.Formatting.None), "KOTORModSync");
+            if (document?.DocumentElement is null)
+            {
+                throw new InvalidDataException("Failed to serialize components to XML.");
+            }
+
+            return SanitizeUtf8(document.OuterXml);
+        }
+
+        [NotNull]
+        [ItemNotNull]
+        public static IReadOnlyList<ModComponent> DeserializeModComponentFromXmlString([NotNull] string xmlContent)
+        {
+            if (string.IsNullOrWhiteSpace(xmlContent))
+            {
+                throw new ArgumentException("XML content cannot be null or empty.", nameof(xmlContent));
+            }
+
+            xmlContent = SanitizeUtf8(xmlContent);
+
+            try
+            {
+                var document = new XmlDocument();
+                document.LoadXml(xmlContent);
+                string jsonText = JsonConvert.SerializeXmlNode(document);
+                JObject root = JObject.Parse(jsonText);
+                JArray componentsArray = ExtractModComponentsArrayFromXmlJson(root);
+
+                var components = new List<ModComponent>();
+                foreach (JToken componentToken in componentsArray)
+                {
+                    if (componentToken is JObject componentObject)
+                    {
+                        Dictionary<string, object> componentDict = JTokenToDictionary(componentObject);
+                        NormalizeXmlCollapsedCollections(componentDict);
+                        ModComponent component = DeserializeComponent(componentDict);
+                        components.Add(component);
+                    }
+                }
+
+                if (components.Count == 0)
+                {
+                    throw new InvalidDataException("No valid components found in XML content.");
+                }
+
+                UpdateCacheFromResourceRegistry(components);
+
+                return components;
+            }
+            catch (InvalidDataException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException("Failed to parse XML content.", ex);
+            }
+        }
+
+        [NotNull]
+        private static JArray ExtractModComponentsArrayFromXmlJson([NotNull] JObject root)
+        {
+            JToken modComponentsToken = null;
+
+            if (root.TryGetValue("KOTORModSync", out JToken kotorModSyncToken) && kotorModSyncToken is JObject kotorModSyncObject)
+            {
+                modComponentsToken = kotorModSyncObject["ModComponents"];
+            }
+            else if (root.TryGetValue("ModComponents", out JToken directModComponentsToken))
+            {
+                modComponentsToken = directModComponentsToken;
+            }
+            else if (root.TryGetValue("Root", out JToken rootToken) && rootToken is JObject rootObject)
+            {
+                modComponentsToken = rootObject["ModComponents"] ?? rootObject["thisMod"];
+            }
+            else if (root.Count == 1)
+            {
+                JProperty firstProperty = root.Properties().First();
+                if (firstProperty.Value is JObject singleRootObject)
+                {
+                    modComponentsToken = singleRootObject["ModComponents"] ?? singleRootObject["thisMod"];
+                }
+            }
+
+            if (modComponentsToken is null)
+            {
+                throw new InvalidDataException("XML content does not contain ModComponents.");
+            }
+
+            if (modComponentsToken is JArray componentsArray)
+            {
+                return componentsArray;
+            }
+
+            if (modComponentsToken is JObject singleComponentObject)
+            {
+                return new JArray(singleComponentObject);
+            }
+
+            throw new InvalidDataException("Unexpected ModComponents shape in XML.");
         }
 
         /// <summary>
@@ -5444,6 +5591,102 @@ namespace KOTORModSync.Core.Services
         #endregion
 
         #region Format-Specific Conversion Helpers
+
+        /// <summary>
+        /// Newtonsoft XML conversion collapses single-element arrays and wraps repeated elements
+        /// (e.g. Options/Option). Normalize to the IList shapes DeserializeComponent expects.
+        /// </summary>
+        private static void NormalizeXmlCollapsedCollections(Dictionary<string, object> dict)
+        {
+            NormalizeArrayProperty(dict, "Instructions");
+            NormalizeArrayProperty(dict, "Options");
+            NormalizeArrayProperty(dict, "ResourceRegistry");
+
+            if (dict.TryGetValue("Options", out object optionsObj) && optionsObj is List<object> optionsList)
+            {
+                foreach (object optionItem in optionsList)
+                {
+                    if (optionItem is Dictionary<string, object> optionDict)
+                    {
+                        NormalizeArrayProperty(optionDict, "Instructions");
+                        NormalizeArrayProperty(optionDict, "Source");
+                    }
+                }
+            }
+        }
+
+        private static void NormalizeArrayProperty(Dictionary<string, object> dict, string key)
+        {
+            if (!dict.TryGetValue(key, out object value) || value is null)
+            {
+                return;
+            }
+
+            if (value is List<object>)
+            {
+                return;
+            }
+
+            if (!(value is Dictionary<string, object> nestedDict))
+            {
+                return;
+            }
+
+            if (nestedDict.Count == 1)
+            {
+                string soleKey = nestedDict.Keys.First();
+                if (IsXmlArrayWrapperKey(key, soleKey))
+                {
+                    dict[key] = CoerceToObjectList(nestedDict[soleKey]);
+                    return;
+                }
+            }
+
+            dict[key] = new List<object> { nestedDict };
+        }
+
+        private static bool IsXmlArrayWrapperKey(string parentKey, string childKey)
+        {
+            if (childKey.Equals(parentKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (parentKey.EndsWith("s", StringComparison.OrdinalIgnoreCase)
+                && parentKey.Length > 1
+                && childKey.Equals(parentKey.Substring(0, parentKey.Length - 1), StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static List<object> CoerceToObjectList(object value)
+        {
+            if (value is List<object> list)
+            {
+                return list;
+            }
+
+            if (value is Dictionary<string, object> dict)
+            {
+                return new List<object> { dict };
+            }
+
+            if (value is System.Collections.IEnumerable enumerable && !(value is string))
+            {
+                var items = new List<object>();
+                foreach (object item in enumerable)
+                {
+                    items.Add(item);
+                }
+
+                return items;
+            }
+
+            return new List<object>();
+        }
 
         /// <summary>
         /// Converts a JToken to a Dictionary recursively, handling nested JObjects and JArrays.

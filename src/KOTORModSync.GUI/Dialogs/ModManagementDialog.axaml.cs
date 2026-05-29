@@ -261,31 +261,44 @@ namespace KOTORModSync.Dialogs
                         .OrderBy(c => c, StringComparer.Ordinal)
                         .ToList();
 
-                    string categoryOptions = existingCategories.Any()
-                        ? "\n\nExisting categories:\n  • " + string.Join("\n  • ", existingCategories)
-                        : "\n\nNo existing categories found.";
+                    string categoryHint = existingCategories.Any()
+                        ? "Existing categories in this list: " + string.Join(", ", existingCategories)
+                        : "No categories are defined yet in the loaded list.";
 
-                    bool? proceed = await _dialogService.ShowConfirmationDialog(
-                        $"Update category for {selectedComponents.Count} selected mod(s)?{categoryOptions}\n\n" +
-                        "This feature requires a custom input dialog.\n" +
-                        "TODO - STUB: For now, you can edit categories individually in the mod editor.\n\n" +
-                        "Would you like to clear all categories for selected mods?",
-                        "Clear Categories",
+                    string categoryName = await TextInputDialog.ShowTextInputDialogAsync(
+                        this,
+                        $"Set category for {selectedComponents.Count} selected mod(s).\n\n{categoryHint}\n\n" +
+                        "Enter a category name, or leave blank and confirm to clear categories.",
+                        "Set Category").ConfigureAwait(true);
 
-
-                        "Cancel").ConfigureAwait(true);
-
-                    if (proceed == true)
+                    if (categoryName == null)
                     {
-                        ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
-                            selectedComponents,
-                            ModManagementService.BatchModOperation.UpdateCategory,
-
-
-                            new Dictionary<string, object>(StringComparer.Ordinal) { ["category"] = string.Empty }).ConfigureAwait(true);
-
-                        ShowBatchResult("Clear Categories", result);
+                        return;
                     }
+
+                    if (string.IsNullOrWhiteSpace(categoryName))
+                    {
+                        bool? clear = await _dialogService.ShowConfirmationDialog(
+                            $"Clear all categories for {selectedComponents.Count} selected mod(s)?",
+                            "Clear Categories",
+                            "Cancel").ConfigureAwait(true);
+
+                        if (clear != true)
+                        {
+                            return;
+                        }
+
+                        categoryName = string.Empty;
+                    }
+
+                    ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
+                        selectedComponents,
+                        ModManagementService.BatchModOperation.UpdateCategory,
+                        new Dictionary<string, object>(StringComparer.Ordinal) { ["category"] = categoryName }).ConfigureAwait(true);
+
+                    ShowBatchResult(
+                        string.IsNullOrEmpty(categoryName) ? "Clear Categories" : "Set Category",
+                        result);
                 }).ConfigureAwait(true);
             }
             catch (Exception ex)

@@ -161,7 +161,7 @@ namespace KOTORModSync.Controls
             _pages.Add(new ModSelectionPage(_allComponents, _parentWindow as MainWindow));
 
             // 8. DownloadsExplain
-            _pages.Add(new DownloadsExplainPage());
+            _pages.Add(new DownloadsExplainPage(_allComponents));
 
             // 9. Validate
             _pages.Add(new ValidatePage(_allComponents, _mainConfig));

@@ -161,6 +161,11 @@ Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderat
                 return ModComponentSerializationService.DeserializeModComponentFromJsonString(content).ToList();
             }
 
+            if (string.Equals(formatUpper, "XML", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.DeserializeModComponentFromXmlString(content).ToList();
+            }
+
             throw new NotSupportedException($"Unsupported format: {format}");
         }
 
@@ -187,6 +192,11 @@ Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderat
                 return ModComponentSerializationService.SerializeModComponentAsJsonString(components);
             }
 
+            if (string.Equals(formatUpper, "XML", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.SerializeModComponentAsXmlString(components);
+            }
+
             throw new NotSupportedException($"Unsupported format: {format}");
         }
 
@@ -195,6 +205,7 @@ Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderat
         [TestCase("YAML")]
         [TestCase("MD")]
         [TestCase("JSON")]
+        [TestCase("XML")]
         public void Format_RoundTrip_Test(string format)
         {
             Console.WriteLine($"Testing {format} round-trip...");
@@ -264,6 +275,10 @@ Source = [""<<modDirectory>>\\Example_Dialogue_Enhancement*\\PC Response Moderat
         [TestCase("JSON", "TOML")]
         [TestCase("JSON", "YAML")]
         [TestCase("JSON", "MD")]
+        [TestCase("TOML", "XML")]
+        [TestCase("XML", "TOML")]
+        [TestCase("JSON", "XML")]
+        [TestCase("XML", "JSON")]
         public void Format1_To_Format2_To_Format1_RoundTrip_Test(string format1, string format2)
         {
             Console.WriteLine($"Testing {format1} -> {format2} -> {format1} round-trip...");

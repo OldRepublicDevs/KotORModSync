@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -17,6 +18,7 @@ namespace KOTORModSync.Dialogs.WizardPages
     {
         private readonly List<ModComponent> _widescreenMods;
         private StackPanel _modListPanel;
+        private TextBlock _selectionSummaryText;
 
         public WidescreenModSelectionPage()
             : this(new List<ModComponent>())
@@ -45,6 +47,7 @@ namespace KOTORModSync.Dialogs.WizardPages
         private void CacheControls()
         {
             _modListPanel = this.FindControl<StackPanel>("ModListPanel");
+            _selectionSummaryText = this.FindControl<TextBlock>("SelectionSummaryText");
         }
 
         private void BuildModList()
@@ -77,7 +80,22 @@ namespace KOTORModSync.Dialogs.WizardPages
             }
         }
 
-        public override Task OnNavigatedToAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public override Task OnNavigatedToAsync(CancellationToken cancellationToken)
+        {
+            int selected = _widescreenMods.Count(m => m.IsSelected);
+            int total = _widescreenMods.Count;
+
+            if (_selectionSummaryText != null)
+            {
+                _selectionSummaryText.Text = total == 0
+                    ? "No widescreen-only mods are in this build."
+                    : selected == 0
+                        ? $"{total} widescreen mod(s) available. None selected — you can skip them and continue."
+                        : $"{selected} of {total} widescreen mod(s) selected for installation.";
+            }
+
+            return Task.CompletedTask;
+        }
 
         public override Task OnNavigatingFromAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

@@ -6,6 +6,9 @@ input_path=""
 game_dir=""
 source_dir=""
 full_validation=false
+dry_run=false
+dry_run_only=false
+use_file_selection=false
 extra_args=()
 
 usage() {
@@ -17,6 +20,9 @@ Options:
   --game-dir PATH        Game install directory
   --source-dir PATH      Mod workspace directory
   --full                 Pass --full to Core validate (needs game + source dirs)
+  --dry-run              Pass --dry-run to Core validate (VFS simulation; needs game + source dirs)
+  --dry-run-only         Pass --dry-run-only (skip archive checks; VFS dry-run only; needs game + source dirs)
+  --use-file-selection   Only validate mods with IsSelected=true in the TOML (matches GUI)
   --select VALUE         Repeatable; passed to Core as --select
   -h, --help             Show this help
 
@@ -40,6 +46,18 @@ while [[ $# -gt 0 ]]; do
       ;;
     --full)
       full_validation=true
+      shift
+      ;;
+    --dry-run)
+      dry_run=true
+      shift
+      ;;
+    --dry-run-only)
+      dry_run_only=true
+      shift
+      ;;
+    --use-file-selection)
+      use_file_selection=true
       shift
       ;;
     --select)
@@ -79,11 +97,20 @@ fi
 if [[ "$full_validation" == true ]]; then
   cmd+=(--full)
 fi
+if [[ "$dry_run" == true ]]; then
+  cmd+=(--dry-run)
+fi
+if [[ "$dry_run_only" == true ]]; then
+  cmd+=(--dry-run-only)
+fi
+if [[ "$use_file_selection" == true ]]; then
+  cmd+=(--use-file-selection)
+fi
 if [[ ${#extra_args[@]} -gt 0 ]]; then
   cmd+=("${extra_args[@]}")
 fi
 
-if [[ "$full_validation" == true ]]; then
+if [[ "$full_validation" == true || "$dry_run" == true || "$dry_run_only" == true ]]; then
   # shellcheck source=common.sh
   source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
   ensure_core_resources_symlink "$repo_root"

@@ -120,6 +120,21 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 mainWindow.EditorMode = true;
             }
+
+            UpdateStatus();
+        }
+
+        public override Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
+        {
+            int componentCount = _mainConfig.allComponents?.Count ?? MainConfig.AllComponents?.Count ?? 0;
+            if (componentCount > 0)
+            {
+                return Task.FromResult((true, (string)null));
+            }
+
+            return Task.FromResult((
+                false,
+                "Load an instruction file (.toml) before continuing. Use Load Instructions on this page or pass --instructionFile when launching the app."));
         }
 
     }

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Avalonia.Controls;
@@ -52,6 +53,64 @@ namespace KOTORModSync.Tests.HeadlessUITests
             {
                 await CloseWindowAsync(window);
             }
+        }
+
+        [AvaloniaFact(DisplayName = "Load instruction page blocks forward until a file is loaded")]
+        public async Task LoadInstructionPage_ValidateAsync_WithoutComponents_ReturnsFalse()
+        {
+            List<ModComponent> previousComponents = MainConfig.AllComponents;
+            MainConfig.AllComponents = new List<ModComponent>();
+
+            try
+            {
+                var page = new LoadInstructionPage(new MainConfig());
+                (bool isValid, string errorMessage) = await page.ValidateAsync(CancellationToken.None);
+
+                Assert.False(isValid);
+                Assert.Contains("Load an instruction file", errorMessage, StringComparison.Ordinal);
+            }
+            finally
+            {
+                MainConfig.AllComponents = previousComponents;
+            }
+        }
+
+        [AvaloniaFact(DisplayName = "Validate page blocks forward navigation when no mods are selected")]
+        public async Task ValidatePage_ValidateAsync_WithNoSelectedMods_ReturnsFalse()
+        {
+            List<ModComponent> components = new List<ModComponent>
+            {
+                new ModComponent { Guid = Guid.NewGuid(), Name = "Unselected", IsSelected = false },
+            };
+
+            var page = new ValidatePage(components, new MainConfig());
+            await page.OnNavigatedToAsync(CancellationToken.None);
+
+            (bool isValid, string errorMessage) = await page.ValidateAsync(CancellationToken.None);
+
+            Assert.False(isValid);
+            Assert.Contains("No mods are selected", errorMessage, StringComparison.Ordinal);
+
+            Button validateButton = page.FindControl<Button>("ValidateButton");
+            Assert.NotNull(validateButton);
+            Assert.False(validateButton.IsEnabled);
+        }
+
+        [AvaloniaFact(DisplayName = "Install start page blocks forward navigation when no mods are selected")]
+        public async Task InstallStartPage_ValidateAsync_WithNoSelectedMods_ReturnsFalse()
+        {
+            List<ModComponent> components = new List<ModComponent>
+            {
+                new ModComponent { Guid = Guid.NewGuid(), Name = "Unselected", IsSelected = false },
+            };
+
+            var page = new InstallStartPage(components);
+            await page.OnNavigatedToAsync(CancellationToken.None);
+
+            (bool isValid, string errorMessage) = await page.ValidateAsync(CancellationToken.None);
+
+            Assert.False(isValid);
+            Assert.Contains("No mods are selected", errorMessage, StringComparison.Ordinal);
         }
 
         [AvaloniaFact(DisplayName = "Validate page runs validation for selected components")]

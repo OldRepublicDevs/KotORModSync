@@ -17,6 +17,7 @@ using JetBrains.Annotations;
 
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Services.Validation;
 using KOTORModSync.Core.Utility;
 
 using Newtonsoft.Json;
@@ -445,6 +446,9 @@ namespace KOTORModSync.Core.CLI
 
             [Option("spoiler-free", Required = false, HelpText = "Path to spoiler-free markdown file to populate spoiler-free content fields")]
             public string SpoilerFreePath { get; set; }
+
+            [Option("auto-generate-local", Required = false, HelpText = "Generate instructions from local archives in --source-path for components missing instructions")]
+            public bool AutoGenerateLocal { get; set; }
         }
 
         [Verb("merge", HelpText = "Merge two instruction sets together")]
@@ -527,6 +531,9 @@ namespace KOTORModSync.Core.CLI
 
             [Option("spoiler-free", Required = false, HelpText = "Path to spoiler-free markdown file to populate spoiler-free content fields")]
             public string SpoilerFreePath { get; set; }
+
+            [Option("auto-generate-local", Required = false, HelpText = "Generate instructions from local archives in --source-path for components missing instructions")]
+            public bool AutoGenerateLocal { get; set; }
         }
 
         [Verb("validate", HelpText = "Validate instruction files for errors")]
@@ -546,6 +553,12 @@ namespace KOTORModSync.Core.CLI
 
             [Option("full", Required = false, Default = false, HelpText = "Perform full validation including environment checks (requires --game-dir and --source-dir)")]
             public bool FullValidation { get; set; }
+
+            [Option("dry-run", Required = false, Default = false, HelpText = "Run VFS dry-run validation (requires --game-dir and --source-dir)")]
+            public bool DryRun { get; set; }
+
+            [Option("dry-run-only", Required = false, Default = false, HelpText = "Run only VFS dry-run validation; skip per-component archive existence checks (requires --game-dir and --source-dir)")]
+            public bool DryRunOnly { get; set; }
 
             [Option("errors-only", Required = false, Default = false, HelpText = "Only show errors, suppress warnings and info messages")]
             public bool ErrorsOnly { get; set; }
@@ -1764,6 +1777,7 @@ componentName: null,
                         PreferExistingInstructions = opts.PreferExistingInstructions,
                         PreferExistingOptions = opts.PreferExistingOptions,
                         PreferExistingModLinks = opts.PreferExistingModLinks,
+                        AutoGenerateLocal = opts.AutoGenerateLocal,
                         Verbose = opts.Verbose,
                         PlainText = opts.PlainText,
                     };
@@ -1798,6 +1812,12 @@ componentName: null,
                 if (opts.Download && string.IsNullOrEmpty(opts.SourcePath))
                 {
                     await Logger.LogErrorAsync("--download requires --source-path to be specified").ConfigureAwait(false);
+                    return 1;
+                }
+
+                if (opts.AutoGenerateLocal && string.IsNullOrEmpty(opts.SourcePath))
+                {
+                    await Logger.LogErrorAsync("--auto-generate-local requires --source-path to be specified").ConfigureAwait(false);
                     return 1;
                 }
 
@@ -1999,6 +2019,8 @@ componentName: null,
                         await Logger.LogVerboseAsync(message).ConfigureAwait(false);
                     }
                 }
+
+                await ApplyAutoGenerateLocalIfRequestedAsync(components, opts.AutoGenerateLocal, opts.SourcePath).ConfigureAwait(false);
 
                 ApplySelectionFilters(components, opts.Select);
 
@@ -2239,6 +2261,12 @@ componentName: null,
                     return 1;
                 }
 
+                if (opts.AutoGenerateLocal && string.IsNullOrEmpty(opts.SourcePath))
+                {
+                    await Logger.LogErrorAsync("--auto-generate-local requires --source-path to be specified").ConfigureAwait(false);
+                    return 1;
+                }
+
                 if (!string.IsNullOrEmpty(opts.SourcePath))
                 {
                     await Logger.LogVerboseAsync($"Source path provided: {opts.SourcePath}").ConfigureAwait(false);
@@ -2410,6 +2438,8 @@ componentName: null,
                     }
                 }
 
+                await ApplyAutoGenerateLocalIfRequestedAsync(components, opts.AutoGenerateLocal, opts.SourcePath).ConfigureAwait(false);
+
                 ApplySelectionFilters(components, opts.Select);
 
                 // Apply spoiler-free content if provided
@@ -2539,6 +2569,21 @@ componentName: null,
             }
         }
 
+        private static async Task ApplyAutoGenerateLocalIfRequestedAsync(
+            List<ModComponent> components,
+            bool autoGenerateLocal,
+            string sourcePath)
+        {
+            if (!autoGenerateLocal)
+            {
+                return;
+            }
+
+            EnsureConfigInitialized();
+            s_config.sourcePath = new DirectoryInfo(sourcePath);
+            await ComponentProcessingService.TryGenerateFromLocalArchivesAsync(components).ConfigureAwait(false);
+        }
+
         private static async Task<int> RunValidateAsync(ValidateOptions opts)
         {
             SetVerboseMode(opts.Verbose);
@@ -2552,11 +2597,11 @@ componentName: null,
                     return 1;
                 }
 
-                if (opts.FullValidation)
+                if (opts.FullValidation || opts.DryRun || opts.DryRunOnly)
                 {
                     if (string.IsNullOrEmpty(opts.GameDirectory) || string.IsNullOrEmpty(opts.SourceDirectory))
                     {
-                        await Logger.LogErrorAsync("Error: Full validation requires both --game-dir and --source-dir").ConfigureAwait(false);
+                        await Logger.LogErrorAsync("Error: Full validation and dry-run modes require both --game-dir and --source-dir").ConfigureAwait(false);
                         return 1;
                     }
 
@@ -2611,7 +2656,7 @@ componentName: null,
                 await Logger.LogAsync($"Loaded {components.Count} component(s) from instruction file.").ConfigureAwait(false);
                 await Logger.LogAsync().ConfigureAwait(false);
 
-                if (opts.FullValidation)
+                if (opts.FullValidation || opts.DryRun || opts.DryRunOnly)
                 {
                     EnsureConfigInitialized();
                     s_config.sourcePath = new DirectoryInfo(opts.SourceDirectory);
@@ -2688,105 +2733,109 @@ componentName: null,
                     }
                 }
 
-                if (!opts.ErrorsOnly)
-                {
-                    await Logger.LogAsync("Validating components...").ConfigureAwait(false);
-                    await Logger.LogAsync(new string('=', 50)).ConfigureAwait(false);
-                }
-
                 int totalComponents = componentsToValidate.Count;
                 int validComponents = 0;
                 int componentsWithErrors = 0;
                 int componentsWithWarnings = 0;
-                var allErrors = new List<(ModComponent component, List<string> errors)>();
-                var allWarnings = new List<(ModComponent component, List<string> warnings)>();
 
-                foreach (ModComponent component in componentsToValidate)
+                if (!opts.DryRunOnly)
                 {
-                    var validator = new ComponentValidation(component, components);
-                    bool isValid = validator.Run();
-
-                    List<string> errors = validator.GetErrors();
-                    List<string> warnings = validator.GetWarnings();
-
-                    if (errors.Count > 0)
+                    if (!opts.ErrorsOnly)
                     {
-                        componentsWithErrors++;
-                        allErrors.Add((component, errors));
+                        await Logger.LogAsync("Validating components...").ConfigureAwait(false);
+                        await Logger.LogAsync(new string('=', 50)).ConfigureAwait(false);
+                    }
 
-                        // Record validation errors in error collector
-                        foreach (string error in errors)
+                    foreach (ModComponent component in componentsToValidate)
+                    {
+                        var validator = new ComponentValidation(component, components);
+                        bool isValid = validator.Run();
+
+                        List<string> errors = validator.GetErrors();
+                        List<string> warnings = validator.GetWarnings();
+
+                        if (errors.Count > 0)
                         {
-                            s_errorCollector?.RecordError(
-                                ErrorCollector.ErrorCategory.Validation,
-                                component.Name,
-                                error,
+                            componentsWithErrors++;
+                            foreach (string error in errors)
+                            {
+                                s_errorCollector?.RecordError(
+                                    ErrorCollector.ErrorCategory.Validation,
+                                    component.Name,
+                                    error,
 details: null,
 exception: null);
-                        }
-                    }
-                    else if (warnings.Count > 0)
-                    {
-                        componentsWithWarnings++;
-                        allWarnings.Add((component, warnings));
-                    }
-                    else
-                    {
-                        validComponents++;
-                    }
-
-                    if (!opts.ErrorsOnly || errors.Count > 0)
-                    {
-                        if (isValid && errors.Count == 0 && warnings.Count == 0)
-                        {
-                            if (!opts.ErrorsOnly)
-                            {
-                                await Logger.LogAsync($"✓ {component.Name}").ConfigureAwait(false);
                             }
+                        }
+                        else if (warnings.Count > 0)
+                        {
+                            componentsWithWarnings++;
                         }
                         else
                         {
-                            if (errors.Count > 0)
+                            validComponents++;
+                        }
+
+                        if (!opts.ErrorsOnly || errors.Count > 0)
+                        {
+                            if (isValid && errors.Count == 0 && warnings.Count == 0)
                             {
-                                await Logger.LogAsync($"✗ {component.Name}").ConfigureAwait(false);
-                                foreach (string error in errors)
+                                if (!opts.ErrorsOnly)
                                 {
-                                    await Logger.LogAsync($"    ERROR: {error}").ConfigureAwait(false);
+                                    await Logger.LogAsync($"✓ {component.Name}").ConfigureAwait(false);
                                 }
                             }
-                            else if (warnings.Count > 0 && !opts.ErrorsOnly)
+                            else
                             {
-                                await Logger.LogAsync($"⚠ {component.Name}").ConfigureAwait(false);
-                                foreach (string warning in warnings)
+                                if (errors.Count > 0)
                                 {
-                                    await Logger.LogAsync($"    WARNING: {warning}").ConfigureAwait(false);
+                                    await Logger.LogAsync($"✗ {component.Name}").ConfigureAwait(false);
+                                    foreach (string error in errors)
+                                    {
+                                        await Logger.LogAsync($"    ERROR: {error}").ConfigureAwait(false);
+                                    }
+                                }
+                                else if (warnings.Count > 0 && !opts.ErrorsOnly)
+                                {
+                                    await Logger.LogAsync($"⚠ {component.Name}").ConfigureAwait(false);
+                                    foreach (string warning in warnings)
+                                    {
+                                        await Logger.LogAsync($"    WARNING: {warning}").ConfigureAwait(false);
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if (!opts.ErrorsOnly)
+                    if (!opts.ErrorsOnly)
+                    {
+                        await Logger.LogAsync(new string('=', 50)).ConfigureAwait(false);
+                        await Logger.LogAsync().ConfigureAwait(false);
+                        await Logger.LogAsync("Validation Summary:").ConfigureAwait(false);
+                        await Logger.LogAsync($"  Total components validated: {totalComponents}").ConfigureAwait(false);
+                        await Logger.LogAsync($"  ✓ Valid: {validComponents}").ConfigureAwait(false);
+                        if (componentsWithWarnings > 0)
+                        {
+                            await Logger.LogAsync($"  ⚠ With warnings: {componentsWithWarnings}").ConfigureAwait(false);
+                        }
+
+                        if (componentsWithErrors > 0)
+                        {
+                            await Logger.LogAsync($"  ✗ With errors: {componentsWithErrors}").ConfigureAwait(false);
+                        }
+
+                        await Logger.LogAsync().ConfigureAwait(false);
+                    }
+                }
+                else if (!opts.ErrorsOnly)
                 {
-                    await Logger.LogAsync(new string('=', 50)).ConfigureAwait(false);
-                    await Logger.LogAsync().ConfigureAwait(false);
-                    await Logger.LogAsync("Validation Summary:").ConfigureAwait(false);
-                    await Logger.LogAsync($"  Total components validated: {totalComponents}").ConfigureAwait(false);
-                    await Logger.LogAsync($"  ✓ Valid: {validComponents}").ConfigureAwait(false);
-                    if (componentsWithWarnings > 0)
-                    {
-                        await Logger.LogAsync($"  ⚠ With warnings: {componentsWithWarnings}").ConfigureAwait(false);
-                    }
-
-                    if (componentsWithErrors > 0)
-                    {
-                        await Logger.LogAsync($"  ✗ With errors: {componentsWithErrors}").ConfigureAwait(false);
-                    }
-
+                    await Logger.LogAsync("Skipping per-component archive checks (--dry-run-only).").ConfigureAwait(false);
                     await Logger.LogAsync().ConfigureAwait(false);
                 }
 
-                if (componentsWithErrors > 0)
+                int exitCode = 0;
+                bool dryRunPassed = false;
+                if (!opts.DryRunOnly && componentsWithErrors > 0)
                 {
                     if (opts.ErrorsOnly)
                     {
@@ -2796,10 +2845,57 @@ exception: null);
                     {
                         await Logger.LogAsync("❌ Validation failed - errors found").ConfigureAwait(false);
                     }
-                    return 1;
+                    exitCode = 1;
                 }
 
-                if (componentsWithWarnings > 0)
+                bool runDryRun = opts.DryRun || opts.DryRunOnly;
+                if (runDryRun)
+                {
+                    if (!opts.ErrorsOnly)
+                    {
+                        await Logger.LogAsync("\nRunning dry-run validation...").ConfigureAwait(false);
+                    }
+
+                    HashSet<Guid> selectedGuids = new HashSet<Guid>(componentsToValidate.Select(c => c.Guid));
+                    foreach (ModComponent component in components)
+                    {
+                        component.IsSelected = selectedGuids.Contains(component.Guid);
+                    }
+
+                    s_config.allComponents = components;
+
+                    DryRunValidationResult dryRunResult = await DryRunValidator.ValidateInstallationAsync(
+                        components,
+                        skipDependencyCheck: false,
+                        CancellationToken.None).ConfigureAwait(false);
+
+                    dryRunPassed = dryRunResult.IsValid;
+
+                    string dryRunMessage = dryRunResult.GetEditorMessage();
+                    if (!opts.ErrorsOnly || !dryRunResult.IsValid)
+                    {
+                        await Logger.LogAsync(dryRunMessage).ConfigureAwait(false);
+                    }
+
+                    if (!dryRunResult.IsValid)
+                    {
+                        exitCode = 1;
+                    }
+                }
+
+                if (exitCode != 0)
+                {
+                    if (opts.DryRun && !opts.DryRunOnly && dryRunPassed && !opts.ErrorsOnly)
+                    {
+                        await Logger.LogAsync(
+                            "⚠ Exit code 1: component validation reported errors (often missing mod archives on disk). Dry-run simulation passed separately."
+                        ).ConfigureAwait(false);
+                    }
+
+                    return exitCode;
+                }
+
+                if (!opts.DryRunOnly && componentsWithWarnings > 0)
                 {
                     if (!opts.ErrorsOnly)
                     {
@@ -2811,7 +2907,14 @@ exception: null);
 
                 if (!opts.ErrorsOnly)
                 {
-                    await Logger.LogAsync("✅ All validations passed!").ConfigureAwait(false);
+                    if (opts.DryRunOnly || runDryRun)
+                    {
+                        await Logger.LogAsync("✅ Dry-run validation passed!").ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await Logger.LogAsync("✅ All validations passed!").ConfigureAwait(false);
+                    }
                 }
 
                 return 0;

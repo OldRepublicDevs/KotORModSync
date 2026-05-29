@@ -19,6 +19,11 @@ namespace KOTORModSync.Core.Utility
     public static class NetFrameworkCompatibility
     {
         /// <summary>
+        /// UTF-8 without a byte-order mark. Preferred for TOML/JSON/YAML files consumed by parsers that reject BOM.
+        /// </summary>
+        public static readonly Encoding Utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+        /// <summary>
         /// Polyfill for Path.GetRelativePath (available in .NET Standard 2.1+ but not .NET Framework 4.8).
         /// </summary>
         [NotNull]
@@ -217,7 +222,7 @@ namespace KOTORModSync.Core.Utility
             if (contents is null)
                 throw new ArgumentNullException(nameof(contents));
 
-            encoding = encoding ?? Encoding.UTF8;
+            encoding = encoding ?? Utf8WithoutBom;
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -348,7 +353,7 @@ namespace KOTORModSync.Core.Utility
             if (contents is null)
                 throw new ArgumentNullException(nameof(contents));
 
-            encoding = encoding ?? Encoding.UTF8;
+            encoding = encoding ?? Utf8WithoutBom;
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -366,7 +371,7 @@ namespace KOTORModSync.Core.Utility
             if (contents is null)
                 throw new ArgumentNullException(nameof(contents));
 
-            encoding = encoding ?? Encoding.UTF8;
+            encoding = encoding ?? Utf8WithoutBom;
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();

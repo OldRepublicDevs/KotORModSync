@@ -17,6 +17,10 @@
             Text="KOTORModSync will now begin downloading the required mod files in the background."
             TextWrapping="Wrap" />
 
+        <TextBlock
+            x:Name="SelectionSummaryText"
+            TextWrapping="Wrap" />
+
         <Border Padding="16" CornerRadius="8">
             <StackPanel Spacing="12">
                 <TextBlock Text="What's happening:" />

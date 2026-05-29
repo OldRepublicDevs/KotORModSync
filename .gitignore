@@ -421,3 +421,13 @@ tslpatchdata/changes.ini
 validation_logs.txt
 test-release/
 .husky
+
+# Local agent / audit artifacts (not part of the product)
+tmp/
+test-results/
+.compound-engineering/
+agentdecompile_projects/
+audit/
+package.json
+package-lock.json
+pnpm-lock.yaml

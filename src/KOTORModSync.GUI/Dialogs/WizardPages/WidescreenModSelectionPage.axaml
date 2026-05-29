@@ -7,7 +7,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <StackPanel Spacing="12">
-        <TextBlock Text="Select widescreen mods:" />
+        <TextBlock Text="Select widescreen mods (optional):" />
+        <TextBlock
+            x:Name="SelectionSummaryText"
+            TextWrapping="Wrap" />
         <StackPanel x:Name="ModListPanel" Spacing="8" />
     </StackPanel>
 </UserControl>

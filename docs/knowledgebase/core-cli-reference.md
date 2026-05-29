@@ -131,7 +131,26 @@ Agent wrapper: `./scripts/agents/cli_full_build_pipeline.sh --game k1 --game-dir
 
 Pipeline flags: `--export-all-formats` (TOML + JSON + YAML + XML), `--auto-generate-local` (fill missing instructions from archives in `--source-dir`), `--install` (best-effort headless install after merge; pair with `--dry-run-only` or `--dry-run` first).
 
-Canonical markdown paths: `mod-builds/content/k1/full.md`, `mod-builds/content/k2/full.md` (not `KOTOR1_FULL.md` at repo root).
+Canonical markdown paths: `mod-builds/content/k1/full.md`, `mod-builds/content/k2/full.md`. User-facing aliases `KOTOR1_FULL.md` / `KOTOR2_FULL.md` map to those paths in `cli_full_build_pipeline.sh` when a matching file exists under `mod-builds/`.
+
+End-to-end (merge → export all formats → VFS dry-run → optional install):
+
+```bash
+./scripts/agents/cli_full_build_pipeline.sh --game k1 \
+  --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads \
+  --auto-generate-local --export-all-formats --dry-run-only
+
+./scripts/agents/cli_full_build_pipeline.sh --game k1 \
+  --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads \
+  --install   # best-effort; requires archives or Nexus key for downloads
+```
+
+**Tests:** With default `KOTORModSync.Tests.runsettings`, prefer `Name~FullBuild` (not `FullyQualifiedName~` with `|`) to run serialization, merge, and dry-run tests together:
+
+```bash
+dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "Name~FullBuild"
+dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj --filter "Name~AutoGenerateLocal"
+```
 
 `--use-existing-order` is required when existing TOML carries instructions and incoming markdown is metadata-only; otherwise `prefer-existing-instructions` cannot preserve install steps.
 

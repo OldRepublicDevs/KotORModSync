@@ -56,7 +56,7 @@ Slices 1–2 proved four-format round-trip and two-source merge. Remaining gaps:
 
 ```bash
 dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-  --filter "FullyQualifiedName~FullBuildMergedDryRunTests|FullyQualifiedName~FullBuildMarkdownMergeRoundTripTests|FullyQualifiedName~FullBuildSerializationRoundTripTests"
+  --filter "Name~FullBuildMergedDryRunTests|Name~FullBuildMarkdownMergeRoundTripTests|Name~FullBuildSerializationRoundTripTests"
 
 ./scripts/agents/cli_full_build_pipeline.sh --game k1 \
   --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads --dry-run-only

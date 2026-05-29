@@ -65,7 +65,7 @@ Markdown alone does not carry install instructions; merge must prefer **existing
 
 ```bash
 dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-  --filter "FullyQualifiedName~FullBuildMarkdownMergeRoundTripTests|FullyQualifiedName~FullBuildSerializationRoundTripTests"
+  --filter "Name~FullBuildMarkdownMergeRoundTripTests|Name~FullBuildSerializationRoundTripTests"
 
 ./scripts/agents/cli_full_build_pipeline.sh --game k1 \
   --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads --dry-run

@@ -14,12 +14,30 @@ validate_only=false
 export_all_formats=false
 install=false
 
+resolve_markdown_path() {
+  local game_key="$1"
+  shift
+  local -a candidates=("$@")
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
 usage() {
   cat <<'EOF'
 Usage: cli_full_build_pipeline.sh --game k1|k2 [options]
 
 Merges mod-builds markdown + TOML (two-source pipeline), optionally exports another
 format, then runs structural validate and/or VFS dry-run.
+
+Canonical markdown (mod-builds repo):
+  K1: mod-builds/content/k1/full.md  (alias: KOTOR1_FULL.md, KOTOR1_Full.md)
+  K2: mod-builds/content/k2/full.md  (alias: KOTOR2_FULL.md, KOTOR2_Full.md)
 
 Options:
   --game k1|k2           Which full build (required)
@@ -114,12 +132,20 @@ fi
 
 case "$game" in
   k1|K1|kotor1)
-    md_path="$repo_root/mod-builds/content/k1/full.md"
+    md_path="$(resolve_markdown_path k1 \
+      "$repo_root/mod-builds/content/k1/full.md" \
+      "$repo_root/mod-builds/KOTOR1_FULL.md" \
+      "$repo_root/mod-builds/KOTOR1_Full.md" \
+      "$repo_root/mod-builds/k1/KOTOR1_FULL.md" || true)"
     toml_path="$repo_root/mod-builds/TOMLs/KOTOR1_Full.toml"
     default_output="$repo_root/tmp/KOTOR1_Full_merged.toml"
     ;;
   k2|K2|kotor2)
-    md_path="$repo_root/mod-builds/content/k2/full.md"
+    md_path="$(resolve_markdown_path k2 \
+      "$repo_root/mod-builds/content/k2/full.md" \
+      "$repo_root/mod-builds/KOTOR2_FULL.md" \
+      "$repo_root/mod-builds/KOTOR2_Full.md" \
+      "$repo_root/mod-builds/k2/KOTOR2_FULL.md" || true)"
     toml_path="$repo_root/mod-builds/TOMLs/KOTOR2_Full.toml"
     default_output="$repo_root/tmp/KOTOR2_Full_merged.toml"
     ;;
@@ -133,9 +159,16 @@ if [[ -z "$output_path" ]]; then
   output_path="$default_output"
 fi
 
-if [[ ! -f "$md_path" || ! -f "$toml_path" ]]; then
+if [[ -z "$md_path" || ! -f "$md_path" || ! -f "$toml_path" ]]; then
   echo "error: mod-builds sources missing. Clone https://github.com/th3w1zard1/mod-builds to ./mod-builds" >&2
+  echo "  expected markdown under content/k*/full.md (aliases: KOTOR*_FULL.md)" >&2
+  echo "  expected TOML: mod-builds/TOMLs/KOTOR*_Full.toml" >&2
   exit 1
+fi
+
+if [[ "$dry_run" == true && "$dry_run_only" == true ]]; then
+  echo "warning: both --dry-run and --dry-run-only set; using --dry-run (archive checks + VFS simulation)" >&2
+  dry_run_only=false
 fi
 
 mkdir -p "$(dirname "$output_path")"

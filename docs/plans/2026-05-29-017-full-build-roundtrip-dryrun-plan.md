@@ -76,7 +76,7 @@ Full install/dry-run accuracy with real archives remains environment-dependent; 
 ```bash
 dotnet build KOTORModSync.sln --configuration Debug
 dotnet test src/KOTORModSync.Tests/KOTORModSync.Tests.csproj \
-  --filter "FullyQualifiedName~FullBuildSerializationRoundTripTests|FullyQualifiedName~SerializationRoundTripTests" \
+  --filter "Name~FullBuild" \
   --configuration Debug
 ./scripts/agents/cli_validate.sh --input ./mod-builds/TOMLs/KOTOR1_Full.toml \
   --game-dir ./tmp/kotor_template --source-dir ./tmp/mod_downloads --dry-run

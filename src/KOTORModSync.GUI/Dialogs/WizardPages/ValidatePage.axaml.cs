@@ -316,7 +316,6 @@ namespace KOTORModSync.Dialogs.WizardPages
             try
             {
                 var selectedMods = _allComponents.Where(c => c.IsSelected).ToList();
-                _totalSteps = 4;
 
                 var pipelineOptions = ValidationPipelineOptions.WizardFull;
                 pipelineOptions.MainConfig = _mainConfig;
@@ -333,6 +332,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                     (stage, step, total, message) =>
                     {
                         _currentStep = step;
+                        _totalSteps = total;
                         _currentOperation = message ?? string.Empty;
                         UpdateLogHeader();
                     }).ConfigureAwait(true);

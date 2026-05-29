@@ -2619,6 +2619,52 @@ componentName: null,
                         await Logger.LogAsync(new string('-', 50)).ConfigureAwait(false);
                         await Logger.LogAsync().ConfigureAwait(false);
                         break;
+                    case ValidationPipelineStage.Conflicts:
+                        await Logger.LogAsync("Checking mod conflicts...").ConfigureAwait(false);
+                        await Logger.LogAsync(new string('-', 50)).ConfigureAwait(false);
+                        foreach (string message in stage.Messages)
+                        {
+                            if (message.StartsWith("ERROR:", StringComparison.Ordinal))
+                            {
+                                await Logger.LogErrorAsync(message.Substring(6).Trim()).ConfigureAwait(false);
+                            }
+                            else if (message.StartsWith("WARNING:", StringComparison.Ordinal))
+                            {
+                                await Logger.LogAsync($"⚠ {message.Substring(8).Trim()}").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await Logger.LogAsync(message).ConfigureAwait(false);
+                            }
+                        }
+
+                        if (stage.Messages.Count == 0)
+                        {
+                            await Logger.LogAsync("✓ No conflicts detected").ConfigureAwait(false);
+                        }
+
+                        await Logger.LogAsync(new string('-', 50)).ConfigureAwait(false);
+                        await Logger.LogAsync().ConfigureAwait(false);
+                        break;
+                    case ValidationPipelineStage.InstallOrder:
+                        await Logger.LogAsync("Validating mod installation order...").ConfigureAwait(false);
+                        await Logger.LogAsync(new string('-', 50)).ConfigureAwait(false);
+                        if (stage.Passed && !stage.HasWarnings)
+                        {
+                            await Logger.LogAsync("✓ Install order is correct").ConfigureAwait(false);
+                        }
+                        else if (stage.Passed && stage.HasWarnings)
+                        {
+                            await Logger.LogAsync($"⚠ {stage.Summary ?? "Mods will be automatically reordered"}").ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await Logger.LogErrorAsync(stage.Summary ?? "Install order validation failed").ConfigureAwait(false);
+                        }
+
+                        await Logger.LogAsync(new string('-', 50)).ConfigureAwait(false);
+                        await Logger.LogAsync().ConfigureAwait(false);
+                        break;
                     case ValidationPipelineStage.ComponentValidation:
                         await Logger.LogAsync("Validating components...").ConfigureAwait(false);
                         await Logger.LogAsync(new string('=', 50)).ConfigureAwait(false);

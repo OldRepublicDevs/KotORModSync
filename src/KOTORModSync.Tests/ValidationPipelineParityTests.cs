@@ -102,6 +102,81 @@ namespace KOTORModSync.Tests
         }
 
         [Test]
+        public async Task Pipeline_EnvironmentFailure_IsNotSuccess_AndSkipsDryRun()
+        {
+            MainConfig.Instance = new MainConfig
+            {
+                destinationPath = null,
+                sourcePath = null,
+            };
+
+            var components = new List<ModComponent>
+            {
+                new ModComponent
+                {
+                    Guid = Guid.NewGuid(),
+                    Name = "AnyMod",
+                    IsSelected = true,
+                    Instructions = new ObservableCollection<Instruction>(),
+                },
+            };
+
+            var options = ValidationPipelineOptions.WizardFull;
+            options.SkipComponentArchiveValidation = true;
+            options.DryRun = false;
+
+            ValidationPipelineResult result = await InstallationValidationPipeline.RunAsync(
+                components,
+                options).ConfigureAwait(false);
+
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.HasCriticalErrors, Is.True);
+            Assert.That(result.DryRunResult, Is.Null);
+            Assert.That(
+                result.Stages.Exists(s => s.Stage == ValidationPipelineStage.Environment && !s.Passed),
+                Is.True);
+        }
+
+        [Test]
+        public void Install_WithoutSkipValidation_BlocksOnMissingArchives()
+        {
+            string gameDir = MainConfig.DestinationPath.FullName;
+            string modDir = MainConfig.SourcePath.FullName;
+            File.WriteAllText(Path.Combine(gameDir, "swkotor.exe"), string.Empty);
+
+            string componentGuid = Guid.NewGuid().ToString();
+            string instructionGuid = Guid.NewGuid().ToString();
+            string tomlPath = Path.Combine(_tempDir, "install_missing_archive.toml");
+            File.WriteAllText(
+                tomlPath,
+                $@"[[thisMod]]
+Guid = ""{componentGuid}""
+Name = ""MissingArchiveMod""
+IsSelected = true
+Tier = ""1 - Essential""
+Category = [""Test""]
+
+[[thisMod.Instructions]]
+Guid = ""{instructionGuid}""
+Action = ""Extract""
+Source = [""<<modDirectory>>\\definitely_missing.zip""]
+Destination = ""<<kotorDirectory>>\\Override""
+");
+
+            int exitCode = ModBuildConverter.Run(new[]
+            {
+                "install",
+                "-i", tomlPath,
+                "-g", gameDir,
+                "-s", modDir,
+                "--use-file-selection",
+                "-y",
+            });
+
+            Assert.That(exitCode, Is.EqualTo(1));
+        }
+
+        [Test]
         public void ModBuildConverter_Run_validate_UsesSamePipelineOptionsShape()
         {
             string tomlPath = Path.Combine(_tempDir, "minimal.toml");

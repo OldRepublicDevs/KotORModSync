@@ -36,6 +36,12 @@ Validates only components with `IsSelected = true` in the file (matches the inst
 
 Without `--full`, CLI skips environment/conflict/order stages (component archive checks only). Without `--dry-run`, archive checks run but VFS dry-run does not.
 
+## `install` pre-check (default)
+
+`[REPO]` When `--skip-validation` is **not** set, `install` runs `InstallationValidationPipeline` with the same preset as the wizard `ValidatePage` (`ValidationPipelineOptions.WizardFull`: environment, conflicts, order, archives, VFS dry-run). Selection semantics match `validate --use-file-selection` when `--use-file-selection` or `--select` is passed; otherwise all loaded components are validated (mirroring Select All).
+
+`--skip-validation` skips the full pipeline (environment-only behavior removed). `install_best_effort.sh` always passes `--skip-validation`.
+
 ## `validate` with `--select`
 
 Applies the same category/tier filters, then validates only components with `IsSelected == true` after filtering.

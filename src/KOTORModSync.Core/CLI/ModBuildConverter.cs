@@ -2585,11 +2585,12 @@ componentName: null,
         }
 
         private static async Task LogValidationPipelineOutputAsync(
-            ValidateOptions opts,
             ValidationPipelineResult pipelineResult,
-            int componentCount)
+            int componentCount,
+            bool errorsOnly = false,
+            bool dryRunOnly = false)
         {
-            if (opts.ErrorsOnly)
+            if (errorsOnly)
             {
                 if (!pipelineResult.IsSuccess)
                 {
@@ -2719,11 +2720,29 @@ componentName: null,
                 }
             }
 
-            if (opts.DryRunOnly && pipelineResult.Stages.All(s => s.Stage != ValidationPipelineStage.ComponentValidation))
+            if (dryRunOnly && pipelineResult.Stages.All(s => s.Stage != ValidationPipelineStage.ComponentValidation))
             {
                 await Logger.LogAsync("Skipping per-component archive checks (--dry-run-only).").ConfigureAwait(false);
                 await Logger.LogAsync().ConfigureAwait(false);
             }
+        }
+
+        [NotNull]
+        private static Func<string, Task<bool?>> BuildInstallConfirmationCallback([NotNull] InstallOptions opts)
+        {
+            return confirmMessage =>
+            {
+                if (opts.AutoConfirm)
+                {
+                    return Task.FromResult<bool?>(true);
+                }
+
+                Console.Write($"{confirmMessage} [y/N]: ");
+                string response = Console.ReadLine()?.Trim().ToLowerInvariant();
+                bool? result = string.Equals(response, "y", StringComparison.Ordinal)
+                    || string.Equals(response, "yes", StringComparison.Ordinal);
+                return Task.FromResult(result);
+            };
         }
 
         private static async Task<int> RunValidateAsync(ValidateOptions opts)
@@ -2868,7 +2887,7 @@ componentName: null,
                     components,
                     pipelineOptions).ConfigureAwait(false);
 
-                await LogValidationPipelineOutputAsync(opts, pipelineResult, componentsToValidate.Count).ConfigureAwait(false);
+                await LogValidationPipelineOutputAsync(pipelineResult, componentsToValidate.Count, opts.ErrorsOnly, opts.DryRunOnly).ConfigureAwait(false);
 
                 if (pipelineResult.ExitCode != 0)
                 {
@@ -3081,29 +3100,30 @@ componentName: null,
 
                 if (!opts.SkipValidation)
                 {
-                    await Logger.LogAsync("Validating installation environment...").ConfigureAwait(false);
-                    (bool success, string message) = await InstallationService.ValidateInstallationEnvironmentAsync(
-                        s_config,
-                        (confirmMessage) =>
-                        {
-                            if (opts.AutoConfirm)
-                            {
-                                return Task.FromResult<bool?>(true);
-                            }
+                    await Logger.LogAsync("Running full installation validation (wizard-equivalent pipeline)...").ConfigureAwait(false);
 
-                            Console.Write($"{confirmMessage} [y/N]: ");
-                            string response = Console.ReadLine()?.Trim().ToLowerInvariant();
-                            bool? result = string.Equals(response, "y", StringComparison.Ordinal) || string.Equals(response, "yes", StringComparison.Ordinal);
-                            return Task.FromResult(result);
-                        }
-                    ).ConfigureAwait(false);
+                    bool useFileSelectionForPipeline = hasExplicitSelect || opts.UseFileSelection;
+                    var pipelineOptions = ValidationPipelineOptions.WizardFull;
+                    pipelineOptions.MainConfig = s_config;
+                    pipelineOptions.UseFileSelection = useFileSelectionForPipeline;
+                    pipelineOptions.ConfirmationCallback = BuildInstallConfirmationCallback(opts);
 
-                    if (!success)
+                    ValidationPipelineResult pipelineResult = await InstallationValidationPipeline.RunAsync(
+                        components,
+                        pipelineOptions).ConfigureAwait(false);
+
+                    await LogValidationPipelineOutputAsync(
+                        pipelineResult,
+                        selectedCount,
+                        errorsOnly: false,
+                        dryRunOnly: false).ConfigureAwait(false);
+
+                    if (!pipelineResult.IsSuccess)
                     {
-                        await Logger.LogErrorAsync("Validation failed:").ConfigureAwait(false);
-                        await Logger.LogErrorAsync(message).ConfigureAwait(false);
+                        await Logger.LogErrorAsync("Validation failed. Fix issues above before installing.").ConfigureAwait(false);
                         return 1;
                     }
+
                     await Logger.LogAsync("Validation passed.").ConfigureAwait(false);
                     await Logger.LogAsync().ConfigureAwait(false);
                 }

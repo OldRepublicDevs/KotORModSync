@@ -1,7 +1,7 @@
 # Mod-builds full pipeline — requirements
 
 **Date:** 2026-05-29  
-**Status:** active  
+**Status:** completed  
 **Related plans:** `docs/plans/2026-05-29-017-full-build-roundtrip-dryrun-plan.md`, `docs/plans/2026-05-29-018-mod-builds-markdown-merge-pipeline-plan.md`
 
 ## Outcome

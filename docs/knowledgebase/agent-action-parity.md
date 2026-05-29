@@ -17,7 +17,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 | 7 | `ModSelectionPage` | Select mods, filters | `install` without `--select` = select all; `install --select category:X` / `tier:X` | Full (install); Partial (subset only with `--select`) |
 | 8 | `DownloadsExplainPage` | Continue (downloads may run) | `install -d` or `convert -d` | Partial |
 | 9 | `ValidatePage` | Run validation | `validate --full --dry-run --use-file-selection` (same Core `InstallationValidationPipeline` as GUI) | Full |
-| 10 | `InstallStartPage` | Confirm install | `install -y` | Full |
+| 10 | `InstallStartPage` | Confirm install | `install -y` (runs `InstallationValidationPipeline` / `WizardFull` pre-check unless `--skip-validation`) | Full |
 | 11 | `InstallingPage` | Watch progress | `install` (console progress) | Full |
 | 12 | `BaseInstallCompletePage` | Continue | N/A | Full |
 | 13+ | Widescreen pages | `WidescreenNoticePage`, `WidescreenModSelectionPage`, `WidescreenInstallingPage`, `WidescreenCompletePage` (dynamic) | No dedicated CLI | UI |
@@ -52,7 +52,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 
 | Test area | Example filter | What it proves |
 |-----------|----------------|----------------|
-| CLI install | `CliInstallIntegrationTests` | End-to-end install pipeline |
+| CLI install | `CliInstallIntegrationTests`, `ValidationPipelineParityTests` | End-to-end install; install pre-check uses same pipeline as wizard |
 | VFS validation | `VirtualFileSystemDryRunValidationTests` | Dry-run matches VFS rules |
 | Wizard UI | `WizardFlowHeadlessTests` | Page flow without full desktop |
 | Version alignment | `ReleaseVersionAlignmentTests` | Release metadata consistency |
@@ -65,5 +65,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 4. **File pickers** — never automate in cloud agents; always use preload args or CLI paths.
 5. **Validate vs install selection** — GUI validates **selected** mods only; CLI defaults differ unless `--use-file-selection`. `install` without flags selects all (full-build). See [cli-selection-semantics.md](cli-selection-semantics.md).
 6. **CI test coverage** — green CI runs subsets only; local `run_headless_tests.sh` is broader. See [ci-test-matrix.md](ci-test-matrix.md).
+7. **Validation pipeline fail-fast** — `InstallationValidationPipeline` stops after environment failure (no conflict/order/archive/dry-run stages). GUI and CLI both use `ValidationPipelineResult.IsSuccess`; do not infer pass from an empty dry-run result.
+8. **Install pre-check opt-out** — `install --skip-validation` and `install_best_effort.sh` skip the wizard-equivalent pipeline; default `install` does not.
 
 See [agent-native-audit.md](agent-native-audit.md) for scored principles and [core-cli-reference.md](core-cli-reference.md) for flags.

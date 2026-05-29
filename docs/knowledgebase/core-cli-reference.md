@@ -6,7 +6,7 @@
 dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -f net9.0 -- <verb> [options]
 ```
 
-Wrapper: `./scripts/agents/cli_validate.sh` for validation.
+Wrapper: `./scripts/agents/cli_validate.sh` for validation (supports `--use-file-selection`, `--full`, `--dry-run`, `--game-dir`, `--source-dir`, repeatable `--select`).
 
 ## Global options
 
@@ -26,11 +26,12 @@ Validate an instruction file. Structural checks work with `-i` alone; environmen
 | Flag | Required | Description |
 |------|----------|-------------|
 | `-i` / `--input` | Yes | Instruction file path |
-| `-g` / `--game-dir` | For `--full` | KOTOR install directory |
-| `-s` / `--source-dir` | For `--full` | Mod download workspace |
+| `-g` / `--game-dir` | For `--full` / `--dry-run` | KOTOR install directory |
+| `-s` / `--source-dir` | For `--full` / `--dry-run` | Mod download workspace |
 | `--select` | No | Filter by `category:Name` or `tier:Name` |
 | `--use-file-selection` | No | Only components with `IsSelected=true` in the file; default without `--select` validates **all** components |
-| `--full` | No | Full validation (requires game + source dirs) |
+| `--full` | No | Full validation including environment checks (requires game + source dirs) |
+| `--dry-run` | No | VFS dry-run via `DryRunValidator` (requires game + source dirs; runs after structural validation) |
 | `--errors-only` | No | Suppress warnings/info |
 | `--ignore-errors` | No | Best-effort dependency order |
 
@@ -40,7 +41,13 @@ Validate an instruction file. Structural checks work with `-i` alone; environmen
 dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -f net9.0 -- \
   validate -i ./mod-builds/TOMLs/KOTOR1_Full.toml \
   -g ./tmp/kotor_template -s ./tmp/mod_downloads --full
+
+dotnet run --project src/KOTORModSync.Core/KOTORModSync.Core.csproj -f net9.0 -- \
+  validate -i ./mod-builds/TOMLs/KOTOR1_Full.toml \
+  -g ./tmp/kotor_template -s ./tmp/mod_downloads --dry-run
 ```
+
+With an empty mod workspace, structural validation reports missing archives and dry-run exits non-zero — that is expected until downloads are present.
 
 ---
 

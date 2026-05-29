@@ -17,6 +17,7 @@ using JetBrains.Annotations;
 
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Services.Validation;
 using KOTORModSync.Core.Utility;
 
 using Newtonsoft.Json;
@@ -546,6 +547,9 @@ namespace KOTORModSync.Core.CLI
 
             [Option("full", Required = false, Default = false, HelpText = "Perform full validation including environment checks (requires --game-dir and --source-dir)")]
             public bool FullValidation { get; set; }
+
+            [Option("dry-run", Required = false, Default = false, HelpText = "Run VFS dry-run validation (requires --game-dir and --source-dir)")]
+            public bool DryRun { get; set; }
 
             [Option("errors-only", Required = false, Default = false, HelpText = "Only show errors, suppress warnings and info messages")]
             public bool ErrorsOnly { get; set; }
@@ -2552,11 +2556,11 @@ componentName: null,
                     return 1;
                 }
 
-                if (opts.FullValidation)
+                if (opts.FullValidation || opts.DryRun)
                 {
                     if (string.IsNullOrEmpty(opts.GameDirectory) || string.IsNullOrEmpty(opts.SourceDirectory))
                     {
-                        await Logger.LogErrorAsync("Error: Full validation requires both --game-dir and --source-dir").ConfigureAwait(false);
+                        await Logger.LogErrorAsync("Error: Full validation and dry-run require both --game-dir and --source-dir").ConfigureAwait(false);
                         return 1;
                     }
 
@@ -2611,7 +2615,7 @@ componentName: null,
                 await Logger.LogAsync($"Loaded {components.Count} component(s) from instruction file.").ConfigureAwait(false);
                 await Logger.LogAsync().ConfigureAwait(false);
 
-                if (opts.FullValidation)
+                if (opts.FullValidation || opts.DryRun)
                 {
                     EnsureConfigInitialized();
                     s_config.sourcePath = new DirectoryInfo(opts.SourceDirectory);
@@ -2786,6 +2790,7 @@ exception: null);
                     await Logger.LogAsync().ConfigureAwait(false);
                 }
 
+                int exitCode = 0;
                 if (componentsWithErrors > 0)
                 {
                     if (opts.ErrorsOnly)
@@ -2796,7 +2801,44 @@ exception: null);
                     {
                         await Logger.LogAsync("❌ Validation failed - errors found").ConfigureAwait(false);
                     }
-                    return 1;
+                    exitCode = 1;
+                }
+
+                if (opts.DryRun)
+                {
+                    if (!opts.ErrorsOnly)
+                    {
+                        await Logger.LogAsync("\nRunning dry-run validation...").ConfigureAwait(false);
+                    }
+
+                    HashSet<Guid> selectedGuids = new HashSet<Guid>(componentsToValidate.Select(c => c.Guid));
+                    foreach (ModComponent component in components)
+                    {
+                        component.IsSelected = selectedGuids.Contains(component.Guid);
+                    }
+
+                    s_config.allComponents = components;
+
+                    DryRunValidationResult dryRunResult = await DryRunValidator.ValidateInstallationAsync(
+                        components,
+                        skipDependencyCheck: false,
+                        CancellationToken.None).ConfigureAwait(false);
+
+                    string dryRunMessage = dryRunResult.GetEditorMessage();
+                    if (!opts.ErrorsOnly || !dryRunResult.IsValid)
+                    {
+                        await Logger.LogAsync(dryRunMessage).ConfigureAwait(false);
+                    }
+
+                    if (!dryRunResult.IsValid)
+                    {
+                        exitCode = 1;
+                    }
+                }
+
+                if (exitCode != 0)
+                {
+                    return exitCode;
                 }
 
                 if (componentsWithWarnings > 0)

@@ -15,8 +15,8 @@
 | `ensure_linux_holopatcher.sh` | Link Linux HoloPatcher into GUI `Resources/` |
 | `launch_gui_desktop.sh` | Build and launch Avalonia with preload args `[UI]` |
 | `install_best_effort.sh` | Headless full-list install: `-d`, `--best-effort`, **`--skip-validation`** (see [cli-selection-semantics.md](../../docs/knowledgebase/cli-selection-semantics.md)) |
-| `cli_validate.sh` | Wrapper around Core `validate` verb; `--full`, `--use-file-selection`, `--dry-run`; links HoloPatcher via `common.sh` |
-| `cli_full_build_pipeline.sh` | Merge mod-builds `full.md` + `KOTOR*_Full.toml`, optional format export, validate `--dry-run` |
+| `cli_validate.sh` | Wrapper around Core `validate` verb; `--full`, `--use-file-selection`, `--dry-run`, `--dry-run-only`; links HoloPatcher via `common.sh` |
+| `cli_full_build_pipeline.sh` | Merge mod-builds `full.md` + `KOTOR*_Full.toml`, optional format export, `--auto-generate-local`, validate `--dry-run` / `--dry-run-only` |
 | `common.sh` | `ensure_core_resources_symlink` helper (sourced by other scripts) |
 | `run_headless_tests.sh` | `dotnet test` excluding `LongRunning` |
 | `mcp_filesystem.sh` | MCP filesystem server scoped to repo |
@@ -77,10 +77,10 @@ Requires `./mod-builds` clone. Merges canonical TOML instructions with markdown 
   --game k1 \
   --game-dir ./tmp/kotor_template \
   --source-dir ./tmp/mod_downloads \
-  --dry-run
+  --dry-run-only
 ```
 
-With an empty mod workspace, dry-run exits non-zero (missing archives) — expected until downloads are present.
+With an empty mod workspace, `--dry-run` fails archive checks; use `--dry-run-only` for VFS-only validation (as in the example above).
 
 ### Desktop GUI (full-build style)
 

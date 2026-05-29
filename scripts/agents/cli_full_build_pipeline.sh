@@ -8,6 +8,8 @@ source_dir=""
 output_path=""
 export_format=""
 dry_run=false
+dry_run_only=false
+auto_generate_local=false
 validate_only=false
 
 usage() {
@@ -19,11 +21,13 @@ format, then runs structural validate and/or VFS dry-run.
 
 Options:
   --game k1|k2           Which full build (required)
-  --game-dir PATH        KOTOR install directory (required for --dry-run)
-  --source-dir PATH      Mod workspace directory (required for --dry-run)
+  --game-dir PATH        KOTOR install directory (required for --dry-run / --dry-run-only)
+  --source-dir PATH      Mod workspace directory (required for --dry-run / --dry-run-only)
   --output PATH          Merged TOML output path (default: ./tmp/KOTOR{1,2}_Full_merged.toml)
   --export-format FMT    Also write merged set as toml|json|yaml|xml (optional)
   --dry-run              Run validate --dry-run after merge (needs game + source dirs)
+  --dry-run-only         Run validate --dry-run-only (skip archive checks; VFS only)
+  --auto-generate-local  Fill missing instructions from archives in --source-dir during merge
   --validate-only        Skip merge; validate --input only (uses --output or default merged path)
   -h, --help             Show this help
 
@@ -60,6 +64,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run)
       dry_run=true
+      shift
+      ;;
+    --dry-run-only)
+      dry_run_only=true
+      shift
+      ;;
+    --auto-generate-local)
+      auto_generate_local=true
       shift
       ;;
     --validate-only)
@@ -119,15 +131,25 @@ run_core() {
 
 if [[ "$validate_only" != true ]]; then
   echo "Merging TOML (instructions) + markdown (metadata)..."
-  run_core merge \
-    --existing "$toml_path" \
-    --incoming "$md_path" \
-    --use-existing-order \
-    --prefer-existing-instructions \
-    --prefer-existing-options \
-    --prefer-existing-modlinks \
-    -f toml \
+  merge_args=(
+    merge
+    --existing "$toml_path"
+    --incoming "$md_path"
+    --use-existing-order
+    --prefer-existing-instructions
+    --prefer-existing-options
+    --prefer-existing-modlinks
+    -f toml
     -o "$output_path"
+  )
+  if [[ "$auto_generate_local" == true ]]; then
+    if [[ -z "$source_dir" ]]; then
+      echo "error: --auto-generate-local requires --source-dir" >&2
+      exit 1
+    fi
+    merge_args+=(--source-path "$source_dir" --auto-generate-local)
+  fi
+  run_core "${merge_args[@]}"
 
   if [[ -n "$export_format" ]]; then
     export_path="${output_path%.*}.${export_format,,}"
@@ -136,9 +158,9 @@ if [[ "$validate_only" != true ]]; then
   fi
 fi
 
-if [[ "$dry_run" == true ]]; then
+if [[ "$dry_run" == true || "$dry_run_only" == true ]]; then
   if [[ -z "$game_dir" || -z "$source_dir" ]]; then
-    echo "error: --dry-run requires --game-dir and --source-dir" >&2
+    echo "error: --dry-run and --dry-run-only require --game-dir and --source-dir" >&2
     exit 1
   fi
   # shellcheck source=common.sh
@@ -147,11 +169,17 @@ if [[ "$dry_run" == true ]]; then
   if [[ -x "$repo_root/scripts/agents/ensure_linux_holopatcher.sh" ]]; then
     "$repo_root/scripts/agents/ensure_linux_holopatcher.sh" || true
   fi
-  exec "$repo_root/scripts/agents/cli_validate.sh" \
-    --input "$output_path" \
-    --game-dir "$game_dir" \
-    --source-dir "$source_dir" \
-    --dry-run
+  validate_args=(
+    --input "$output_path"
+    --game-dir "$game_dir"
+    --source-dir "$source_dir"
+  )
+  if [[ "$dry_run_only" == true ]]; then
+    validate_args+=(--dry-run-only)
+  else
+    validate_args+=(--dry-run)
+  fi
+  exec "$repo_root/scripts/agents/cli_validate.sh" "${validate_args[@]}"
 fi
 
 echo "Merged instruction file: $output_path"

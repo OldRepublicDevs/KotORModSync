@@ -3944,14 +3944,20 @@ namespace KOTORModSync
                 ComponentValidationService.ClearValidationCache();
                 await Logger.LogVerboseAsync("[MainWindow] Cleared validation cache before validation");
 
-                progressDialog?.UpdateStatus("Running dry-run validation with VirtualFileSystemProvider...");
+                progressDialog?.UpdateStatus("Running validation pipeline...");
 
-                Core.Services.Validation.DryRunValidationResult dryRunResult = await Task.Run(() =>
-                    Core.Services.Validation.DryRunValidator.ValidateInstallationAsync(
+                var pipelineOptions = Core.Services.Validation.ValidationPipelineOptions.WizardFull;
+                pipelineOptions.MainConfig = MainConfigInstance;
+                pipelineOptions.CancellationToken = token;
+
+                Core.Services.Validation.ValidationPipelineResult pipelineResult = await Task.Run(
+                    () => Core.Services.Validation.InstallationValidationPipeline.RunAsync(
                         MainConfig.AllComponents,
-                        skipDependencyCheck: false,
-                        cancellationToken: token),
-                    token);
+                        pipelineOptions),
+                    token).ConfigureAwait(true);
+
+                Core.Services.Validation.DryRunValidationResult dryRunResult = pipelineResult.DryRunResult
+                    ?? new Core.Services.Validation.DryRunValidationResult();
 
                 if (token.IsCancellationRequested || dialogClosed)
                 {

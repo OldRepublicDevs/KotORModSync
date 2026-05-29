@@ -316,196 +316,28 @@ namespace KOTORModSync.Dialogs.WizardPages
             try
             {
                 var selectedMods = _allComponents.Where(c => c.IsSelected).ToList();
-                _totalSteps = 3 + selectedMods.Count + 1; // Environment + each mod + install order + dry-run
+                _totalSteps = 4;
 
-                _currentStep = 1;
-                _currentOperation = "Validating environment...";
-                AppendLog("Step 1: Validating installation environment");
-                UpdateLogHeader();
-
-                (bool envSuccess, string envMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
-                    _mainConfig,
-                    async msg =>
-                    {
-                        await Task.CompletedTask;
-                        AppendLog($"  {msg}");
-                        return true;
-                    }
-                );
-
-                if (!envSuccess)
+                var pipelineOptions = ValidationPipelineOptions.WizardFull;
+                pipelineOptions.MainConfig = _mainConfig;
+                pipelineOptions.ConfirmationCallback = async msg =>
                 {
-                    AppendLog($"  ❌ Environment validation failed: {envMessage}");
-                    AddResult("❌ Environment Error", envMessage);
-                    _errorCount++;
-                    _hasCriticalErrors = true;
-                }
-                else
-                {
-                    AppendLog("  ✅ Environment validation passed");
-                    AddResult("✅ Environment", "Installation environment is valid");
-                    _passedCount++;
-                }
+                    await Task.CompletedTask;
+                    AppendLog($"  {msg}");
+                    return true;
+                };
 
-                _currentStep++;
-                _currentOperation = "Checking mod conflicts...";
-                AppendLog($"Step 2: Checking conflicts for {selectedMods.Count} selected mod(s)");
-                UpdateLogHeader();
-
-                foreach (ModComponent component in selectedMods)
-                {
-                    AppendLog($"  Checking {component.Name}...");
-                    Dictionary<string, List<ModComponent>> conflicts = ModComponent.GetConflictingComponents(
-                        component.Dependencies,
-                        component.Restrictions,
-                        _allComponents
-                    );
-
-                    if (conflicts.ContainsKey("Dependency"))
+                ValidationPipelineResult pipelineResult = await InstallationValidationPipeline.RunAsync(
+                    _allComponents,
+                    pipelineOptions,
+                    (stage, step, total, message) =>
                     {
-                        List<ModComponent> deps = conflicts["Dependency"];
-                        string depNames = string.Join(", ", deps.Select(d => d.Name ?? string.Empty));
-                        AppendLog($"    ⚠️ Missing dependencies: {depNames}");
-                        AddResult($"⚠️ {component.Name}", $"Missing dependencies: {depNames}");
-                        _warningCount++;
-                    }
+                        _currentStep = step;
+                        _currentOperation = message ?? string.Empty;
+                        UpdateLogHeader();
+                    }).ConfigureAwait(true);
 
-                    if (conflicts.ContainsKey("Restriction"))
-                    {
-                        List<ModComponent> restrictions = conflicts["Restriction"];
-                        string restrictionNames = string.Join(", ", restrictions.Select(r => r.Name ?? string.Empty));
-                        AppendLog($"    ❌ Incompatible with: {restrictionNames}");
-                        AddResult($"❌ {component.Name}", $"Incompatible with: {restrictionNames}");
-                        _errorCount++;
-                        _hasCriticalErrors = true;
-                    }
-                    else if (!conflicts.ContainsKey("Dependency"))
-                    {
-                        AppendLog($"    ✅ No conflicts");
-                    }
-                }
-
-                _currentStep++;
-                _currentOperation = "Validating install order...";
-                AppendLog("Step 3: Validating mod installation order");
-                UpdateLogHeader();
-
-                try
-                {
-                    (bool isCorrectOrder, List<ModComponent> _) = ModComponent.ConfirmComponentsInstallOrder(selectedMods);
-                    if (!isCorrectOrder)
-                    {
-                        AppendLog("  ⚠️ Mods will be automatically reordered");
-                        AddResult("⚠️ Install Order", "Mods will be automatically reordered for proper installation");
-                        _warningCount++;
-                    }
-                    else
-                    {
-                        AppendLog("  ✅ Install order is correct");
-                        AddResult("✅ Install Order", "Mod installation order is correct");
-                        _passedCount++;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    AppendLog($"  ❌ Circular dependency detected: {ex.Message}");
-                    AddResult("❌ Install Order", $"Circular dependency detected: {ex.Message}");
-                    _errorCount++;
-                    _hasCriticalErrors = true;
-                }
-
-                // Perform dry-run validation using VFS and ExecuteInstructionsAsync
-                _currentStep++;
-                _currentOperation = "Running dry-run validation...";
-                AppendLog("Step 4: Running instruction execution validation (dry-run)");
-                UpdateLogHeader();
-
-                if (_statusText != null)
-                {
-                    _statusText.Text = "Running instruction execution validation...";
-                }
-
-                try
-                {
-                    DryRunValidationResult dryRunResult = await DryRunValidator.ValidateInstallationAsync(
-                        _allComponents,
-                        skipDependencyCheck: false,
-                        CancellationToken.None
-                    );
-
-                    if (dryRunResult.IsValid && !dryRunResult.HasWarnings)
-                    {
-                        AppendLog("  ✅ All instructions validated successfully");
-                        AddResult("✅ Instruction Execution", "All instructions validated successfully. Dry-run completed without errors.");
-                        _passedCount++;
-                    }
-                    else
-                    {
-                        int dryRunErrors = dryRunResult.Issues.Count(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical);
-                        int dryRunWarnings = dryRunResult.Issues.Count(i => i.Severity == ValidationSeverity.Warning);
-
-                        AppendLog($"  Found {dryRunErrors} error(s) and {dryRunWarnings} warning(s)");
-
-                        if (dryRunErrors > 0)
-                        {
-                            var errorIssues = dryRunResult.Issues
-                                .Where(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical)
-                                .Take(5)
-                                .ToList();
-
-                            foreach (var issue in errorIssues)
-                            {
-                                AppendLog($"    ❌ [{issue.Category}] {issue.Message}");
-                            }
-
-                            if (dryRunErrors > 5)
-                            {
-                                AppendLog($"    ... and {dryRunErrors - 5} more error(s)");
-                            }
-
-                            string errorSummary = errorIssues.Any()
-                                ? string.Join("; ", errorIssues.Select(i => $"{i.Category}: {i.Message}"))
-                                : "Unknown errors occurred";
-
-                            if (dryRunErrors > 5)
-                            {
-                                errorSummary += $" (and {dryRunErrors - 5} more)";
-                            }
-
-                            AddResult("❌ Instruction Execution", $"Dry-run validation failed with {dryRunErrors} error(s). {errorSummary}");
-                            _errorCount += dryRunErrors;
-                            _hasCriticalErrors = true;
-                        }
-                        else if (dryRunWarnings > 0)
-                        {
-                            var warningIssues = dryRunResult.Issues
-                                .Where(i => i.Severity == ValidationSeverity.Warning)
-                                .Take(3)
-                                .ToList();
-
-                            foreach (var issue in warningIssues)
-                            {
-                                AppendLog($"    ⚠️ [{issue.Category}] {issue.Message}");
-                            }
-
-                            if (dryRunWarnings > 3)
-                            {
-                                AppendLog($"    ... and {dryRunWarnings - 3} more warning(s)");
-                            }
-
-                            AddResult("⚠️ Instruction Execution", $"Dry-run validation passed with {dryRunWarnings} warning(s). Review details before proceeding.");
-                            _warningCount += dryRunWarnings;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    AppendLog($"  ❌ Exception: {ex.Message}");
-                    AppendLog($"  Stack trace: {ex.StackTrace}");
-                    AddResult("❌ Instruction Execution", $"Dry-run validation failed with exception: {ex.Message}");
-                    _errorCount++;
-                    _hasCriticalErrors = true;
-                }
+                ApplyPipelineResultToWizardUi(pipelineResult, selectedMods);
 
                 _currentStep = _totalSteps;
                 _currentOperation = string.Empty;
@@ -533,6 +365,139 @@ namespace KOTORModSync.Dialogs.WizardPages
 
                 _currentOperation = string.Empty;
                 UpdateLogHeader();
+            }
+        }
+
+        private void ApplyPipelineResultToWizardUi(
+            ValidationPipelineResult pipelineResult,
+            List<ModComponent> selectedMods)
+        {
+            _errorCount = pipelineResult.ErrorCount;
+            _warningCount = pipelineResult.WarningCount;
+            _passedCount = pipelineResult.PassedCount;
+            _hasCriticalErrors = pipelineResult.HasCriticalErrors;
+
+            int stepIndex = 0;
+            foreach (ValidationPipelineStageResult stage in pipelineResult.Stages)
+            {
+                stepIndex++;
+                switch (stage.Stage)
+                {
+                    case ValidationPipelineStage.Environment:
+                        AppendLog($"Step {stepIndex}: Validating installation environment");
+                        if (stage.Passed)
+                        {
+                            AppendLog("  ✅ Environment validation passed");
+                            AddResult("✅ Environment", stage.Summary ?? "Installation environment is valid");
+                        }
+                        else
+                        {
+                            AppendLog($"  ❌ Environment validation failed: {stage.Summary}");
+                            AddResult("❌ Environment Error", stage.Summary ?? "Environment validation failed");
+                        }
+
+                        break;
+                    case ValidationPipelineStage.Conflicts:
+                        AppendLog($"Step {stepIndex}: Checking conflicts for {selectedMods.Count} selected mod(s)");
+                        foreach (string message in stage.Messages)
+                        {
+                            AppendLog($"  {message}");
+                            if (message.StartsWith("WARNING:", StringComparison.Ordinal))
+                            {
+                                string detail = message.Substring(8).Trim();
+                                int colon = detail.IndexOf(':');
+                                string modName = colon > 0 ? detail.Substring(0, colon).Trim() : detail;
+                                AddResult($"⚠️ {modName}", detail);
+                            }
+                            else if (message.StartsWith("ERROR:", StringComparison.Ordinal))
+                            {
+                                string detail = message.Substring(6).Trim();
+                                int colon = detail.IndexOf(':');
+                                string modName = colon > 0 ? detail.Substring(0, colon).Trim() : detail;
+                                AddResult($"❌ {modName}", detail);
+                            }
+                        }
+
+                        if (stage.Messages.Count == 0)
+                        {
+                            AppendLog("  ✅ No conflicts");
+                        }
+
+                        break;
+                    case ValidationPipelineStage.InstallOrder:
+                        AppendLog($"Step {stepIndex}: Validating mod installation order");
+                        if (stage.Passed && !stage.HasWarnings)
+                        {
+                            AppendLog("  ✅ Install order is correct");
+                            AddResult("✅ Install Order", stage.Summary ?? "Mod installation order is correct");
+                        }
+                        else if (stage.Passed && stage.HasWarnings)
+                        {
+                            AppendLog("  ⚠️ Mods will be automatically reordered");
+                            AddResult("⚠️ Install Order", stage.Summary ?? "Mods will be automatically reordered");
+                        }
+                        else
+                        {
+                            AppendLog($"  ❌ {stage.Summary}");
+                            AddResult("❌ Install Order", stage.Summary ?? "Install order validation failed");
+                        }
+
+                        break;
+                    case ValidationPipelineStage.ComponentValidation:
+                        AppendLog($"Step {stepIndex}: Validating mod archives");
+                        foreach (string message in stage.Messages)
+                        {
+                            if (message.StartsWith("OK:", StringComparison.Ordinal))
+                            {
+                                AppendLog($"  ✅ {message.Substring(3).Trim()}");
+                            }
+                            else
+                            {
+                                AppendLog($"  {message}");
+                            }
+                        }
+
+                        break;
+                    case ValidationPipelineStage.DryRun:
+                        AppendLog($"Step {stepIndex}: Running instruction execution validation (dry-run)");
+                        if (pipelineResult.DryRunResult != null)
+                        {
+                            DryRunValidationResult dryRunResult = pipelineResult.DryRunResult;
+                            if (dryRunResult.IsValid && !dryRunResult.HasWarnings)
+                            {
+                                AppendLog("  ✅ All instructions validated successfully");
+                                AddResult("✅ Instruction Execution", "All instructions validated successfully. Dry-run completed without errors.");
+                            }
+                            else
+                            {
+                                int dryRunErrors = dryRunResult.Issues.Count(i =>
+                                    i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical);
+                                int dryRunWarnings = dryRunResult.Issues.Count(i => i.Severity == ValidationSeverity.Warning);
+                                AppendLog($"  Found {dryRunErrors} error(s) and {dryRunWarnings} warning(s)");
+
+                                if (dryRunErrors > 0)
+                                {
+                                    var errorIssues = dryRunResult.Issues
+                                        .Where(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical)
+                                        .Take(5)
+                                        .ToList();
+                                    foreach (Core.Services.FileSystem.ValidationIssue issue in errorIssues)
+                                    {
+                                        AppendLog($"    ❌ [{issue.Category}] {issue.Message}");
+                                    }
+
+                                    string errorSummary = string.Join("; ", errorIssues.Select(i => $"{i.Category}: {i.Message}"));
+                                    AddResult("❌ Instruction Execution", $"Dry-run validation failed with {dryRunErrors} error(s). {errorSummary}");
+                                }
+                                else if (dryRunWarnings > 0)
+                                {
+                                    AddResult("⚠️ Instruction Execution", $"Dry-run validation passed with {dryRunWarnings} warning(s).");
+                                }
+                            }
+                        }
+
+                        break;
+                }
             }
         }
 

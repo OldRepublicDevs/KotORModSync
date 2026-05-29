@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Services.Validation;
 using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Services
@@ -210,157 +211,26 @@ namespace KOTORModSync.Services
                     return;
                 }
 
-                // Clear validation cache before running new validation
                 Core.Services.Validation.PathValidationCache.ClearCache();
 
-                // Use proper VFS dry-run validation with ExecuteInstructionsAsync
-                var selectedComponents = _mainConfig.allComponents.Where(c => c.IsSelected).ToList();
+                var pipelineOptions = Core.Services.Validation.ValidationPipelineOptions.WizardFull;
+                pipelineOptions.MainConfig = _mainConfig;
 
-                // Execute each component using ExecuteInstructionsAsync to simulate installation
-                foreach (ModComponent component in selectedComponents)
+                Core.Services.Validation.ValidationPipelineResult pipelineResult =
+                    await Core.Services.Validation.InstallationValidationPipeline.RunAsync(
+                        _mainConfig.allComponents,
+                        pipelineOptions).ConfigureAwait(false);
+
+                if (pipelineResult.DryRunResult != null)
                 {
-                    if (component.Instructions.Count == 0 && component.Options.Count == 0)
+                    MapDryRunIssuesToDialogIssues(modIssues, pipelineResult.DryRunResult);
+                }
+
+                foreach (ValidationPipelineStageResult stage in pipelineResult.Stages)
+                {
+                    if (stage.Stage == ValidationPipelineStage.Environment && !stage.Passed)
                     {
-                        var issue = new Dialogs.ValidationIssue
-                        {
-                            Icon = "❌",
-                            ModName = component.Name,
-                            IssueType = "Missing Instructions",
-                            Description = "This mod has no installation instructions defined.",
-                            Solution = "Solution: Contact the mod list creator or disable this mod.",
-                            Component = component,
-                        };
-                        modIssues.Add(issue);
-                        continue;
-                    }
-
-                    try
-                    {
-                        // Create a fresh VFS for each component to track its issues separately
-                        var vfs = new Core.Services.FileSystem.VirtualFileSystemProvider();
-
-                        // Initialize VFS with current file state
-                        if (MainConfig.SourcePath != null && MainConfig.SourcePath.Exists)
-                        {
-                            await vfs.InitializeFromRealFileSystemAsync(MainConfig.SourcePath.FullName);
-                        }
-
-                        if (MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists)
-                        {
-                            await vfs.InitializeFromRealFileSystemAsync(MainConfig.DestinationPath.FullName);
-                        }
-
-                        // Validate all paths in this component and cache results
-                        await PopulatePathValidationCacheAsync(component);
-
-                        // Execute instructions using the component's built-in method with VFS
-                        ModComponent.InstallExitCode exitCode = await component.ExecuteInstructionsAsync(
-                            component.Instructions,
-                            selectedComponents,
-                            default,
-                            vfs,
-                            skipDependencyCheck: false
-                        );
-
-                        // Collect validation issues from VFS and mark them with this component
-                        List<Core.Services.FileSystem.ValidationIssue> vfsIssues = vfs.GetValidationIssues();
-                        foreach (ValidationIssue issue in vfsIssues)
-                        {
-                            if (issue.AffectedComponent == null)
-                            {
-                                issue.AffectedComponent = component;
-                            }
-                        }
-
-                        // Filter for critical errors that would prevent installation
-                        var criticalIssues = vfsIssues.Where(i =>
-                            (i.Severity == Core.Services.FileSystem.ValidationSeverity.Error || i.Severity == Core.Services.FileSystem.ValidationSeverity.Critical) &&
-                            (string.Equals(i.Category, "ExtractArchive", StringComparison.Ordinal) ||
-                             string.Equals(i.Category, "ArchiveValidation", StringComparison.Ordinal) ||
-                             string.Equals(i.Category, "MoveFile", StringComparison.Ordinal) ||
-                             string.Equals(i.Category, "CopyFile", StringComparison.Ordinal) ||
-                             i.Message.Contains("does not exist"))
-                        ).ToList();
-
-                        if (criticalIssues.Count > 0 || exitCode != ModComponent.InstallExitCode.Success)
-                        {
-                            // Group issues by type for better presentation
-                            bool hasArchiveIssues = criticalIssues.Exists(i =>
-                                string.Equals(i.Category, "ExtractArchive", StringComparison.Ordinal) ||
-                                string.Equals(i.Category, "ArchiveValidation", StringComparison.Ordinal));
-
-                            string issueType = hasArchiveIssues ? "Missing Download" : "Missing Files";
-                            string icon = hasArchiveIssues ? "📥" : "🔧";
-
-                            string description;
-                            if (hasArchiveIssues)
-                            {
-                                description = "The mod archive file is not in your Mod Directory or cannot be extracted.";
-                            }
-                            else
-                            {
-                                var missingPaths = criticalIssues
-                                    .Where(i => !string.IsNullOrEmpty(i.AffectedPath))
-                                    .Select(i => Path.GetFileName(i.AffectedPath))
-                                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                                    .Take(3)
-                                    .ToList();
-
-                                if (missingPaths.Count > 0)
-                                {
-                                    string moreText = criticalIssues.Count > missingPaths.Count ? $" and {criticalIssues.Count - missingPaths.Count} more" : "";
-                                    description = $"Missing file(s): {string.Join(", ", missingPaths)}{moreText}";
-                                }
-                                else
-                                {
-                                    description = "One or more required files for this mod are missing from your Mod Directory.";
-                                }
-                            }
-
-                            string solution;
-                            if (hasArchiveIssues)
-                            {
-                                if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
-                                {
-                                    solution = $"Solution: Click 'Fetch Downloads' or manually download from: {component.ResourceRegistry.Keys.First()}";
-                                }
-                                else
-                                {
-                                    solution = "Solution: Click 'Fetch Downloads' or manually download and place in Mod Directory.";
-                                }
-                            }
-                            else
-                            {
-                                solution = "Solution: Check the Output Window for details or click 'Fetch Downloads' to download missing files.";
-                            }
-
-                            var issue = new Dialogs.ValidationIssue
-                            {
-                                Icon = icon,
-                                ModName = component.Name,
-                                IssueType = issueType,
-                                Description = description,
-                                Solution = solution,
-                                Component = component,
-                                VfsIssue = criticalIssues.FirstOrDefault(), // Store first issue for details
-                                AllVfsIssues = criticalIssues, // Store all issues for detailed view
-                            };
-                            modIssues.Add(issue);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        await Logger.LogExceptionAsync(ex, $"Error validating component '{component.Name}'");
-                        var issue = new Dialogs.ValidationIssue
-                        {
-                            Icon = "❌",
-                            ModName = component.Name,
-                            IssueType = "Validation Error",
-                            Description = $"An error occurred during validation: {ex.Message}",
-                            Solution = "Solution: Check the Output Window for details.",
-                            Component = component,
-                        };
-                        modIssues.Add(issue);
+                        systemIssues.Add($"⚙️ Environment\n{stage.Summary}");
                     }
                 }
 
@@ -386,6 +256,31 @@ namespace KOTORModSync.Services
                 systemIssues.Add("❌ Unexpected Error\n" +
                                 "An error occurred during validation analysis.\n" +
                                 "Solution: Check the Output Window for details.");
+            }
+        }
+
+        private static void MapDryRunIssuesToDialogIssues(
+            List<Dialogs.ValidationIssue> modIssues,
+            DryRunValidationResult dryRunResult)
+        {
+            foreach (Core.Services.FileSystem.ValidationIssue coreIssue in dryRunResult.Issues)
+            {
+                if (coreIssue.Severity != Core.Services.FileSystem.ValidationSeverity.Error &&
+                    coreIssue.Severity != Core.Services.FileSystem.ValidationSeverity.Critical)
+                {
+                    continue;
+                }
+
+                modIssues.Add(new Dialogs.ValidationIssue
+                {
+                    Icon = "❌",
+                    ModName = coreIssue.AffectedComponent?.Name ?? "Unknown",
+                    IssueType = coreIssue.Category ?? "Validation",
+                    Description = coreIssue.Message ?? "No description available",
+                    Solution = "Solution: Check the Output Window for details.",
+                    Component = coreIssue.AffectedComponent,
+                    VfsIssue = coreIssue,
+                });
             }
         }
 

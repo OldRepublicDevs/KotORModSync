@@ -16,7 +16,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 | 6 | `AspyrNoticePage` | Acknowledge (K2) | No CLI equivalent | UI |
 | 7 | `ModSelectionPage` | Select mods, filters | `install` without `--select` = select all; `install --select category:X` / `tier:X` | Full (install); Partial (subset only with `--select`) |
 | 8 | `DownloadsExplainPage` | Continue (downloads may run) | `install -d` or `convert -d` | Partial |
-| 9 | `ValidatePage` | Run validation | `validate --full` (selected mods only in GUI); CLI: `validate --full --use-file-selection` | Full |
+| 9 | `ValidatePage` | Run validation | `validate --full --dry-run --use-file-selection` (same Core `InstallationValidationPipeline` as GUI) | Full |
 | 10 | `InstallStartPage` | Confirm install | `install -y` | Full |
 | 11 | `InstallingPage` | Watch progress | `install` (console progress) | Full |
 | 12 | `BaseInstallCompletePage` | Continue | N/A | Full |
@@ -31,7 +31,7 @@ Wizard order from `src/KOTORModSync.GUI/Dialogs/InstallWizardDialog.axaml.cs` an
 | `Step1KotorDirectoryPicker` | `--kotorPath=` / `-g` | Full |
 | `Step2Button` (load file) | `--instructionFile=` / `-i` | Full |
 | `ScrapeDownloadsButton` | `install -d` or `convert -d` | Partial |
-| `ValidateButton` | `validate --full` | Full |
+| `ValidateButton` | `validate --full --dry-run --use-file-selection` (via `InstallationValidationPipeline`) | Full |
 | `OpenModDirectoryButton` | `ls` / file tools on mod dir | Full |
 | Download status / stop | No first-class CLI | UI |
 

@@ -18,7 +18,9 @@ Use these when citing findings in plans, PRs, or audits:
 
 | If you are… | Read first | Then |
 |-------------|------------|------|
-| New to the repo | `AGENTS.md` | This file → `doc-hierarchy.md` |
+| New to the repo | [product-overview.md](product-overview.md) | `AGENTS.md` → `doc-hierarchy.md` |
+| Authoring or fixing TOML | [instruction-format.md](instruction-format.md) | [mod-component-model.md](mod-component-model.md) |
+| Debugging validation failures | [validation-pipeline.md](validation-pipeline.md) | [vfs-vs-real-fs.md](vfs-vs-real-fs.md) |
 | Headless build/test/core | `.github/copilot-instructions.md` | `core-cli-reference.md` |
 | GUI / install wizard / full-build | `docs/local_desktop_agent_runbook.md` | `agent-action-parity.md` |
 | Release or versioning | `docs/manual-release.md` | `docs/solutions/manual-release-workflow.md` |
@@ -26,6 +28,13 @@ Use these when citing findings in plans, PRs, or audits:
 | telemetry-auth sidecar | [telemetry-auth-routing.md](telemetry-auth-routing.md) → `telemetry-auth/README.md` | Do not use Avalonia runbooks |
 
 ## Topic index
+
+### Domain model (start here for TOML and validation)
+
+- [Product overview](product-overview.md) — what KOTORModSync is, audiences, workflows
+- [Instruction file format](instruction-format.md) — path placeholders, action types, minimal examples
+- [Mod component model](mod-component-model.md) — component/instruction fields, selection semantics
+- [Validation pipeline](validation-pipeline.md) — five stages, fail-fast, CLI/GUI mapping
 
 ### Architecture and agent parity
 

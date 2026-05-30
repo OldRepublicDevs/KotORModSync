@@ -210,21 +210,25 @@ Destination = ""<<kotorDirectory>>\\Override""
         }
 
         [Test]
-        public void ModBuildConverter_Run_validate_UsesSamePipelineOptionsShape()
+        public void ModBuildConverter_Run_validate_FullDryRunWithMissingArchive_ExitsNonZero()
         {
-            string tomlPath = Path.Combine(_tempDir, "minimal.toml");
+            string componentGuid = Guid.NewGuid().ToString();
+            string instructionGuid = Guid.NewGuid().ToString();
+            string tomlPath = Path.Combine(_tempDir, "validate_missing_archive.toml");
             File.WriteAllText(
                 tomlPath,
-                @"[[thisMod]]
-name = ""TestMod""
-isSelected = true
-tier = ""1 - Essential""
-category = [""Immersion""]
+                $@"[[thisMod]]
+Guid = ""{componentGuid}""
+Name = ""MissingArchiveMod""
+IsSelected = true
+Tier = ""1 - Essential""
+Category = [""Test""]
 
-[[thisMod.instructions]]
-action = ""Move""
-source = [""<<modDirectory>>/missing.zip""]
-destination = ""<<kotorDirectory>>/Override""
+[[thisMod.Instructions]]
+Guid = ""{instructionGuid}""
+Action = ""Extract""
+Source = [""<<modDirectory>>\\definitely_missing.zip""]
+Destination = ""<<kotorDirectory>>\\Override""
 ");
 
             string gameDir = MainConfig.DestinationPath.FullName;
@@ -242,7 +246,66 @@ destination = ""<<kotorDirectory>>/Override""
                 "--errors-only",
             });
 
-            Assert.That(exitCode, Is.EqualTo(1).Or.EqualTo(0));
+            Assert.That(exitCode, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Install_WithRestrictionConflict_AutoDeselectsConflictingMod()
+        {
+            string gameDir = MainConfig.DestinationPath.FullName;
+            string modDir = MainConfig.SourcePath.FullName;
+            File.WriteAllText(Path.Combine(gameDir, "swkotor.exe"), string.Empty);
+            File.WriteAllText(Path.Combine(modDir, "b.txt"), "payload");
+
+            var dependencyGuid = Guid.NewGuid();
+            var restrictedGuid = Guid.NewGuid();
+            string depInstructionGuid = Guid.NewGuid().ToString();
+            string resInstructionGuid = Guid.NewGuid().ToString();
+
+            string tomlPath = Path.Combine(_tempDir, "install_restriction_autofix.toml");
+            File.WriteAllText(
+                tomlPath,
+                $@"[[thisMod]]
+Guid = ""{dependencyGuid}""
+Name = ""DependencyMod""
+IsSelected = true
+Tier = ""1 - Essential""
+Category = [""Test""]
+
+[[thisMod.Instructions]]
+Guid = ""{depInstructionGuid}""
+Action = ""Move""
+Source = [""<<modDirectory>>\\a.txt""]
+Destination = ""<<kotorDirectory>>\\Override""
+
+[[thisMod]]
+Guid = ""{restrictedGuid}""
+Name = ""RestrictedMod""
+IsSelected = true
+Restrictions = [""{dependencyGuid}""]
+Tier = ""1 - Essential""
+Category = [""Test""]
+
+[[thisMod.Instructions]]
+Guid = ""{resInstructionGuid}""
+Action = ""Move""
+Source = [""<<modDirectory>>\\b.txt""]
+Destination = ""<<kotorDirectory>>\\Override""
+");
+
+            int exitCode = ModBuildConverter.Run(new[]
+            {
+                "install",
+                "-i", tomlPath,
+                "-g", gameDir,
+                "-s", modDir,
+                "--use-file-selection",
+                "--skip-validation",
+                "-y",
+            });
+
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(File.Exists(Path.Combine(gameDir, "Override", "b.txt")), Is.True);
         }
     }
 }

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.TSLPatcher
 {
@@ -139,7 +140,7 @@ namespace KOTORModSync.Core.TSLPatcher
             {
                 if (File.Exists(changesIniPath))
                 {
-                    return await File.ReadAllTextAsync(changesIniPath).ConfigureAwait(false);
+                    return await NetFrameworkCompatibility.ReadAllTextAsync(changesIniPath).ConfigureAwait(false);
                 }
 
                 return string.Empty;

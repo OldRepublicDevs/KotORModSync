@@ -315,8 +315,8 @@ namespace KOTORModSync.Core
                     foreach (string processedPath in processedSource)
                     {
                         if (string.IsNullOrWhiteSpace(processedPath)
-                            || processedPath.Contains('*', StringComparison.Ordinal)
-                            || processedPath.Contains('?', StringComparison.Ordinal))
+                            || NetFrameworkCompatibility.Contains(processedPath, '*', StringComparison.Ordinal)
+                            || NetFrameworkCompatibility.Contains(processedPath, '?', StringComparison.Ordinal))
                         {
                             continue;
                         }
@@ -336,9 +336,10 @@ namespace KOTORModSync.Core
                             newSourcePaths = new List<string>();
                         }
 
-                        if (!newSourcePaths.Contains(literalPath, MainConfig.CaseInsensitivePathing
-                                ? StringComparer.OrdinalIgnoreCase
-                                : StringComparer.Ordinal))
+                        bool literalAlreadyListed = MainConfig.CaseInsensitivePathing
+                            ? newSourcePaths.Exists(p => string.Equals(p, literalPath, StringComparison.OrdinalIgnoreCase))
+                            : newSourcePaths.Contains(literalPath);
+                        if (!literalAlreadyListed)
                         {
                             newSourcePaths.Add(literalPath);
                         }
